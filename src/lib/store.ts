@@ -1,0 +1,66 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { BRANCHES } from "./data";
+
+export type CartItem = { dishId: string; qty: number };
+export type Profile = { name: string; phone: string; address: string; branchId: string; email?: string; role?: string; joinedDate?: Date | string; } | null;
+
+type State = {
+  branchId: string;
+  setBranch: (id: string) => void;
+  cart: CartItem[];
+  addToCart: (dishId: string) => void;
+  removeFromCart: (dishId: string) => void;
+  setQty: (dishId: string, qty: number) => void;
+  clearCart: () => void;
+  profile: Profile;
+  setProfile: (p: Profile) => void;
+  favorites: string[];
+  toggleFav: (id: string) => void;
+  orders: { id: string; date: string; branchId: string; items: CartItem[]; total: number }[];
+  placeOrder: (total: number) => string;
+  locationResolved: boolean;
+  resolveLocation: (branchId: string) => void;
+};
+
+export const useStore = create<State>()(
+  persist(
+    (set, get) => ({
+      branchId: BRANCHES[0].id,
+      setBranch: (id) => set({ branchId: id, cart: [] }),
+      cart: [],
+      addToCart: (dishId) => {
+        const existing = get().cart.find(c => c.dishId === dishId);
+        if (existing) set({ cart: get().cart.map(c => c.dishId === dishId ? { ...c, qty: c.qty + 1 } : c) });
+        else set({ cart: [...get().cart, { dishId, qty: 1 }] });
+      },
+      removeFromCart: (dishId) => set({ cart: get().cart.filter(c => c.dishId !== dishId) }),
+      setQty: (dishId, qty) => set({
+        cart: qty <= 0
+          ? get().cart.filter(c => c.dishId !== dishId)
+          : get().cart.map(c => c.dishId === dishId ? { ...c, qty } : c)
+      }),
+      clearCart: () => set({ cart: [] }),
+      profile: null,
+      setProfile: (p) => set({ profile: p }),
+      favorites: [],
+      toggleFav: (id) => set({
+        favorites: get().favorites.includes(id)
+          ? get().favorites.filter(x => x !== id)
+          : [...get().favorites, id]
+      }),
+      orders: [],
+      placeOrder: (total) => {
+        const id = "MAL" + Math.random().toString(36).slice(2, 8).toUpperCase();
+        set({
+          orders: [{ id, date: new Date().toISOString(), branchId: get().branchId, items: get().cart, total }, ...get().orders],
+          cart: [],
+        });
+        return id;
+      },
+      locationResolved: false,
+      resolveLocation: (branchId) => set({ branchId, locationResolved: true }),
+    }),
+    { name: "malashree-store" }
+  )
+);
