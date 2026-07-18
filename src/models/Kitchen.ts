@@ -1,4 +1,5 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose from 'mongoose';
+const { Schema, model, models } = mongoose;
 
 const KitchenSchema = new Schema({
   name: { type: String, required: true },

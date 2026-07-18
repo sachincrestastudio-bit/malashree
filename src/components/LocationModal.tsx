@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { requestGPSLocation } from "@/services/client/LocationService";
 import { assignNearestKitchen } from "@/services/client/KitchenAssignmentService";
 import { useLocationStore } from "@/store/locationStore";
+import { setAssignedKitchen } from "@/actions/kitchen";
 
 export function LocationModal() {
   const resolved = useStore(s => s.locationResolved);
@@ -46,6 +47,9 @@ export function LocationModal() {
 
       setLocation(coords.latitude, coords.longitude, assignment.kitchenId, assignment.distance, 'gps');
       resolve(assignment.kitchenId);
+      
+      // Securely set the kitchen context server-side
+      await setAssignedKitchen(assignment.kitchenId);
       
       setOpen(false);
       setDetecting(false);

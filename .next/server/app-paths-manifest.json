@@ -1,1 +1,20 @@
-{}
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/auth/route": "app/api/auth/route.js",
+  "/api/checkout/route": "app/api/checkout/route.js",
+  "/api/kitchen/route": "app/api/kitchen/route.js",
+  "/api/menu/route": "app/api/menu/route.js",
+  "/api/notifications/route": "app/api/notifications/route.js",
+  "/api/offers/route": "app/api/offers/route.js",
+  "/api/orders/route": "app/api/orders/route.js",
+  "/api/payment/route": "app/api/payment/route.js",
+  "/api/review/route": "app/api/review/route.js",
+  "/cart/page": "app/cart/page.js",
+  "/branches/page": "app/branches/page.js",
+  "/checkout/page": "app/checkout/page.js",
+  "/login/page": "app/login/page.js",
+  "/menu/page": "app/menu/page.js",
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/register/page": "app/register/page.js"
+}

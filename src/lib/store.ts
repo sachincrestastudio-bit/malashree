@@ -4,10 +4,13 @@ import { BRANCHES } from "./data";
 
 export type CartItem = { dishId: string; qty: number };
 export type Profile = { name: string; phone: string; address: string; branchId: string; email?: string; role?: string; joinedDate?: Date | string; } | null;
+import { Dish } from "./data";
 
 type State = {
   branchId: string;
   setBranch: (id: string) => void;
+  kitchenMenu: Dish[];
+  setKitchenMenu: (menu: Dish[]) => void;
   cart: CartItem[];
   addToCart: (dishId: string) => void;
   removeFromCart: (dishId: string) => void;
@@ -27,7 +30,9 @@ export const useStore = create<State>()(
   persist(
     (set, get) => ({
       branchId: BRANCHES[0].id,
-      setBranch: (id) => set({ branchId: id, cart: [] }),
+      setBranch: (id) => set({ branchId: id, cart: [], kitchenMenu: [] }),
+      kitchenMenu: [],
+      setKitchenMenu: (menu) => set({ kitchenMenu: menu }),
       cart: [],
       addToCart: (dishId) => {
         const existing = get().cart.find(c => c.dishId === dishId);
@@ -59,7 +64,14 @@ export const useStore = create<State>()(
         return id;
       },
       locationResolved: false,
-      resolveLocation: (branchId) => set({ branchId, locationResolved: true }),
+      resolveLocation: (branchId) => {
+        const currentBranch = get().branchId;
+        // If kitchen changes, clear the cart to prevent ordering items that don't belong to the new kitchen
+        if (currentBranch && currentBranch !== branchId) {
+          set({ cart: [] });
+        }
+        set({ branchId, locationResolved: true });
+      },
     }),
     { name: "malashree-store" }
   )

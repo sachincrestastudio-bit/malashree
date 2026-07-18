@@ -1,0 +1,20 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/auth/route": "/api/auth",
+  "/api/checkout/route": "/api/checkout",
+  "/api/kitchen/route": "/api/kitchen",
+  "/api/menu/route": "/api/menu",
+  "/api/notifications/route": "/api/notifications",
+  "/api/offers/route": "/api/offers",
+  "/api/orders/route": "/api/orders",
+  "/api/payment/route": "/api/payment",
+  "/api/review/route": "/api/review",
+  "/cart/page": "/cart",
+  "/branches/page": "/branches",
+  "/checkout/page": "/checkout",
+  "/login/page": "/login",
+  "/menu/page": "/menu",
+  "/page": "/",
+  "/profile/page": "/profile",
+  "/register/page": "/register"
+}

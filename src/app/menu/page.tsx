@@ -2,41 +2,58 @@
 
 import Link from "next/link";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Search, ChevronRight, Leaf, ShoppingBag, Plus, Minus, Trash2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DishCard } from "@/components/DishCard";
 import { useStore } from "@/lib/store";
 import { getBranch, findDish } from "@/lib/data";
+import { getKitchenMenu, searchKitchenMenu } from "@/actions/menu";
 
 
 
 function MenuPage() {
-  const branchId = useStore(s => s.branchId);
-  const branch = getBranch(branchId);
+  const { branchId, kitchenMenu, setKitchenMenu, cart, setQty, removeFromCart: remove, addToCart } = useStore();
+  const branch = getBranch(branchId); // Keep for static metadata (hero, vibe)
   
   const [q, setQ] = useState("");
   const [vegOnly, setVegOnly] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Zustand cart actions
-  const cart = useStore(s => s.cart);
-  const setQty = useStore(s => s.setQty);
-  const remove = useStore(s => s.removeFromCart);
+  // Fetch menu from backend based on search query
+  useEffect(() => {
+    let mounted = true;
+    const fetchMenu = async () => {
+      setLoading(true);
+      const data = q.trim().length > 0 ? await searchKitchenMenu(q) : await getKitchenMenu();
+      if (mounted) {
+        setKitchenMenu(data);
+        setLoading(false);
+      }
+    };
+    
+    // Debounce search
+    const timer = setTimeout(fetchMenu, q.trim().length > 0 ? 300 : 0);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, [q, branchId, setKitchenMenu]);
 
-  // Dynamically calculate categories present in this branch's menu
+  // Dynamically calculate categories present in this kitchen's menu
   const categories = useMemo(() => {
-    return Array.from(new Set(branch.menu.map(d => d.category)));
-  }, [branch]);
+    return Array.from(new Set(kitchenMenu.map(d => d.category)));
+  }, [kitchenMenu]);
 
-  // Group dishes by category, filtering by search and veg status
+  // Group dishes by category, filtering by veg status
   const groupedDishes = useMemo(() => {
-    const groups: { [key: string]: typeof branch.menu } = {};
-    branch.menu.forEach(d => {
-      const matchesSearch = !q || d.name.toLowerCase().includes(q.toLowerCase()) || d.desc.toLowerCase().includes(q.toLowerCase());
+    const groups: { [key: string]: typeof kitchenMenu } = {};
+    kitchenMenu.forEach(d => {
+      // Search is handled by backend, only handle veg filter here
       const matchesVeg = !vegOnly || d.veg;
       
-      if (matchesSearch && matchesVeg) {
+      if (matchesVeg) {
         if (!groups[d.category]) {
           groups[d.category] = [];
         }
@@ -44,7 +61,7 @@ function MenuPage() {
       }
     });
     return groups;
-  }, [branch.menu, q, vegOnly]);
+  }, [kitchenMenu, vegOnly]);
 
   // Filter categories to only those containing items after search/veg filters
   const activeCategories = useMemo(() => {
@@ -54,10 +71,10 @@ function MenuPage() {
   // Resolve full dish objects in cart
   const cartItems = useMemo(() => {
     return cart.map(c => {
-      const dish = branch.menu.find(d => d.id === c.dishId) || findDish(c.dishId);
+      const dish = kitchenMenu.find(d => d.id === c.dishId) || findDish(c.dishId);
       return { ...c, dish };
     }).filter(i => i.dish);
-  }, [cart, branch.menu]);
+  }, [cart, kitchenMenu]);
 
   // Calculate live checkout totals
   const subtotal = useMemo(() => {
@@ -68,10 +85,10 @@ function MenuPage() {
   const total = subtotal + gst + delivery;
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
 
-  const featured = branch.menu.find(d => d.tag) ?? branch.menu[0];
+  // Find featured dish safely
+  const featured = kitchenMenu.find(d => d.tag) ?? kitchenMenu[0];
   const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const addToCart = useStore(s => s.addToCart);
-  const featuredInCart = cart.find(c => c.dishId === featured.id);
+  const featuredInCart = featured ? cart.find(c => c.dishId === featured.id) : null;
 
   return (
     <div className="min-h-screen bg-cream">
@@ -142,7 +159,7 @@ function MenuPage() {
       </section>
 
       {/* Featured "cover story" */}
-      {!q && !vegOnly && (
+      {!q && !vegOnly && featured && !loading && (
         <section className="mx-auto max-w-7xl px-4 sm:px-6 py-10 border-b border-ink/10">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 items-center">
             <div className="md:col-span-7 relative aspect-[4/3] overflow-hidden">
@@ -213,8 +230,13 @@ function MenuPage() {
         </aside>
 
         {/* Middle Column: Dishes Grouped by Category Heading */}
-        <div className="flex-1 min-w-0">
-          {activeCategories.length === 0 ? (
+        <div className="flex-1 min-w-0 min-h-[50vh]">
+          {loading ? (
+            <div className="py-24 text-center text-olive-dark flex flex-col items-center justify-center animate-pulse">
+              <span className="size-8 border-2 border-ink border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="font-mono text-[10px] tracking-[0.28em] uppercase">Loading Kitchen Menu...</p>
+            </div>
+          ) : activeCategories.length === 0 ? (
             <div className="py-24 text-center text-olive-dark border-y border-ink/10">
               <p className="font-display text-4xl italic text-ink">Nothing on the register.</p>
               <p className="text-xs mt-3 tracking-widest uppercase font-mono">Try clearing your filters</p>
