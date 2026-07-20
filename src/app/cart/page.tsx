@@ -3,11 +3,12 @@
 import Link from "next/link";
 
 import { Minus, Plus, Trash2, Tag } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStore } from "@/lib/store";
 import { findDish, getBranch } from "@/lib/data";
+import { syncCart } from "@/actions/cart";
 
 
 
@@ -17,15 +18,40 @@ function Cart() {
   const remove = useStore(s => s.removeFromCart);
   const branch = getBranch(useStore(s => s.branchId));
   const profile = useStore(s => s.profile);
+  const cartTotals = useStore(s => s.cartTotals);
+  const setCartTotals = useStore(s => s.setCartTotals);
   const [coupon, setCoupon] = useState("");
   const [applied, setApplied] = useState<string | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  // Sync cart with server whenever local cart or applied coupon changes
+  useEffect(() => {
+    let mounted = true;
+    const fetchTotals = async () => {
+      if (cart.length === 0) {
+        setCartTotals(null);
+        return;
+      }
+      setIsCalculating(true);
+      const res = await syncCart(cart, applied);
+      if (mounted && res) {
+        setCartTotals(res);
+        setIsCalculating(false);
+      }
+    };
+    
+    // Debounce to prevent spamming the backend when rapidly changing quantities
+    const timer = setTimeout(fetchTotals, 300);
+    return () => { mounted = false; clearTimeout(timer); };
+  }, [cart, applied, setCartTotals]);
 
   const items = cart.map(c => ({ ...c, dish: findDish(c.dishId)! })).filter(i => i.dish);
-  const subtotal = items.reduce((n, i) => n + i.dish.price * i.qty, 0);
-  const discount = applied ? Math.round(subtotal * 0.1) : 0;
-  const delivery = subtotal > 0 ? (subtotal > 499 ? 0 : 39) : 0;
-  const gst = Math.round((subtotal - discount) * 0.05);
-  const total = subtotal - discount + delivery + gst;
+  
+  const subtotal = cartTotals?.subtotal || 0;
+  const discount = cartTotals?.discount || 0;
+  const delivery = cartTotals?.deliveryFee || 0;
+  const gst = cartTotals?.tax || 0;
+  const total = cartTotals?.grandTotal || 0;
 
   const apply = () => {
     const valid = branch.offers.find(o => o.code.toLowerCase() === coupon.toLowerCase());
@@ -38,6 +64,8 @@ function Cart() {
       <section className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
         <h1 className="font-display text-5xl leading-[0.95]">your <span className="italic">cart</span></h1>
         <p className="mt-2 text-olive-dark text-sm">From {branch.name}</p>
+
+        {isCalculating && <div className="absolute top-4 right-4 text-xs font-mono uppercase tracking-widest text-lime-deep animate-pulse">Calculating totals...</div>}
 
         {items.length === 0 ? (
           <div className="mt-16 text-center">

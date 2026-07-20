@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, RefreshCw, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { loginUser } from "@/actions/auth";
+import { mergeGuestCart } from "@/actions/cart";
+import { useStore } from "@/lib/store";
 
 export default function Login() {
   const nav = useRouter();
@@ -36,6 +38,17 @@ export default function Login() {
       setLoading(false);
       setStep(0); // Reset to email step on error
       return;
+    }
+
+    // Merge guest cart to DB now that auth cookie is set
+    const store = useStore.getState();
+    const cart = store.cart;
+    
+    const merged = await mergeGuestCart(cart);
+    if (merged) {
+      // Overwrite local cart with the merged DB cart so cross-device items appear
+      store.setCartTotals(merged.totals);
+      store.setCart(merged.items);
     }
 
     nav.push("/profile");

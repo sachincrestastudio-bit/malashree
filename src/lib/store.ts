@@ -12,6 +12,9 @@ type State = {
   kitchenMenu: Dish[];
   setKitchenMenu: (menu: Dish[]) => void;
   cart: CartItem[];
+  setCart: (cart: CartItem[]) => void;
+  cartTotals: { subtotal: number; discount: number; tax: number; deliveryFee: number; grandTotal: number; couponCode: string | null } | null;
+  setCartTotals: (totals: any) => void;
   addToCart: (dishId: string) => void;
   removeFromCart: (dishId: string) => void;
   setQty: (dishId: string, qty: number) => void;
@@ -30,10 +33,13 @@ export const useStore = create<State>()(
   persist(
     (set, get) => ({
       branchId: BRANCHES[0].id,
-      setBranch: (id) => set({ branchId: id, cart: [], kitchenMenu: [] }),
+      setBranch: (id) => set({ branchId: id, cart: [], kitchenMenu: [], cartTotals: null }),
       kitchenMenu: [],
       setKitchenMenu: (menu) => set({ kitchenMenu: menu }),
       cart: [],
+      setCart: (cart) => set({ cart }),
+      cartTotals: null,
+      setCartTotals: (totals) => set({ cartTotals: totals }),
       addToCart: (dishId) => {
         const existing = get().cart.find(c => c.dishId === dishId);
         if (existing) set({ cart: get().cart.map(c => c.dishId === dishId ? { ...c, qty: c.qty + 1 } : c) });

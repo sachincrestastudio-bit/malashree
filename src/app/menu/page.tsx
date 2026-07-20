@@ -10,11 +10,12 @@ import { DishCard } from "@/components/DishCard";
 import { useStore } from "@/lib/store";
 import { getBranch, findDish } from "@/lib/data";
 import { getKitchenMenu, searchKitchenMenu } from "@/actions/menu";
+import { syncCart } from "@/actions/cart";
 
 
 
 function MenuPage() {
-  const { branchId, kitchenMenu, setKitchenMenu, cart, setQty, removeFromCart: remove, addToCart } = useStore();
+  const { branchId, kitchenMenu, setKitchenMenu, cart, cartTotals, setCartTotals, setQty, removeFromCart: remove, addToCart } = useStore();
   const branch = getBranch(branchId); // Keep for static metadata (hero, vibe)
   
   const [q, setQ] = useState("");
@@ -40,6 +41,24 @@ function MenuPage() {
       clearTimeout(timer);
     };
   }, [q, branchId, setKitchenMenu]);
+
+  // Sync cart with server to calculate reliable totals
+  useEffect(() => {
+    let mounted = true;
+    const fetchTotals = async () => {
+      if (cart.length === 0) {
+        setCartTotals(null);
+        return;
+      }
+      const res = await syncCart(cart);
+      if (mounted && res) {
+        setCartTotals(res);
+      }
+    };
+    
+    const timer = setTimeout(fetchTotals, 300);
+    return () => { mounted = false; clearTimeout(timer); };
+  }, [cart, setCartTotals]);
 
   // Dynamically calculate categories present in this kitchen's menu
   const categories = useMemo(() => {
@@ -76,13 +95,11 @@ function MenuPage() {
     }).filter(i => i.dish);
   }, [cart, kitchenMenu]);
 
-  // Calculate live checkout totals
-  const subtotal = useMemo(() => {
-    return cartItems.reduce((acc, item) => acc + (item.dish?.price || 0) * item.qty, 0);
-  }, [cartItems]);
-  const gst = Math.round(subtotal * 0.05);
-  const delivery = subtotal > 0 ? (subtotal > 499 ? 0 : 39) : 0;
-  const total = subtotal + gst + delivery;
+  // Use reliable checkout totals from the server
+  const subtotal = cartTotals?.subtotal || 0;
+  const gst = cartTotals?.tax || 0;
+  const delivery = cartTotals?.deliveryFee || 0;
+  const total = cartTotals?.grandTotal || 0;
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
 
   // Find featured dish safely
