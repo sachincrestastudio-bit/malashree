@@ -38,14 +38,20 @@ const OrderSchema = new Schema({
   orderStatus: { type: String, enum: ['placed', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'], default: 'placed' },
   
   timeline: [{
-    status: { type: String },
-    time: { type: Date, default: Date.now }
+    status: { type: String, required: true },
+    time: { type: Date, default: Date.now },
+    updatedBy: { type: String }, // User ID or 'system'
+    role: { type: String }, // 'customer', 'kitchen', 'admin', 'system'
+    remarks: { type: String }
   }],
   
+  estimatedReadyTime: { type: Date },
+  actualReadyTime: { type: Date },
   estimatedDeliveryTime: { type: Date },
+  actualDeliveryTime: { type: Date },
   specialInstructions: { type: String },
   deletedAt: { type: Date, default: null },
-}, { timestamps: true });
+}, { timestamps: true, optimisticConcurrency: true });
 
 OrderSchema.index({ customer: 1 });
 OrderSchema.index({ kitchen: 1 });
