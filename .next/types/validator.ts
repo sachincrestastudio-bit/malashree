@@ -191,6 +191,78 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/kitchen/availability/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/kitchen/availability">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/availability/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/kitchen/dashboard/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/kitchen/dashboard">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/dashboard/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/kitchen/history/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/kitchen/history">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/history/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/kitchen/menu/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/kitchen/menu">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/menu/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/kitchen/order/[id]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/kitchen/order/[id]">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/order/[id]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/kitchen/orders/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/kitchen/orders">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/orders/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/kitchen/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/kitchen">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/kitchen/settings/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/kitchen/settings">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/settings/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/login/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/login">> = Specific
@@ -249,6 +321,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/checkout">> = Specific
   const handler = {} as typeof import("../../src/app/api/checkout/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/kitchen/events/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/kitchen/events">> = Specific
+  const handler = {} as typeof import("../../src/app/api/kitchen/events/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -325,6 +406,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends LayoutConfig<"/admin">> = Specific
   const handler = {} as typeof import("../../src/app/admin/layout.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/kitchen/layout.tsx
+{
+  type __IsExpected<Specific extends LayoutConfig<"/kitchen">> = Specific
+  const handler = {} as typeof import("../../src/app/kitchen/layout.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

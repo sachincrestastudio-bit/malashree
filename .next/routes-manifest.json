@@ -18,7 +18,16 @@
     "afterFiles": [],
     "fallback": []
   },
-  "dynamicRoutes": [],
+  "dynamicRoutes": [
+    {
+      "page": "/kitchen/order/[id]",
+      "regex": "^/kitchen/order/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/kitchen/order/(?<nxtPid>[^/]+?)(?:/)?$"
+    }
+  ],
   "staticRoutes": [
     {
       "page": "/",
@@ -127,6 +136,48 @@
       "regex": "^/checkout(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/checkout(?:/)?$"
+    },
+    {
+      "page": "/kitchen",
+      "regex": "^/kitchen(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/kitchen(?:/)?$"
+    },
+    {
+      "page": "/kitchen/availability",
+      "regex": "^/kitchen/availability(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/kitchen/availability(?:/)?$"
+    },
+    {
+      "page": "/kitchen/dashboard",
+      "regex": "^/kitchen/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/kitchen/dashboard(?:/)?$"
+    },
+    {
+      "page": "/kitchen/history",
+      "regex": "^/kitchen/history(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/kitchen/history(?:/)?$"
+    },
+    {
+      "page": "/kitchen/menu",
+      "regex": "^/kitchen/menu(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/kitchen/menu(?:/)?$"
+    },
+    {
+      "page": "/kitchen/orders",
+      "regex": "^/kitchen/orders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/kitchen/orders(?:/)?$"
+    },
+    {
+      "page": "/kitchen/settings",
+      "regex": "^/kitchen/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/kitchen/settings(?:/)?$"
     },
     {
       "page": "/login",
