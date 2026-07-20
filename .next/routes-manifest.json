@@ -20,6 +20,14 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/delivery/order/[id]",
+      "regex": "^/delivery/order/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/delivery/order/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/kitchen/order/[id]",
       "regex": "^/kitchen/order/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -136,6 +144,48 @@
       "regex": "^/checkout(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/checkout(?:/)?$"
+    },
+    {
+      "page": "/delivery",
+      "regex": "^/delivery(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/delivery(?:/)?$"
+    },
+    {
+      "page": "/delivery/dashboard",
+      "regex": "^/delivery/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/delivery/dashboard(?:/)?$"
+    },
+    {
+      "page": "/delivery/earnings",
+      "regex": "^/delivery/earnings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/delivery/earnings(?:/)?$"
+    },
+    {
+      "page": "/delivery/history",
+      "regex": "^/delivery/history(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/delivery/history(?:/)?$"
+    },
+    {
+      "page": "/delivery/orders",
+      "regex": "^/delivery/orders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/delivery/orders(?:/)?$"
+    },
+    {
+      "page": "/delivery/profile",
+      "regex": "^/delivery/profile(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/delivery/profile(?:/)?$"
+    },
+    {
+      "page": "/delivery/settings",
+      "regex": "^/delivery/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/delivery/settings(?:/)?$"
     },
     {
       "page": "/kitchen",

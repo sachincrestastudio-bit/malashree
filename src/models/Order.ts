@@ -15,6 +15,11 @@ const OrderSchema = new Schema({
   kitchen: { type: Schema.Types.ObjectId, ref: 'Kitchen', required: true },
   kitchenName: { type: String, required: true },
   
+  // Delivery Assignment
+  driverId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  pickedUpTime: { type: Date },
+  deliveryDistance: { type: Number },
+  
   // Snapshot of the address
   deliveryAddress: {
     label: { type: String, default: 'home' },
