@@ -33,6 +33,84 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/admin/analytics",
+      "regex": "^/admin/analytics(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/analytics(?:/)?$"
+    },
+    {
+      "page": "/admin/categories",
+      "regex": "^/admin/categories(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/categories(?:/)?$"
+    },
+    {
+      "page": "/admin/coupons",
+      "regex": "^/admin/coupons(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/coupons(?:/)?$"
+    },
+    {
+      "page": "/admin/customers",
+      "regex": "^/admin/customers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/customers(?:/)?$"
+    },
+    {
+      "page": "/admin/dashboard",
+      "regex": "^/admin/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/dashboard(?:/)?$"
+    },
+    {
+      "page": "/admin/kitchens",
+      "regex": "^/admin/kitchens(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/kitchens(?:/)?$"
+    },
+    {
+      "page": "/admin/menu",
+      "regex": "^/admin/menu(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/menu(?:/)?$"
+    },
+    {
+      "page": "/admin/offers",
+      "regex": "^/admin/offers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/offers(?:/)?$"
+    },
+    {
+      "page": "/admin/orders",
+      "regex": "^/admin/orders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/orders(?:/)?$"
+    },
+    {
+      "page": "/admin/payments",
+      "regex": "^/admin/payments(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/payments(?:/)?$"
+    },
+    {
+      "page": "/admin/reviews",
+      "regex": "^/admin/reviews(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/reviews(?:/)?$"
+    },
+    {
+      "page": "/admin/settings",
+      "regex": "^/admin/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/settings(?:/)?$"
+    },
+    {
       "page": "/branches",
       "regex": "^/branches(?:/)?$",
       "routeKeys": {},
