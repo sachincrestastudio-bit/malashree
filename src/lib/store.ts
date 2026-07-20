@@ -24,7 +24,6 @@ type State = {
   favorites: string[];
   toggleFav: (id: string) => void;
   orders: { id: string; date: string; branchId: string; items: CartItem[]; total: number }[];
-  placeOrder: (total: number) => string;
   locationResolved: boolean;
   resolveLocation: (branchId: string) => void;
 };
@@ -61,14 +60,6 @@ export const useStore = create<State>()(
           : [...get().favorites, id]
       }),
       orders: [],
-      placeOrder: (total) => {
-        const id = "MAL" + Math.random().toString(36).slice(2, 8).toUpperCase();
-        set({
-          orders: [{ id, date: new Date().toISOString(), branchId: get().branchId, items: get().cart, total }, ...get().orders],
-          cart: [],
-        });
-        return id;
-      },
       locationResolved: false,
       resolveLocation: (branchId) => {
         const currentBranch = get().branchId;

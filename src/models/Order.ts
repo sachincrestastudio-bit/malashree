@@ -1,28 +1,47 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose from 'mongoose';
+const { Schema, model, models } = mongoose;
+
+const OrderItemSchema = new Schema({
+  menuItem: { type: Schema.Types.ObjectId, ref: 'MenuItem', required: true },
+  dishName: { type: String, required: true },
+  quantity: { type: Number, required: true },
+  price: { type: Number, required: true },
+  specialInstructions: { type: String }
+}, { _id: false });
 
 const OrderSchema = new Schema({
   orderNumber: { type: String, required: true, unique: true },
   customer: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   kitchen: { type: Schema.Types.ObjectId, ref: 'Kitchen', required: true },
-  deliveryAddress: { type: Schema.Types.ObjectId, ref: 'Address' },
-  items: [{
-    menuItem: { type: Schema.Types.ObjectId, ref: 'MenuItem' },
-    quantity: { type: Number, required: true },
-    price: { type: Number, required: true },
-    specialInstructions: { type: String }
-  }],
+  kitchenName: { type: String, required: true },
+  
+  // Snapshot of the address
+  deliveryAddress: {
+    label: { type: String, default: 'home' },
+    street: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    zipCode: { type: String, required: true }
+  },
+
+  items: [OrderItemSchema],
+  
   subtotal: { type: Number, required: true },
   deliveryFee: { type: Number, default: 0 },
   tax: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
   grandTotal: { type: Number, required: true },
-  paymentMethod: { type: String, enum: ['card', 'cash', 'upi'], default: 'card' },
+  couponCode: { type: String, default: null },
+
+  paymentMethod: { type: String, enum: ['card', 'cash', 'upi'], default: 'upi' },
   paymentStatus: { type: String, enum: ['pending', 'completed', 'failed', 'refunded'], default: 'pending' },
   orderStatus: { type: String, enum: ['placed', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'], default: 'placed' },
+  
   timeline: [{
     status: { type: String },
     time: { type: Date, default: Date.now }
   }],
+  
   estimatedDeliveryTime: { type: Date },
   specialInstructions: { type: String },
   deletedAt: { type: Date, default: null },

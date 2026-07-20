@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStore } from "@/lib/store";
 import { findDish, getBranch } from "@/lib/data";
+import { placeOrder } from "@/actions/checkout";
 
 
 
@@ -17,12 +18,20 @@ function Checkout() {
   const branch = getBranch(useStore(s => s.branchId));
   const profile = useStore(s => s.profile);
   const locationResolved = useStore(s => s.locationResolved);
-  const placeOrder = useStore(s => s.placeOrder);
+  const clearCart = useStore(s => s.clearCart);
+  const cartTotals = useStore(s => s.cartTotals);
   const items = cart.map(c => ({ ...c, dish: findDish(c.dishId)! })).filter(i => i.dish);
-  const subtotal = items.reduce((n, i) => n + i.dish.price * i.qty, 0);
-  const total = subtotal + (subtotal > 499 ? 0 : 39) + Math.round(subtotal * 0.05);
+  
+  const subtotal = cartTotals?.subtotal || 0;
+  const delivery = cartTotals?.deliveryFee || 0;
+  const gst = cartTotals?.tax || 0;
+  const total = cartTotals?.grandTotal || 0;
+  const coupon = cartTotals?.couponCode || null;
+
   const [pay, setPay] = useState("upi");
   const [done, setDone] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const nav = useRouter();
 
   useEffect(() => {
@@ -33,10 +42,24 @@ function Checkout() {
     }
   }, [profile, locationResolved, nav]);
 
-  const submit = () => {
-    const id = placeOrder(total);
-    setDone(id);
-    setTimeout(() => nav.push("/profile"), 2500);
+  const submit = async () => {
+    setLoading(true);
+    setError(null);
+    
+    // Address comes from profile in this simplified UI phase
+    const address = profile?.address || "Pune"; 
+    
+    const res = await placeOrder(cart, coupon, address, pay);
+    
+    setLoading(false);
+    
+    if (res.success && res.orderNumber) {
+      setDone(res.orderNumber);
+      clearCart();
+      setTimeout(() => nav.push("/profile"), 2500);
+    } else {
+      setError(res.error || "Failed to place order");
+    }
   };
 
   if (done) {
@@ -83,6 +106,12 @@ function Checkout() {
               <div className="font-medium">{profile?.name ?? "Guest"}</div>
               <div className="text-sm text-olive-dark mt-1">{profile?.address ?? "Add an address in your profile"}</div>
               <div className="text-sm text-olive-dark">{profile?.phone ?? "—"}</div>
+              
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">
+                  {error}
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-ink/5">
@@ -120,8 +149,8 @@ function Checkout() {
               <span className="text-sm">Total</span>
               <span className="font-display text-3xl text-lime">₹{total}</span>
             </div>
-            <button onClick={submit} className="mt-6 w-full h-12 rounded-full bg-lime text-ink font-semibold hover:brightness-95 transition">
-              Place order
+            <button onClick={submit} disabled={loading} className="mt-6 w-full h-12 rounded-full bg-lime text-ink font-semibold hover:brightness-95 transition disabled:opacity-50">
+              {loading ? "Placing Order..." : "Place order"}
             </button>
             <p className="mt-3 text-[11px] text-cream/50 text-center">Demo build · no real payment</p>
           </aside>
