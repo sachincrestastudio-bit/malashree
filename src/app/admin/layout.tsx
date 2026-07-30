@@ -19,6 +19,8 @@ import {
   LogOut,
 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Malashree Admin Portal",
 };

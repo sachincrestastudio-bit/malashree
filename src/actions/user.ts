@@ -32,7 +32,10 @@ export const getCurrentUser = async () => {
       lastLogin: user.lastLogin,
       loyaltyPoints: user.loyaltyPoints || 0,
     };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.digest === "DYNAMIC_SERVER_USAGE" || err?.message?.includes("DYNAMIC_SERVER_USAGE")) {
+      return null;
+    }
     console.error("getCurrentUser Error:", err);
     return null;
   }
@@ -64,7 +67,10 @@ export const getUserOrders = async () => {
       total: o.grandTotal || 0,
       kitchenName: o.kitchenName || "Malashree Kitchen",
     }));
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.digest === "DYNAMIC_SERVER_USAGE" || err?.message?.includes("DYNAMIC_SERVER_USAGE")) {
+      return [];
+    }
     console.error("getUserOrders Error:", err);
     return [];
   }
