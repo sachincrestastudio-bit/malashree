@@ -1,90 +1,117 @@
 import { requireKitchenAccess } from "@/actions/kitchen/auth";
 import { KitchenDashboardService } from "@/services/kitchen/KitchenDashboardService";
-import { ChefHat, TrendingUp, Clock, AlertCircle } from "lucide-react";
+import { ChefHat, TrendingUp, Clock, AlertCircle, Package, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default async function KitchenDashboardPage() {
   const user = await requireKitchenAccess();
   const metrics = await KitchenDashboardService.getDashboardMetrics(user.kitchenId);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-slate-900 p-6 rounded-2xl border border-slate-800">
+    <div className="space-y-8">
+      {/* Masthead Header */}
+      <div className="border-b-2 border-ink pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-            <ChefHat className="w-8 h-8 text-orange-500" />
-            Kitchen Command Center
+          <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.28em] uppercase text-lime-deep mb-2">
+            <span className="h-px w-8 bg-lime" />
+            Chapter · Kitchen Operations
+          </div>
+          <h2 className="font-display text-4xl text-ink leading-[0.95] flex items-center gap-3">
+            Kitchen <span className="italic text-emerald">Command Center</span>
           </h2>
-          <p className="text-slate-400 mt-1 text-sm font-medium">
-            Real-time status for {user.kitchenId}
+          <p className="text-sm text-olive-dark mt-2 italic font-light">
+            Real-time operating status and ticket dispatch for {user.kitchenId}.
           </p>
         </div>
         <div
-          className={`px-4 py-2 rounded-full font-bold uppercase tracking-wider text-sm border
-          ${
+          className={`px-4 py-2 text-xs font-mono font-bold tracking-[0.24em] uppercase border flex items-center gap-2 self-start sm:self-auto ${
             metrics.kitchenStatus === "Open"
-              ? "bg-emerald-950/30 text-emerald-400 border-emerald-900/50"
-              : "bg-red-950/30 text-red-400 border-red-900/50"
+              ? "bg-lime/20 text-lime-deep border-lime/50"
+              : "bg-red-50 text-red-700 border-red-300"
           }`}
         >
+          <span className={`size-2 rounded-full ${metrics.kitchenStatus === "Open" ? "bg-lime animate-pulse" : "bg-red-500"}`} />
           {metrics.kitchenStatus}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Pending */}
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-          <p className="text-slate-400 font-medium mb-1">Pending Queue</p>
-          <p className="text-4xl font-bold text-orange-400">{metrics.pendingOrders}</p>
+        <div className="bg-white border border-ink/10 rounded-2xl p-5 shadow-sm">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-olive flex items-center justify-between">
+            <span>Pending Queue</span>
+            <Package className="size-4 text-amber-600" />
+          </div>
+          <div className="font-display text-3xl font-bold text-ink mt-2">
+            {metrics.pendingOrders}
+          </div>
+          <div className="text-[10px] font-mono text-amber-700 mt-1">Awaiting prep start</div>
         </div>
 
         {/* Preparing */}
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-          <p className="text-slate-400 font-medium mb-1">In Preparation</p>
-          <p className="text-4xl font-bold text-blue-400">{metrics.preparingOrders}</p>
+        <div className="bg-white border border-ink/10 rounded-2xl p-5 shadow-sm">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-olive flex items-center justify-between">
+            <span>In Preparation</span>
+            <RefreshCw className="size-4 text-blue-600 animate-spin" />
+          </div>
+          <div className="font-display text-3xl font-bold text-ink mt-2">
+            {metrics.preparingOrders}
+          </div>
+          <div className="text-[10px] font-mono text-blue-600 mt-1">Currently on stove</div>
         </div>
 
         {/* Ready */}
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-          <p className="text-slate-400 font-medium mb-1">Ready for Pickup</p>
-          <p className="text-4xl font-bold text-emerald-400">{metrics.readyOrders}</p>
+        <div className="bg-white border border-ink/10 rounded-2xl p-5 shadow-sm">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-olive flex items-center justify-between">
+            <span>Ready for Pickup</span>
+            <CheckCircle2 className="size-4 text-lime-deep" />
+          </div>
+          <div className="font-display text-3xl font-bold text-ink mt-2">
+            {metrics.readyOrders}
+          </div>
+          <div className="text-[10px] font-mono text-lime-deep mt-1">Packed for rider pickup</div>
         </div>
 
         {/* Avg Time */}
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-          <p className="text-slate-400 font-medium mb-1">Avg Prep Time</p>
-          <p className="text-4xl font-bold text-purple-400 flex items-center gap-2">
-            <Clock className="w-6 h-6 opacity-50" /> {metrics.avgPrepTime}
-          </p>
+        <div className="bg-white border border-ink/10 rounded-2xl p-5 shadow-sm">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-olive flex items-center justify-between">
+            <span>Avg Prep Speed</span>
+            <Clock className="size-4 text-purple-600" />
+          </div>
+          <div className="font-display text-3xl font-bold text-ink mt-2">
+            {metrics.avgPrepTime}
+          </div>
+          <div className="text-[10px] font-mono text-purple-600 mt-1">Average per ticket</div>
         </div>
       </div>
 
+      {/* Shift Analytics & Health Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-orange-500" />
-            Today's Shift
+        <div className="bg-white border border-ink/10 rounded-2xl p-6 shadow-sm">
+          <h3 className="font-display text-2xl text-ink pb-3 border-b border-ink/10 flex items-center gap-2">
+            <TrendingUp className="size-5 text-lime-deep" /> Today's Shift Performance
           </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-slate-950 rounded-lg">
-              <span className="text-slate-400">Total Orders Processed</span>
-              <span className="text-white font-bold">{metrics.todaysOrders}</span>
+          <div className="space-y-3 mt-4 text-xs font-mono text-olive-dark">
+            <div className="flex justify-between items-center p-3 bg-cream/50 border border-ink/10 rounded-xl">
+              <span>Total Orders Processed</span>
+              <span className="font-bold text-ink text-sm">{metrics.todaysOrders}</span>
             </div>
-            <div className="flex justify-between items-center p-3 bg-slate-950 rounded-lg">
-              <span className="text-slate-400">Successful Completions</span>
-              <span className="text-emerald-400 font-bold">{metrics.completedOrders}</span>
+            <div className="flex justify-between items-center p-3 bg-cream/50 border border-ink/10 rounded-xl">
+              <span>Successful Completions</span>
+              <span className="font-bold text-lime-deep text-sm">{metrics.completedOrders}</span>
             </div>
-            <div className="flex justify-between items-center p-3 bg-slate-950 rounded-lg">
-              <span className="text-slate-400">Revenue (Assigned)</span>
-              <span className="text-white font-bold">₹{metrics.todaysRevenue.toFixed(2)}</span>
+            <div className="flex justify-between items-center p-3 bg-cream/50 border border-ink/10 rounded-xl">
+              <span>Revenue (Assigned Branch)</span>
+              <span className="font-bold text-ink text-sm">₹{metrics.todaysRevenue.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col items-center justify-center text-center">
-          <AlertCircle className="w-12 h-12 text-slate-700 mb-3" />
-          <h3 className="text-lg font-bold text-white mb-1">Kitchen System Healthy</h3>
-          <p className="text-sm text-slate-400">
-            All backend services are responding properly. Queue is syncing in real-time.
+        <div className="bg-white border border-ink/10 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
+          <AlertCircle className="size-10 text-lime-deep mb-3" />
+          <h3 className="font-display text-xl text-ink">Kitchen Network Healthy</h3>
+          <p className="text-xs text-olive-dark mt-1 font-mono max-w-sm">
+            All backend dispatch services and WebSocket event buses are connected. Tickets sync in real-time.
           </p>
         </div>
       </div>

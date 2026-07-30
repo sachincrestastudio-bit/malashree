@@ -1,21 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChefHat, Timer, CheckCircle, Package } from "lucide-react";
+import { ChefHat, Timer, CheckCircle2, Package, RefreshCw, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function KitchenLiveQueuePage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // In a real implementation, we would fetch initial data and then subscribe to SSE.
-  // For prototype visualization, we will render a UI shell that expects realtime data.
-
   useEffect(() => {
-    // const eventSource = new EventSource('/api/kitchen/events');
-    // eventSource.onmessage = (e) => { ... merge new orders ... }
-
-    // Mock initial data fetch
     setTimeout(() => {
       setOrders([
         {
@@ -44,56 +37,62 @@ export default function KitchenLiveQueuePage() {
         },
       ]);
       setLoading(false);
-    }, 1000);
+    }, 500);
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="border-b-2 border-ink pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Package className="w-6 h-6 text-orange-500" /> Live Order Queue
+          <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.28em] uppercase text-lime-deep mb-2">
+            <span className="h-px w-8 bg-lime" />
+            Chapter · Order Dispatch
+          </div>
+          <h2 className="font-display text-4xl text-ink leading-[0.95] flex items-center gap-3">
+            Live Order <span className="italic text-emerald">Queue</span>
           </h2>
-          <p className="text-slate-400 mt-1">Real-time incoming tickets.</p>
+          <p className="text-sm text-olive-dark mt-2 italic font-light">
+            Real-time incoming kitchen tickets and prep status boards.
+          </p>
         </div>
-        <div className="flex gap-2">
-          <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-slate-900 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Sync
-          </span>
+        <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-widest bg-white border border-ink/10 px-4 py-2 text-ink">
+          <span className="size-2 rounded-full bg-lime animate-pulse" /> Live Dispatch Sync
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-180px)]">
+      {/* Kanban Ticket Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Placed Column */}
-        <div className="bg-slate-900 rounded-xl border border-slate-800 flex flex-col">
-          <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 rounded-t-xl">
-            <h3 className="font-bold text-slate-300 uppercase tracking-wider text-sm flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-orange-500"></span> New / Pending
+        <div className="bg-white rounded-2xl border border-ink/10 flex flex-col overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-ink/10 flex justify-between items-center bg-cream/40">
+            <h3 className="font-mono font-bold text-ink uppercase tracking-wider text-xs flex items-center gap-2">
+              <span className="size-2 rounded-full bg-amber-500" /> New / Pending
             </h3>
-            <span className="bg-slate-800 text-slate-300 text-xs font-bold px-2 py-1 rounded-md">
+            <span className="bg-amber-100 text-amber-800 text-xs font-mono font-bold px-2.5 py-0.5 rounded-full">
               {orders.filter((o) => o.status === "placed").length}
             </span>
           </div>
-          <div className="p-4 flex-1 overflow-y-auto space-y-3">
+          <div className="p-4 flex-1 overflow-y-auto space-y-3 min-h-[350px]">
             {orders
               .filter((o) => o.status === "placed")
               .map((order) => (
-                <TicketCard key={order._id} order={order} accent="border-l-orange-500" />
+                <TicketCard key={order._id} order={order} accent="border-l-amber-500" />
               ))}
           </div>
         </div>
 
         {/* Preparing Column */}
-        <div className="bg-slate-900 rounded-xl border border-slate-800 flex flex-col">
-          <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 rounded-t-xl">
-            <h3 className="font-bold text-slate-300 uppercase tracking-wider text-sm flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span> Preparing
+        <div className="bg-white rounded-2xl border border-ink/10 flex flex-col overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-ink/10 flex justify-between items-center bg-cream/40">
+            <h3 className="font-mono font-bold text-ink uppercase tracking-wider text-xs flex items-center gap-2">
+              <span className="size-2 rounded-full bg-blue-500" /> In Preparation
             </h3>
-            <span className="bg-slate-800 text-slate-300 text-xs font-bold px-2 py-1 rounded-md">
+            <span className="bg-blue-100 text-blue-800 text-xs font-mono font-bold px-2.5 py-0.5 rounded-full">
               {orders.filter((o) => o.status === "preparing").length}
             </span>
           </div>
-          <div className="p-4 flex-1 overflow-y-auto space-y-3">
+          <div className="p-4 flex-1 overflow-y-auto space-y-3 min-h-[350px]">
             {orders
               .filter((o) => o.status === "preparing")
               .map((order) => (
@@ -103,20 +102,20 @@ export default function KitchenLiveQueuePage() {
         </div>
 
         {/* Ready Column */}
-        <div className="bg-slate-900 rounded-xl border border-slate-800 flex flex-col">
-          <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 rounded-t-xl">
-            <h3 className="font-bold text-slate-300 uppercase tracking-wider text-sm flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Ready for Pickup
+        <div className="bg-white rounded-2xl border border-ink/10 flex flex-col overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-ink/10 flex justify-between items-center bg-cream/40">
+            <h3 className="font-mono font-bold text-ink uppercase tracking-wider text-xs flex items-center gap-2">
+              <span className="size-2 rounded-full bg-lime" /> Ready for Pickup
             </h3>
-            <span className="bg-slate-800 text-slate-300 text-xs font-bold px-2 py-1 rounded-md">
+            <span className="bg-lime/20 text-emerald text-xs font-mono font-bold px-2.5 py-0.5 rounded-full">
               {orders.filter((o) => o.status === "ready").length}
             </span>
           </div>
-          <div className="p-4 flex-1 overflow-y-auto space-y-3">
+          <div className="p-4 flex-1 overflow-y-auto space-y-3 min-h-[350px]">
             {orders
               .filter((o) => o.status === "ready")
               .map((order) => (
-                <TicketCard key={order._id} order={order} accent="border-l-emerald-500" />
+                <TicketCard key={order._id} order={order} accent="border-l-lime" />
               ))}
           </div>
         </div>
@@ -127,33 +126,33 @@ export default function KitchenLiveQueuePage() {
 
 function TicketCard({ order, accent }: { order: any; accent: string }) {
   return (
-    <div
-      className={`bg-slate-950 p-4 rounded-lg border border-slate-800 shadow-sm hover:border-slate-600 transition-colors cursor-pointer border-l-4 ${accent}`}
-    >
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-white font-bold">{order.orderNumber}</span>
-        <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
-          <Timer className="w-3 h-3" /> {order.time}
+    <div className={`bg-cream/30 p-4 rounded-xl border border-ink/10 shadow-sm border-l-4 ${accent} space-y-3`}>
+      <div className="flex justify-between items-start">
+        <span className="font-mono font-bold text-ink text-sm bg-white px-2 py-0.5 border border-ink/10">
+          {order.orderNumber}
+        </span>
+        <span className="text-xs font-mono text-olive flex items-center gap-1">
+          <Timer className="size-3" /> {order.time}
         </span>
       </div>
-      <p className="text-sm text-slate-400 mb-4">
+      <p className="text-xs text-olive-dark font-mono">
         {order.customer} • {order.items} Items
       </p>
 
-      <div className="flex gap-2 mt-2">
+      <div className="flex gap-2 pt-2 border-t border-ink/5">
         <Link
           href={`/kitchen/order/${order._id}`}
-          className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-center py-2 rounded font-medium text-xs transition-colors"
+          className="flex-1 bg-white border border-ink/10 hover:border-ink text-ink text-center py-2 rounded-lg font-mono font-bold text-[10px] uppercase tracking-wider transition-colors"
         >
-          View Details
+          Details
         </Link>
         {order.status === "placed" && (
-          <button className="flex-1 bg-orange-600 hover:bg-orange-500 text-white py-2 rounded font-medium text-xs transition-colors">
+          <button className="flex-1 bg-ink text-lime hover:bg-emerald py-2 rounded-lg font-mono font-bold text-[10px] uppercase tracking-wider transition-colors">
             Start Prep
           </button>
         )}
         {order.status === "preparing" && (
-          <button className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded font-medium text-xs transition-colors">
+          <button className="flex-1 bg-lime text-ink hover:bg-lime/90 py-2 rounded-lg font-mono font-bold text-[10px] uppercase tracking-wider transition-colors">
             Mark Ready
           </button>
         )}

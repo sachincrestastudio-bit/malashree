@@ -1,70 +1,79 @@
 import { requireKitchenAccess } from "@/actions/kitchen/auth";
 import { KitchenAvailabilityService } from "@/services/kitchen/KitchenAvailabilityService";
-import { ToggleLeft, ToggleRight, UtensilsCrossed } from "lucide-react";
+import { ToggleLeft, ToggleRight, UtensilsCrossed, CheckCircle2, XCircle } from "lucide-react";
 
 export default async function KitchenMenuPage() {
   const user = await requireKitchenAccess();
   const menuItems = await KitchenAvailabilityService.getKitchenMenu(user.kitchenId);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="border-b-2 border-ink pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <UtensilsCrossed className="w-6 h-6 text-orange-500" /> Menu Availability
+          <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.28em] uppercase text-lime-deep mb-2">
+            <span className="h-px w-8 bg-lime" />
+            Chapter · Stock & Inventory
+          </div>
+          <h2 className="font-display text-4xl text-ink leading-[0.95] flex items-center gap-3">
+            Menu <span className="italic text-emerald">Availability</span>
           </h2>
-          <p className="text-slate-400 mt-1">
-            Toggle stock status for items. Affects only your kitchen.
+          <p className="text-sm text-olive-dark mt-2 italic font-light">
+            Live dish stock toggles for {user.kitchenId}.
           </p>
         </div>
       </div>
 
-      <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-slate-950 text-slate-400 text-sm border-b border-slate-800">
+      {/* Table */}
+      <div className="bg-white border border-ink/10 rounded-2xl overflow-hidden shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-ink/10 bg-cream/40">
             <tr>
-              <th className="px-6 py-4 font-semibold">Item Name</th>
-              <th className="px-6 py-4 font-semibold">Category</th>
-              <th className="px-6 py-4 font-semibold">Stock Status</th>
-              <th className="px-6 py-4 font-semibold text-right">Action</th>
+              {["Item Name", "Category", "Stock Status", "Quick Action"].map((h, i) => (
+                <th
+                  key={h}
+                  className={`px-6 py-3 text-[9px] font-mono tracking-[0.24em] uppercase text-olive ${i === 3 ? "text-right" : ""}`}
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-ink/5">
             {menuItems.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
+                <td colSpan={4} className="px-6 py-12 text-center text-olive font-mono text-xs">
                   No menu items assigned to this kitchen.
                 </td>
               </tr>
             ) : (
               menuItems.map((item: any) => (
-                <tr key={item._id.toString()} className="hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="text-white font-medium">{item.name}</p>
+                <tr key={item._id.toString()} className="hover:bg-cream/40 transition-colors">
+                  <td className="px-6 py-4 font-display text-lg text-ink font-bold">
+                    {item.name}
                   </td>
-                  <td className="px-6 py-4 text-slate-400 text-sm">
-                    {item.category?.name || "Uncategorized"}
+                  <td className="px-6 py-4 text-xs font-mono text-olive-dark">
+                    {item.category?.name || "Mains"}
                   </td>
                   <td className="px-6 py-4">
                     {item.isAvailable ? (
-                      <span className="px-3 py-1 rounded-full bg-emerald-950/50 text-emerald-400 text-xs font-bold border border-emerald-900/50 uppercase tracking-wider">
-                        Available
+                      <span className="px-2.5 py-1 text-[9px] font-mono tracking-[0.2em] uppercase border border-lime/40 text-lime-deep bg-lime/10 flex items-center gap-1 w-fit">
+                        <CheckCircle2 className="size-3" /> In Stock
                       </span>
                     ) : (
-                      <span className="px-3 py-1 rounded-full bg-red-950/50 text-red-400 text-xs font-bold border border-red-900/50 uppercase tracking-wider">
-                        Out of Stock
+                      <span className="px-2.5 py-1 text-[9px] font-mono tracking-[0.2em] uppercase border border-red-200 text-red-700 bg-red-50 flex items-center gap-1 w-fit">
+                        <XCircle className="size-3" /> Out of Stock
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {/* In a real app this would be a Client Component toggle calling a server action */}
                     {item.isAvailable ? (
-                      <button className="text-red-400 hover:text-red-300 font-medium text-sm flex items-center gap-1 justify-end w-full">
-                        <ToggleRight className="w-5 h-5" /> Disable
+                      <button className="text-red-700 font-mono text-xs uppercase tracking-wider hover:underline flex items-center gap-1 justify-end w-full">
+                        <ToggleRight className="size-5 text-red-600" /> Disable
                       </button>
                     ) : (
-                      <button className="text-emerald-400 hover:text-emerald-300 font-medium text-sm flex items-center gap-1 justify-end w-full">
-                        <ToggleLeft className="w-5 h-5" /> Enable
+                      <button className="text-lime-deep font-mono text-xs uppercase tracking-wider hover:underline flex items-center gap-1 justify-end w-full">
+                        <ToggleLeft className="size-5 text-olive/40" /> Enable
                       </button>
                     )}
                   </td>

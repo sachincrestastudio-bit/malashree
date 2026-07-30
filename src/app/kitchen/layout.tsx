@@ -39,16 +39,16 @@ export default async function KitchenLayout({ children }: { children: React.Reac
   // Ensure they have an assigned kitchen
   if (!user.assignedKitchen) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
-        <div className="text-center p-8 bg-slate-800 rounded-xl max-w-md">
-          <Store className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Unassigned Kitchen</h1>
-          <p className="text-slate-400 mb-6">
-            Your account is not linked to a specific kitchen. Please contact the administrator.
+      <div className="min-h-screen bg-cream flex items-center justify-center text-ink p-6">
+        <div className="text-center p-8 bg-white rounded-3xl border-2 border-ink max-w-md shadow-lg">
+          <Store className="w-16 h-16 text-amber-600 mx-auto mb-4" />
+          <h1 className="font-display text-3xl mb-2 text-ink">Unassigned Kitchen</h1>
+          <p className="text-olive-dark text-sm mb-6 leading-relaxed">
+            Your account is not linked to a specific kitchen branch. Please contact your system administrator.
           </p>
           <Link
             href="/"
-            className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg font-medium transition-colors"
+            className="inline-flex px-6 py-3 bg-ink text-lime font-mono text-xs uppercase tracking-widest font-bold hover:bg-emerald transition"
           >
             Return Home
           </Link>
@@ -58,53 +58,84 @@ export default async function KitchenLayout({ children }: { children: React.Reac
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row font-sans text-slate-300">
-      {/* Dark Sidebar Navigation designed for kitchen environments */}
-      <aside className="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
-        <div className="h-16 flex items-center px-6 bg-slate-900 font-bold text-white text-xl border-b border-slate-800">
-          <ChefHat className="w-6 h-6 text-orange-500 mr-2" />
-          Kitchen <span className="text-orange-500 ml-1">Ops</span>
+    <div className="min-h-screen bg-cream flex flex-col md:flex-row" style={{ fontFamily: "var(--font-sans)" }}>
+      {/* Sidebar Navigation - Identical to Admin Theme */}
+      <aside className="w-full md:w-64 bg-ink text-cream/80 flex flex-col shrink-0 border-r-2 border-lime">
+        {/* Logo */}
+        <div className="h-16 flex items-center px-6 border-b border-lime/30">
+          <span style={{ fontFamily: "var(--font-display)" }} className="text-cream text-xl tracking-tight">
+            Malashree <span className="text-lime italic">Kitchen</span>
+          </span>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {/* Subhead line */}
+        <div className="px-6 py-3 border-b border-lime/20">
+          <span className="text-[9px] font-mono tracking-[0.28em] uppercase text-lime/70">
+            Branch Operations · Portal
+          </span>
+        </div>
+
+        {/* Nav links */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className="flex items-center gap-3 px-3 py-3 rounded-lg font-medium hover:bg-slate-800 hover:text-white transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 text-[11px] font-mono tracking-[0.18em] uppercase text-cream/60 hover:bg-lime/10 hover:text-lime transition-colors border-l-2 border-transparent hover:border-lime"
               >
-                <Icon className="h-5 w-5 opacity-80 text-orange-400" />
+                <Icon className="h-4 w-4 shrink-0 opacity-70" />
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-800 bg-slate-900">
+        {/* User info */}
+        <div className="p-4 border-t border-lime/20">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold text-sm border border-slate-700">
-              {user.name?.charAt(0) || "K"}
+            <div
+              className="w-8 h-8 border border-lime flex items-center justify-center text-lime font-bold text-xs uppercase"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {user?.name?.charAt(0) || "K"}
             </div>
             <div className="flex-1 truncate">
-              <p className="text-sm font-medium text-white truncate">{user.name}</p>
-              <p className="text-xs text-emerald-400 truncate font-semibold">Kitchen Active</p>
+              <p className="text-xs font-medium text-cream truncate">{user?.name || "Kitchen Manager"}</p>
+              <p className="text-[10px] text-cream/40 truncate font-mono">{user?.email || ""}</p>
             </div>
           </div>
           <Link
             href="/"
-            className="mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-400 border border-red-900/50 hover:bg-red-950/30 transition-colors w-full"
+            className="mt-2 flex items-center gap-3 px-3 py-2 text-[11px] font-mono tracking-[0.18em] uppercase text-cream/50 hover:bg-lime/10 hover:text-lime transition-colors border-l-2 border-transparent hover:border-lime"
           >
             <LogOut className="h-4 w-4" />
-            Sign Out
+            Exit Kitchen
           </Link>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-950">
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">{children}</div>
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top Header */}
+        <header className="h-16 bg-cream border-b-2 border-ink/10 flex items-center justify-between px-6 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="h-px w-8 bg-lime" />
+            <h1 className="text-[10px] font-mono tracking-[0.28em] uppercase text-olive-dark">
+              Malashree · Kitchen Ops
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-2 text-[10px] font-mono tracking-[0.24em] uppercase text-lime-deep">
+              <span className="size-1.5 rounded-full bg-lime animate-pulse" />
+              Branch Kitchen Active
+            </span>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <div className="flex-1 overflow-y-auto p-6">{children}</div>
       </main>
     </div>
   );

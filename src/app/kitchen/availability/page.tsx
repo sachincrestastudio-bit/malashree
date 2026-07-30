@@ -1,49 +1,56 @@
 import { requireKitchenAccess } from "@/actions/kitchen/auth";
-import { Clock } from "lucide-react";
+import { Clock, AlertTriangle } from "lucide-react";
 
 export default async function KitchenAvailabilityPage() {
   await requireKitchenAccess();
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 max-w-3xl">
+      {/* Header */}
+      <div className="border-b-2 border-ink pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Clock className="w-6 h-6 text-orange-500" /> Kitchen Status
+          <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.28em] uppercase text-lime-deep mb-2">
+            <span className="h-px w-8 bg-lime" />
+            Chapter · Operating Hours
+          </div>
+          <h2 className="font-display text-4xl text-ink leading-[0.95] flex items-center gap-3">
+            Kitchen <span className="italic text-emerald">Availability</span>
           </h2>
-          <p className="text-slate-400 mt-1">Manage operating status and delays.</p>
+          <p className="text-sm text-olive-dark mt-2 italic font-light">
+            Manage live operational status and rush-hour preparation overrides.
+          </p>
         </div>
       </div>
 
-      <div className="bg-slate-900 p-8 rounded-xl border border-slate-800 space-y-6">
+      <div className="bg-white p-8 rounded-3xl border border-ink/10 space-y-6 shadow-sm">
         <div>
-          <h3 className="text-white font-bold mb-4">Current Operating Status</h3>
-          <div className="flex gap-4">
-            <button className="flex-1 py-3 rounded-lg border-2 border-emerald-500 bg-emerald-950/30 text-emerald-400 font-bold">
+          <h3 className="font-display text-2xl text-ink mb-4">Current Operating Status</h3>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button className="flex-1 py-3 px-4 rounded-xl border-2 border-ink bg-lime text-ink font-mono text-xs font-bold uppercase tracking-wider">
               Open (Accepting Orders)
             </button>
-            <button className="flex-1 py-3 rounded-lg border-2 border-slate-700 bg-slate-800 text-slate-400 font-bold hover:bg-slate-700 hover:text-white transition-colors">
-              Busy (Delayed)
+            <button className="flex-1 py-3 px-4 rounded-xl border border-ink/20 bg-cream text-olive-dark font-mono text-xs font-bold uppercase tracking-wider hover:border-ink hover:text-ink transition-colors">
+              Busy (Rider Delay Warning)
             </button>
-            <button className="flex-1 py-3 rounded-lg border-2 border-slate-700 bg-slate-800 text-slate-400 font-bold hover:bg-red-950/30 hover:border-red-500 hover:text-red-400 transition-colors">
-              Closed
+            <button className="flex-1 py-3 px-4 rounded-xl border border-red-200 bg-red-50 text-red-700 font-mono text-xs font-bold uppercase tracking-wider hover:bg-red-100 transition-colors">
+              Temporarily Closed
             </button>
           </div>
         </div>
 
-        <div className="pt-6 border-t border-slate-800">
-          <h3 className="text-white font-bold mb-4">Estimated Prep Time (Global Override)</h3>
-          <p className="text-slate-400 text-sm mb-4">
-            Increase this if the kitchen is slammed to warn customers.
+        <div className="pt-6 border-t border-ink/10">
+          <h3 className="font-display text-2xl text-ink mb-2">Estimated Prep Time Override</h3>
+          <p className="text-olive-dark text-xs font-mono mb-4">
+            Increase estimated prep time during rush hours to display updated ETAs on customer order tracking.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <input
               type="number"
               defaultValue={15}
-              className="bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 w-32 focus:outline-none focus:border-orange-500"
+              className="bg-cream/50 border border-ink/20 text-ink rounded-xl px-4 h-11 w-32 font-mono text-sm focus:outline-none focus:border-ink"
             />
-            <span className="text-slate-400">minutes</span>
-            <button className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-lg font-bold ml-auto">
+            <span className="text-xs font-mono text-olive uppercase">Minutes</span>
+            <button className="bg-ink text-lime px-6 h-11 rounded-xl font-mono text-xs font-bold uppercase tracking-widest hover:bg-emerald transition ml-auto">
               Save Override
             </button>
           </div>
