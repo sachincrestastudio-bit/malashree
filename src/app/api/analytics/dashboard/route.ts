@@ -3,6 +3,8 @@ import { RevenueAnalyticsService } from "@/services/admin/RevenueAnalyticsServic
 import { CustomerAnalyticsService } from "@/services/admin/CustomerAnalyticsService";
 import { getCurrentUser } from "@/actions/user";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
     const user = await getCurrentUser();

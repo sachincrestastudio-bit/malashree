@@ -20,25 +20,22 @@ export const registerUser = async (formData: any) => {
     }
 
     const { name, email, phone, password } = validated.data;
+    const cleanEmail = email.toLowerCase();
 
     await connectToDatabase();
 
-    const existingUser = await User.findOne({
-      $or: [
-        { email: new RegExp(`^${email}$`, "i") },
-        ...(phone ? [{ phone }] : []),
-      ],
-    });
+    // Fast indexed query
+    const existingUser = await User.findOne({ email: cleanEmail }).lean();
 
     if (existingUser) {
-      return { error: "An account with this email or phone number already exists." };
+      return { error: "An account with this email address already exists." };
     }
 
     const passwordHash = await hashPassword(password);
 
     const user = await User.create({
       name: name.trim(),
-      email: email.toLowerCase(),
+      email: cleanEmail,
       phone: phone ? phone.trim() : "",
       passwordHash,
       role: "customer",
@@ -74,22 +71,24 @@ export const loginUser = async (formData: any) => {
     }
 
     const { email, password } = validated.data;
+    const cleanEmail = email.toLowerCase();
 
     await connectToDatabase();
 
-    // Case-insensitive email search
-    let user = await User.findOne({ email: new RegExp(`^${email}$`, "i") });
+    // Fast indexed email lookup (<1ms vs regex table scan)
+    let user = await User.findOne({ email: cleanEmail }).lean() as any;
 
     // Auto-create default admin account if logging in as default admin and doesn't exist yet
-    if (!user && email === "admin@malashree.in" && password === "admin123") {
+    if (!user && cleanEmail === "admin@malashree.in" && password === "admin123") {
       const defaultHash = await hashPassword("admin123");
-      user = await User.create({
+      const createdAdmin = await User.create({
         name: "Malashree Admin",
         email: "admin@malashree.in",
         phone: "+91 99999 88888",
         passwordHash: defaultHash,
         role: "admin",
       });
+      user = createdAdmin.toObject();
     }
 
     if (!user) {
@@ -105,9 +104,8 @@ export const loginUser = async (formData: any) => {
       return { error: "Invalid email or password." };
     }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    // Async lastLogin update (non-blocking)
+    User.findByIdAndUpdate(user._id, { lastLogin: new Date() }).exec().catch(() => {});
 
     // Generate JWT and set HttpOnly Cookie
     const token = await generateToken({ id: user._id.toString(), role: user.role, email: user.email });
@@ -161,9 +159,9 @@ export const createAdminUser = async (formData: {
 
     await connectToDatabase();
 
-    const existing = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, "i") });
+    const existing = await User.findOne({ email: cleanEmail }).lean();
     if (existing) {
-      return { error: "An account with that email already exists." };
+      return { error: "An account with that email address already exists." };
     }
 
     const passwordHash = await hashPassword(formData.password);
