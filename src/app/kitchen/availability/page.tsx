@@ -1,5 +1,5 @@
-import { requireKitchenAccess } from '@/actions/kitchen/auth';
-import { Clock } from 'lucide-react';
+import { requireKitchenAccess } from "@/actions/kitchen/auth";
+import { Clock } from "lucide-react";
 
 export default async function KitchenAvailabilityPage() {
   await requireKitchenAccess();
@@ -33,12 +33,14 @@ export default async function KitchenAvailabilityPage() {
 
         <div className="pt-6 border-t border-slate-800">
           <h3 className="text-white font-bold mb-4">Estimated Prep Time (Global Override)</h3>
-          <p className="text-slate-400 text-sm mb-4">Increase this if the kitchen is slammed to warn customers.</p>
+          <p className="text-slate-400 text-sm mb-4">
+            Increase this if the kitchen is slammed to warn customers.
+          </p>
           <div className="flex items-center gap-4">
-            <input 
-              type="number" 
+            <input
+              type="number"
               defaultValue={15}
-              className="bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 w-32 focus:outline-none focus:border-orange-500" 
+              className="bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 w-32 focus:outline-none focus:border-orange-500"
             />
             <span className="text-slate-400">minutes</span>
             <button className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-lg font-bold ml-auto">

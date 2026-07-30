@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 @source "../";
 @import "../../node_modules/tw-animate-css/dist/tw-animate.css";
 
@@ -64,13 +65,13 @@
 :root {
   --radius: 1rem;
   /* Malashree — Emerald Prestige */
-  --lime: oklch(0.75 0.12 85);          /* #C9A84C — antique gold */
-  --lime-deep: oklch(0.63 0.13 78);     /* deeper gold for hovers */
-  --cream: oklch(0.965 0.02 88);        /* #F5F0E0 — warm ivory */
-  --olive: oklch(0.52 0.06 155);        /* moss/emerald mid */
-  --olive-dark: oklch(0.34 0.07 160);   /* deep emerald text */
-  --ink: oklch(0.24 0.06 165);          /* #064e3b — emerald ink */
-  --emerald: oklch(0.42 0.10 160);      /* #0d7a5f — mid emerald */
+  --lime: oklch(0.75 0.12 85); /* #C9A84C — antique gold */
+  --lime-deep: oklch(0.63 0.13 78); /* deeper gold for hovers */
+  --cream: oklch(0.965 0.02 88); /* #F5F0E0 — warm ivory */
+  --olive: oklch(0.52 0.06 155); /* moss/emerald mid */
+  --olive-dark: oklch(0.34 0.07 160); /* deep emerald text */
+  --ink: oklch(0.24 0.06 165); /* #064e3b — emerald ink */
+  --emerald: oklch(0.42 0.1 160); /* #0d7a5f — mid emerald */
 
   --background: var(--cream);
   --foreground: var(--ink);
@@ -88,7 +89,7 @@
   --accent-foreground: var(--ink);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.90 0.015 85);
+  --border: oklch(0.9 0.015 85);
   --input: oklch(0.92 0.015 85);
   --ring: var(--lime);
   --chart-1: oklch(0.78 0.16 75);
@@ -163,7 +164,14 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
 }
 
 @theme inline {
@@ -197,12 +205,26 @@
 }
 
 @keyframes float-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
-.animate-float-up { animation: float-up 0.7s cubic-bezier(.2,.7,.2,1) both; }
-.animate-marquee { animation: marquee 30s linear infinite; }
+.animate-float-up {
+  animation: float-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}

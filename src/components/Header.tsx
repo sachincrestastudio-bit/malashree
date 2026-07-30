@@ -10,21 +10,25 @@ import { motion, AnimatePresence } from "motion/react";
 import { useMemo } from "react";
 
 export function Header() {
-  const branchId = useStore(s => s.branchId);
-  const cart = useStore(s => s.cart);
-  const profile = useStore(s => s.profile);
+  const branchId = useStore((s) => s.branchId);
+  const cart = useStore((s) => s.cart);
+  const profile = useStore((s) => s.profile);
   const branch = getBranch(branchId);
   const path = usePathname();
 
+  const kitchenMenu = useStore((s) => s.kitchenMenu);
+  const cartTotals = useStore((s) => s.cartTotals);
+
   // Calculate cart details
   const cartCount = useMemo(() => cart.reduce((n, c) => n + c.qty, 0), [cart]);
-  
+
   const cartTotal = useMemo(() => {
+    if (cartTotals?.grandTotal) return cartTotals.grandTotal;
     return cart.reduce((total, c) => {
-      const dish = branch.menu.find(d => d.id === c.dishId) || findDish(c.dishId);
+      const dish = kitchenMenu.find((d) => d.id === c.dishId) || branch.menu.find((d) => d.id === c.dishId) || findDish(c.dishId);
       return total + (dish?.price || 0) * c.qty;
     }, 0);
-  }, [cart, branch.menu]);
+  }, [cart, kitchenMenu, branch.menu, cartTotals]);
 
   // Extract initials if profile name is set
   const userInitials = useMemo(() => {
@@ -32,7 +36,7 @@ export function Header() {
     return profile.name
       .trim()
       .split(/\s+/)
-      .map(n => n[0])
+      .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
@@ -41,13 +45,11 @@ export function Header() {
   const navItem = (to: string, label: string) => {
     const isActive = path === to;
     return (
-      <Link 
-        href={to} 
+      <Link
+        href={to}
         className="relative px-4 py-2 text-xs font-bold tracking-wider uppercase transition-colors duration-300"
       >
-        <span className={isActive ? "text-ink" : "text-olive-dark hover:text-ink"}>
-          {label}
-        </span>
+        <span className={isActive ? "text-ink" : "text-olive-dark hover:text-ink"}>{label}</span>
         {isActive && (
           <motion.div
             layoutId="active-nav-pill"
@@ -82,12 +84,18 @@ export function Header() {
           {/* Logo & Branding */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative size-10 rounded-xl bg-gradient-to-tr from-ink to-olive-dark border border-lime/30 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300">
-              <span className="text-lime font-display text-xl font-bold leading-none select-none tracking-tight">M</span>
+              <span className="text-lime font-display text-xl font-bold leading-none select-none tracking-tight">
+                M
+              </span>
               <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-lime border border-ink animate-pulse" />
             </div>
             <div className="flex flex-col">
-              <span className="font-display text-xl font-bold tracking-tight text-ink leading-none">malashree</span>
-              <span className="text-[9px] uppercase tracking-widest text-olive font-bold mt-1 font-sans">gourmet kitchen</span>
+              <span className="font-display text-xl font-bold tracking-tight text-ink leading-none">
+                malashree
+              </span>
+              <span className="text-[9px] uppercase tracking-widest text-olive font-bold mt-1 font-sans">
+                gourmet kitchen
+              </span>
             </div>
           </Link>
 
@@ -100,24 +108,35 @@ export function Header() {
 
           {/* Right Section Controls */}
           <div className="ml-auto flex items-center gap-4">
-            {/* Locked Active Kitchen Badge */}
-            <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-white border border-ink/5 shadow-sm">
+            {/* Active Allotted Kitchen Badge */}
+            <div
+              className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-white border border-ink/5 shadow-sm"
+              title="Allotted Kitchen Zone (determined automatically by GPS)"
+            >
               <div className="relative size-8 rounded-full bg-lime/10 flex items-center justify-center shrink-0">
-                <MapPin className="size-4 text-olive-dark animate-bounce" style={{ animationDuration: '3s' }} />
+                <MapPin
+                  className="size-4 text-olive-dark animate-bounce"
+                  style={{ animationDuration: "3s" }}
+                />
                 <span className="absolute bottom-0 right-0 size-2 bg-green-600 rounded-full border border-white" />
               </div>
               <div className="text-left leading-tight">
-                <div className="text-[9px] uppercase tracking-widest text-olive font-bold">Kitchen Zone</div>
+                <div className="text-[9px] uppercase tracking-widest text-olive font-bold">
+                  Allotted Zone
+                </div>
                 <div className="text-xs font-bold text-ink flex items-center gap-1">
                   {branch.area}
-                  <span className="inline-block size-1.5 rounded-full bg-green-500 animate-pulse" title="Kitchen is online & taking orders" />
+                  <span
+                    className="inline-block size-1.5 rounded-full bg-green-500 animate-pulse"
+                    title="Kitchen is online & taking orders"
+                  />
                 </div>
               </div>
             </div>
 
             {/* Live Basket Button */}
-            <Link 
-              href="/cart" 
+            <Link
+              href="/cart"
               className="flex items-center gap-2.5 px-4 h-10 rounded-full bg-ink text-cream hover:bg-ink/90 active:scale-95 transition-all shadow-sm group"
             >
               <div className="relative">
@@ -134,8 +153,8 @@ export function Header() {
             </Link>
 
             {/* Profile Avatar / Login */}
-            <Link 
-              href="/profile" 
+            <Link
+              href="/profile"
               className="relative flex items-center justify-center size-10 rounded-full border border-ink/5 bg-white shadow-sm hover:border-ink/20 active:scale-95 transition-all group overflow-hidden"
               aria-label="User Profile"
             >
@@ -156,10 +175,14 @@ export function Header() {
         <header className="md:hidden w-full h-14 bg-cream/80 backdrop-blur-md border-b border-ink/5 flex items-center justify-between px-4 sticky top-0.5 z-40">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="relative size-8 rounded-lg bg-gradient-to-tr from-ink to-olive-dark border border-lime/30 flex items-center justify-center shadow-sm">
-              <span className="text-lime font-display text-sm font-bold leading-none select-none">M</span>
+              <span className="text-lime font-display text-sm font-bold leading-none select-none">
+                M
+              </span>
               <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-lime border border-ink animate-pulse" />
             </div>
-            <span className="font-display text-lg font-bold tracking-tight text-ink leading-none">malashree</span>
+            <span className="font-display text-lg font-bold tracking-tight text-ink leading-none">
+              malashree
+            </span>
           </Link>
           <div className="flex items-center gap-1.5 bg-white border border-ink/5 px-3 py-1.5 rounded-full text-xs font-bold text-ink shadow-sm">
             <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -185,8 +208,8 @@ export function Header() {
                   key={item.to}
                   href={item.to}
                   className={`relative h-11 flex items-center justify-center rounded-full transition-all duration-300 ${
-                    isActive 
-                      ? "text-ink font-bold px-4 flex-grow max-w-[100px] z-10" 
+                    isActive
+                      ? "text-ink font-bold px-4 flex-grow max-w-[100px] z-10"
                       : "w-11 text-cream/70 hover:text-cream z-10"
                   }`}
                 >

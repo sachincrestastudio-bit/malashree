@@ -1,6 +1,7 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { Order } from '../../models/Order';
-import { DeliveryAuditLog } from '../../models/DeliveryAuditLog';
+import { connectToDatabase } from "../../database/mongoose";
+import { Order } from "../../models/Order";
+import { DeliveryAuditLog } from "../../models/DeliveryAuditLog";
+import { EventBusService } from "../realtime/EventBusService";
 
 export class AssignmentService {
   /**
@@ -11,12 +12,12 @@ export class AssignmentService {
 
     const orders = await Order.find({
       driverId,
-      orderStatus: { $in: ['ready', 'out_for_delivery'] }
+      orderStatus: { $in: ["ready", "out_for_delivery"] },
     })
-    .sort({ createdAt: 1 })
-    .populate('customer', 'name phone')
-    .populate('kitchen', 'name location')
-    .lean();
+      .sort({ createdAt: 1 })
+      .populate("customer", "name phone")
+      .populate("kitchen", "name location")
+      .lean();
 
     return JSON.parse(JSON.stringify(orders));
   }
@@ -29,20 +30,27 @@ export class AssignmentService {
     await connectToDatabase();
 
     const order = await Order.findById(orderId);
-    if (!order) throw new Error('Order not found');
-    
+    if (!order) throw new Error("Order not found");
+
     if (order.driverId && order.driverId.toString() !== driverId) {
-      throw new Error('Order already assigned to another driver');
+      throw new Error("Order already assigned to another driver");
     }
 
     order.driverId = driverId;
     await order.save();
 
+    EventBusService.publish("DriverAssigned", {
+      order: JSON.parse(JSON.stringify(order)),
+      customerId: order.customer.toString(),
+      kitchenId: order.kitchen.toString(),
+      driverId,
+    });
+
     await DeliveryAuditLog.create({
       driverId,
       orderId,
-      action: 'ACCEPTED_DELIVERY',
-      gpsLocation: { lat, lng }
+      action: "ACCEPTED_DELIVERY",
+      gpsLocation: { lat, lng },
     });
 
     return JSON.parse(JSON.stringify(order));
@@ -55,20 +63,27 @@ export class AssignmentService {
     await connectToDatabase();
 
     const order = await Order.findOne({ _id: orderId, driverId });
-    if (!order) throw new Error('Order not found or not assigned to you');
+    if (!order) throw new Error("Order not found or not assigned to you");
 
     const previousStatus = order.orderStatus;
-    order.orderStatus = 'out_for_delivery';
+    order.orderStatus = "out_for_delivery";
     order.pickedUpTime = new Date();
     await order.save();
+
+    EventBusService.publish("OutForDelivery", {
+      order: JSON.parse(JSON.stringify(order)),
+      customerId: order.customer.toString(),
+      kitchenId: order.kitchen.toString(),
+      driverId,
+    });
 
     await DeliveryAuditLog.create({
       driverId,
       orderId,
-      action: 'PICKED_UP',
+      action: "PICKED_UP",
       previousStatus,
-      newStatus: 'out_for_delivery',
-      gpsLocation: { lat, lng }
+      newStatus: "out_for_delivery",
+      gpsLocation: { lat, lng },
     });
 
     return JSON.parse(JSON.stringify(order));

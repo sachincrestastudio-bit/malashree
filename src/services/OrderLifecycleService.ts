@@ -1,8 +1,10 @@
-import { connectToDatabase } from '../database/mongoose';
-import { Order } from '../models/Order';
-import { StatusTransitionService } from './StatusTransitionService';
-import { ETAService } from './ETAService';
-import { TimelineService } from './TimelineService';
+import { connectToDatabase } from "../database/mongoose";
+import { Order } from "../models/Order";
+import { StatusTransitionService } from "./StatusTransitionService";
+import { ETAService } from "./ETAService";
+import { TimelineService } from "./TimelineService";
+import { EventBusService } from "./realtime/EventBusService";
+import { InventoryService } from "./inventory/InventoryService";
 
 export class OrderLifecycleService {
   /**
@@ -16,52 +18,60 @@ export class OrderLifecycleService {
     updatedBy: string,
     role: string,
     ipAddress: string,
-    remarks?: string
+    remarks?: string,
   ) {
     await connectToDatabase();
 
     const order = await Order.findById(orderId);
-    if (!order) throw new Error('Order not found');
+    if (!order) throw new Error("Order not found");
 
     // Validate Kitchen Ownership
     if (order.kitchen.toString() !== kitchenId) {
-      throw new Error('Unauthorized: Order does not belong to this kitchen');
+      throw new Error("Unauthorized: Order does not belong to this kitchen");
     }
 
     const oldStatus = order.orderStatus;
 
     // Validate Transition
     if (!StatusTransitionService.validateTransition(oldStatus, newStatus, role)) {
-      throw new Error(`Invalid status transition from ${oldStatus} to ${newStatus} for role ${role}`);
+      throw new Error(
+        `Invalid status transition from ${oldStatus} to ${newStatus} for role ${role}`,
+      );
     }
 
     // No-op if status is same
     if (oldStatus === newStatus) return order;
 
     // Update ETAs/Actuals based on status
-    if (newStatus === 'accepted') {
+    if (newStatus === "accepted") {
       const etas = ETAService.calculateInitialETAs();
       order.estimatedReadyTime = etas.estimatedReadyTime;
       order.estimatedDeliveryTime = etas.estimatedDeliveryTime;
-    } else if (newStatus === 'ready') {
+    } else if (newStatus === "preparing") {
+      // Deduct stock permanently from reserved and current stock
+      await InventoryService.deductStock(order, updatedBy);
+    } else if (newStatus === "cancelled" && (oldStatus === "placed" || oldStatus === "accepted")) {
+      // Release reserved stock if cancelled before preparation
+      await InventoryService.releaseStock(order);
+    } else if (newStatus === "ready") {
       order.actualReadyTime = new Date();
-    } else if (newStatus === 'delivered') {
+    } else if (newStatus === "delivered") {
       order.actualDeliveryTime = new Date();
     }
 
     order.orderStatus = newStatus;
-    
+
     // Add to embedded timeline
-    order.timeline.push(
-      TimelineService.createTimelineEntry(newStatus, updatedBy, role, remarks)
-    );
+    order.timeline.push(TimelineService.createTimelineEntry(newStatus, updatedBy, role, remarks));
 
     // Save order (optimistic concurrency will throw VersionError if document was modified in parallel)
     try {
       await order.save();
     } catch (error: any) {
-      if (error.name === 'VersionError') {
-        throw new Error('Race condition detected: Order was updated by another process. Please refresh and try again.');
+      if (error.name === "VersionError") {
+        throw new Error(
+          "Race condition detected: Order was updated by another process. Please refresh and try again.",
+        );
       }
       throw error;
     }
@@ -69,16 +79,46 @@ export class OrderLifecycleService {
     // Create immutable audit log
     await TimelineService.createAuditLog(
       order._id.toString(),
-      'STATUS_CHANGE',
+      "STATUS_CHANGE",
       oldStatus,
       newStatus,
       updatedBy,
       role,
       ipAddress,
-      remarks
+      remarks,
     );
 
-    // TODO in future phases: Emit notification events here (e.g., NotificationService.emit('ORDER_READY'))
+    // Map status to EventType and publish
+    let eventName: any;
+    switch (newStatus) {
+      case "accepted":
+        eventName = "OrderAccepted";
+        break;
+      case "preparing":
+        eventName = "PreparationStarted";
+        break;
+      case "ready":
+        eventName = "OrderReady";
+        break;
+      case "out_for_delivery":
+        eventName = "OutForDelivery";
+        break;
+      case "delivered":
+        eventName = "Delivered";
+        break;
+      case "cancelled":
+        eventName = "Cancelled";
+        break;
+    }
+
+    if (eventName) {
+      EventBusService.publish(eventName, {
+        order: JSON.parse(JSON.stringify(order)),
+        customerId: order.customer.toString(),
+        kitchenId: order.kitchen.toString(),
+        driverId: order.driverId ? order.driverId.toString() : null,
+      });
+    }
 
     return order;
   }

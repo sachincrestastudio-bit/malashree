@@ -1,14 +1,11 @@
-import { connectToDatabase } from '@/database/mongoose';
-import { User } from '@/models/User';
-import { Users } from 'lucide-react';
+import { connectToDatabase } from "@/database/mongoose";
+import { User } from "@/models/User";
+import { Users } from "lucide-react";
 
 export default async function AdminCustomersPage() {
   await connectToDatabase();
-  
-  const customers = await User.find({ role: 'customer' })
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .lean();
+
+  const customers = await User.find({ role: "customer" }).sort({ createdAt: -1 }).limit(100).lean();
 
   return (
     <div className="space-y-6">
@@ -49,12 +46,14 @@ export default async function AdminCustomersPage() {
                       {user.name}
                     </td>
                     <td className="px-6 py-4">{user.email}</td>
-                    <td className="px-6 py-4">{user.phone || '-'}</td>
+                    <td className="px-6 py-4">{user.phone || "-"}</td>
                     <td className="px-6 py-4 text-gray-500 text-xs">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-emerald-600 hover:text-emerald-700 font-medium text-sm">View Profile</button>
+                      <button className="text-emerald-600 hover:text-emerald-700 font-medium text-sm">
+                        View Profile
+                      </button>
                     </td>
                   </tr>
                 ))

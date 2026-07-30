@@ -1,20 +1,71 @@
-import { CreditCard } from 'lucide-react';
+"use server";
 
-export default function AdminPaymentsPage() {
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Payments</h2>
-          <p className="text-gray-500">View transactions and Razorpay integration status.</p>
-        </div>
-      </div>
+import { connectToDatabase } from "@/database/mongoose";
+import { Transaction } from "@/models/Transaction";
+import { Kitchen } from "@/models/Kitchen";
+import { User } from "@/models/User";
+import { Order } from "@/models/Order";
+import AdminPaymentsClient from "./AdminPaymentsClient";
 
-      <div className="bg-white rounded-xl border border-gray-200 p-12 flex flex-col items-center justify-center text-gray-500 shadow-sm">
-        <CreditCard className="w-12 h-12 text-gray-300 mb-4" />
-        <p className="font-medium text-gray-900">Payments module ready for integration</p>
-        <p className="text-sm mt-1">Backend service prepared.</p>
-      </div>
-    </div>
-  );
+export default async function AdminPaymentsPage() {
+  await connectToDatabase();
+
+  // Touch models for registration
+  Kitchen.modelName;
+  User.modelName;
+  Order.modelName;
+
+  const rawTransactions = await Transaction.find()
+    .populate("customer", "name email phone")
+    .populate("kitchen", "name code")
+    .populate("order", "orderNumber")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  let totalProcessed = 0;
+  let onlineVolume = 0;
+  let codVolume = 0;
+  let refundedVolume = 0;
+
+  const transactions = rawTransactions.map((t: any) => {
+    const amount = t.amount || 0;
+    const refAmount = t.refundAmount || 0;
+    const isSuccess = t.status === "captured" || t.status === "authorized";
+
+    if (isSuccess) {
+      totalProcessed += amount;
+      if (t.gateway === "razorpay") {
+        onlineVolume += amount;
+      } else {
+        codVolume += amount;
+      }
+    }
+    refundedVolume += refAmount;
+
+    return {
+      id: t._id.toString(),
+      transactionId: t.transactionId || t._id.toString(),
+      gatewayOrderId: t.gatewayOrderId || "-",
+      gateway: t.gateway || "cod",
+      customerName: t.customer?.name || "Guest Customer",
+      customerEmail: t.customer?.email || "-",
+      kitchenName: t.kitchen?.name || "Unknown Kitchen",
+      orderNumber: t.order?.orderNumber || "",
+      amount,
+      currency: t.currency || "INR",
+      status: t.status || "pending",
+      refundAmount: refAmount,
+      refundStatus: t.refundStatus || "none",
+      createdAt: t.createdAt ? new Date(t.createdAt).toLocaleString("en-IN") : "-",
+    };
+  });
+
+  const kpis = {
+    totalProcessed,
+    onlineVolume,
+    codVolume,
+    refundedVolume,
+  };
+
+  return <AdminPaymentsClient transactions={transactions} kpis={kpis} />;
 }

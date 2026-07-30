@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { getCurrentUser } from '../user';
-import { connectToDatabase } from '@/database/mongoose';
-import { DriverProfile } from '@/models/DriverProfile';
+import { getCurrentUser } from "../user";
+import { connectToDatabase } from "@/database/mongoose";
+import { DriverProfile } from "@/models/DriverProfile";
 
 /**
  * Ensures the current user is a delivery driver.
@@ -11,8 +11,8 @@ import { DriverProfile } from '@/models/DriverProfile';
 export async function requireDriverAccess() {
   await connectToDatabase();
   const user = await getCurrentUser();
-  if (!user || user.role !== 'driver') {
-    throw new Error('Unauthorized: Driver access required');
+  if (!user || user.role !== "driver") {
+    throw new Error("Unauthorized: Driver access required");
   }
 
   // Ensure DriverProfile exists, create if missing
@@ -24,6 +24,6 @@ export async function requireDriverAccess() {
   return {
     user,
     profileId: profile._id.toString(),
-    driverId: user.id
+    driverId: user.id,
   };
 }

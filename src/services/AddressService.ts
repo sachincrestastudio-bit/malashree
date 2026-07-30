@@ -5,19 +5,19 @@ export class AddressService {
    * For this phase, we ensure it's not empty and convert it into a basic snapshot format.
    */
   static validateAndFormat(addressString: string | undefined | null) {
-    if (!addressString || addressString.trim() === '') {
+    if (!addressString || addressString.trim() === "") {
       return null;
     }
 
     // Split basic comma-separated address if available, otherwise just put it all in 'street'
-    const parts = addressString.split(',').map(s => s.trim());
-    
+    const parts = addressString.split(",").map((s) => s.trim());
+
     return {
-      label: 'home',
+      label: "home",
       street: parts[0] || addressString,
-      city: parts.length > 1 ? parts[1] : 'Pune', // Default to Pune if missing
-      state: parts.length > 2 ? parts[2] : 'Maharashtra',
-      zipCode: parts.length > 3 ? parts[3] : '411001' // Default generic zip
+      city: parts.length > 1 ? parts[1] : "Pune", // Default to Pune if missing
+      state: parts.length > 2 ? parts[2] : "Maharashtra",
+      zipCode: parts.length > 3 ? parts[3] : "411001", // Default generic zip
     };
   }
 }

@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.env.local
+.env.production
+.env
+coverage
+README.md
+docs

@@ -1,5 +1,5 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { DriverProfile } from '../../models/DriverProfile';
+import { connectToDatabase } from "../../database/mongoose";
+import { DriverProfile } from "../../models/DriverProfile";
 
 export class DriverService {
   /**
@@ -7,16 +7,16 @@ export class DriverService {
    */
   static async toggleOnlineStatus(driverId: string, isOnline: boolean) {
     await connectToDatabase();
-    
+
     const profile = await DriverProfile.findOneAndUpdate(
       { user: driverId },
-      { 
+      {
         isOnline,
-        currentStatus: isOnline ? 'available' : 'offline'
+        currentStatus: isOnline ? "available" : "offline",
       },
-      { new: true }
+      { new: true },
     );
-    
+
     return JSON.parse(JSON.stringify(profile));
   }
 
@@ -25,17 +25,17 @@ export class DriverService {
    */
   static async updateLocation(driverId: string, lat: number, lng: number) {
     await connectToDatabase();
-    
+
     const profile = await DriverProfile.findOneAndUpdate(
       { user: driverId },
-      { 
-        'location.lat': lat,
-        'location.lng': lng,
-        'location.lastUpdated': new Date()
+      {
+        "location.lat": lat,
+        "location.lng": lng,
+        "location.lastUpdated": new Date(),
       },
-      { new: true }
+      { new: true },
     );
-    
+
     return JSON.parse(JSON.stringify(profile));
   }
 }

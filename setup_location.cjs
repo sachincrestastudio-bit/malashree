@@ -1,10 +1,10 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const src = path.join(__dirname, 'src');
+const src = path.join(__dirname, "src");
 
 const files = {
-  'utils/client/locationUtils.ts': `
+  "utils/client/locationUtils.ts": `
 export const calculateHaversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
   const R = 6371; // Earth's radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -24,7 +24,7 @@ export const isValidCoordinate = (lat: number, lng: number): boolean => {
   return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 };
 `,
-  'services/client/KitchenAssignmentService.ts': `
+  "services/client/KitchenAssignmentService.ts": `
 import { calculateHaversineDistance } from '../../utils/client/locationUtils';
 import { BRANCHES } from '../../lib/data';
 
@@ -69,7 +69,7 @@ export const assignNearestKitchen = (lat: number, lng: number): KitchenAssignmen
   };
 };
 `,
-  'services/client/LocationService.ts': `
+  "services/client/LocationService.ts": `
 export interface LocationResult {
   latitude: number;
   longitude: number;
@@ -96,7 +96,7 @@ export const requestGPSLocation = async (): Promise<LocationResult> => {
   });
 };
 `,
-  'store/locationStore.ts': `
+  "store/locationStore.ts": `
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -155,7 +155,7 @@ export const useLocationStore = create<LocationState>()(
     }
   )
 );
-`
+`,
 };
 
 for (const [relPath, content] of Object.entries(files)) {
@@ -163,4 +163,4 @@ for (const [relPath, content] of Object.entries(files)) {
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, content);
 }
-console.log('Location Services generated.');
+console.log("Location Services generated.");

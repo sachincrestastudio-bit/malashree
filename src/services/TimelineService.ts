@@ -1,4 +1,4 @@
-import { OrderAuditLog } from '../models/OrderAuditLog';
+import { OrderAuditLog } from "../models/OrderAuditLog";
 
 export class TimelineService {
   /**
@@ -10,7 +10,7 @@ export class TimelineService {
       time: new Date(),
       updatedBy,
       role,
-      remarks: remarks || ''
+      remarks: remarks || "",
     };
   }
 
@@ -26,7 +26,7 @@ export class TimelineService {
     updatedBy: string,
     role: string,
     ipAddress: string,
-    remarks?: string
+    remarks?: string,
   ) {
     const log = new OrderAuditLog({
       order: orderId,
@@ -36,7 +36,7 @@ export class TimelineService {
       updatedBy,
       role,
       ipAddress,
-      remarks
+      remarks,
     });
     await log.save();
     return log;

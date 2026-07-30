@@ -3,27 +3,35 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "@/actions/user";
+import { getAssignedKitchenDetails } from "@/actions/kitchen";
 import { useStore } from "@/lib/store";
 
 function AuthSync() {
-  const setProfile = useStore(s => s.setProfile);
-  
+  const setProfile = useStore((s) => s.setProfile);
+
   useEffect(() => {
-    const syncUser = async () => {
+    const syncUserAndKitchen = async () => {
+      // 1. Sync kitchen details from server cookie / DB
+      const kitchenDetails = await getAssignedKitchenDetails();
+      if (kitchenDetails?.code) {
+        useStore.getState().resolveLocation(kitchenDetails.code);
+      }
+
+      // 2. Sync user profile
       const user = await getCurrentUser();
       if (user) {
         setProfile({
           name: user.name,
           phone: user.phone,
           address: user.address || "",
-          branchId: useStore.getState().branchId, // keep current or overwrite
+          branchId: kitchenDetails?.code || useStore.getState().branchId,
           email: user.email,
           role: user.role,
-          joinedDate: user.joinedDate
+          joinedDate: user.joinedDate,
         });
       }
     };
-    syncUser();
+    syncUserAndKitchen();
   }, [setProfile]);
 
   return null;

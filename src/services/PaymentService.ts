@@ -1,4 +1,3 @@
-
 export class PaymentService {
   async handleBusinessLogic() {
     // Scaffold

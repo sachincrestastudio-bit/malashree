@@ -1,11 +1,11 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const src = path.join(__dirname, 'src');
+const src = path.join(__dirname, "src");
 
 const files = {
   // --- 1. Database Connection ---
-  'database/mongoose.ts': `import mongoose from 'mongoose';
+  "database/mongoose.ts": `import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -50,7 +50,7 @@ export const connectToDatabase = async () => {
 `,
 
   // --- 2. Security & Auth Utilities ---
-  'utils/security.ts': `import bcrypt from 'bcryptjs';
+  "utils/security.ts": `import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const SALT_ROUNDS = 10;
@@ -77,7 +77,7 @@ export const verifyToken = (token: string): any => {
 };
 `,
 
-  'middleware/permissions.ts': `import { NextResponse } from 'next/server';
+  "middleware/permissions.ts": `import { NextResponse } from 'next/server';
 
 export const requireRole = (role: string) => {
   return async (req: Request) => {
@@ -88,7 +88,7 @@ export const requireRole = (role: string) => {
 `,
 
   // --- 3. Error & Response Helpers ---
-  'utils/error.ts': `export class AppError extends Error {
+  "utils/error.ts": `export class AppError extends Error {
   public statusCode: number;
   public isOperational: boolean;
 
@@ -113,7 +113,7 @@ export class AuthError extends AppError {
 }
 `,
 
-  'utils/api-response.ts': `import { NextResponse } from 'next/server';
+  "utils/api-response.ts": `import { NextResponse } from 'next/server';
 
 export const successResponse = (data: any, message = 'Success', statusCode = 200) => {
   return NextResponse.json({ success: true, message, data }, { status: statusCode });
@@ -134,7 +134,7 @@ export const paginationMeta = (total: number, page: number, limit: number) => {
 `,
 
   // --- 4. Zod Validation Schemas ---
-  'schemas/auth.ts': `import { z } from 'zod';
+  "schemas/auth.ts": `import { z } from 'zod';
 
 export const LoginSchema = z.object({
   email: z.string().email(),
@@ -148,7 +148,7 @@ export const RegisterSchema = z.object({
   password: z.string().min(6),
 });
 `,
-  'schemas/address.ts': `import { z } from 'zod';
+  "schemas/address.ts": `import { z } from 'zod';
 
 export const AddressSchema = z.object({
   street: z.string().min(1),
@@ -160,7 +160,7 @@ export const AddressSchema = z.object({
   longitude: z.number().optional(),
 });
 `,
-  'schemas/kitchen.ts': `import { z } from 'zod';
+  "schemas/kitchen.ts": `import { z } from 'zod';
 
 export const KitchenSchema = z.object({
   name: z.string().min(2),
@@ -168,7 +168,7 @@ export const KitchenSchema = z.object({
   status: z.enum(['active', 'inactive', 'maintenance']),
 });
 `,
-  'schemas/menu.ts': `import { z } from 'zod';
+  "schemas/menu.ts": `import { z } from 'zod';
 
 export const MenuItemSchema = z.object({
   name: z.string().min(2),
@@ -177,7 +177,7 @@ export const MenuItemSchema = z.object({
   isVeg: z.boolean(),
 });
 `,
-  'schemas/order.ts': `import { z } from 'zod';
+  "schemas/order.ts": `import { z } from 'zod';
 
 export const OrderSchema = z.object({
   kitchenId: z.string(),
@@ -189,7 +189,7 @@ export const OrderSchema = z.object({
 `,
 
   // --- 5. Mongoose Models ---
-  'models/User.ts': `import { Schema, model, models } from 'mongoose';
+  "models/User.ts": `import { Schema, model, models } from 'mongoose';
 
 const UserSchema = new Schema({
   name: { type: String, required: true },
@@ -212,8 +212,8 @@ UserSchema.index({ email: 1 });
 
 export const User = models.User || model('User', UserSchema);
 `,
-  
-  'models/Kitchen.ts': `import { Schema, model, models } from 'mongoose';
+
+  "models/Kitchen.ts": `import { Schema, model, models } from 'mongoose';
 
 const KitchenSchema = new Schema({
   name: { type: String, required: true },
@@ -238,7 +238,7 @@ KitchenSchema.index({ code: 1 });
 export const Kitchen = models.Kitchen || model('Kitchen', KitchenSchema);
 `,
 
-  'models/Category.ts': `import { Schema, model, models } from 'mongoose';
+  "models/Category.ts": `import { Schema, model, models } from 'mongoose';
 
 const CategorySchema = new Schema({
   name: { type: String, required: true },
@@ -250,7 +250,7 @@ const CategorySchema = new Schema({
 export const Category = models.Category || model('Category', CategorySchema);
 `,
 
-  'models/MenuItem.ts': `import { Schema, model, models } from 'mongoose';
+  "models/MenuItem.ts": `import { Schema, model, models } from 'mongoose';
 
 const MenuItemSchema = new Schema({
   name: { type: String, required: true },
@@ -278,7 +278,7 @@ MenuItemSchema.index({ name: 'text' });
 export const MenuItem = models.MenuItem || model('MenuItem', MenuItemSchema);
 `,
 
-  'models/Order.ts': `import { Schema, model, models } from 'mongoose';
+  "models/Order.ts": `import { Schema, model, models } from 'mongoose';
 
 const OrderSchema = new Schema({
   orderNumber: { type: String, required: true, unique: true },
@@ -315,7 +315,7 @@ OrderSchema.index({ orderNumber: 1 });
 export const Order = models.Order || model('Order', OrderSchema);
 `,
 
-  'models/Address.ts': `import { Schema, model, models } from 'mongoose';
+  "models/Address.ts": `import { Schema, model, models } from 'mongoose';
 
 const AddressSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -335,7 +335,7 @@ const AddressSchema = new Schema({
 export const Address = models.Address || model('Address', AddressSchema);
 `,
 
-  'models/Coupon.ts': `import { Schema, model, models } from 'mongoose';
+  "models/Coupon.ts": `import { Schema, model, models } from 'mongoose';
 
 const CouponSchema = new Schema({
   code: { type: String, required: true, unique: true },
@@ -354,7 +354,7 @@ const CouponSchema = new Schema({
 export const Coupon = models.Coupon || model('Coupon', CouponSchema);
 `,
 
-  'models/Review.ts': `import { Schema, model, models } from 'mongoose';
+  "models/Review.ts": `import { Schema, model, models } from 'mongoose';
 
 const ReviewSchema = new Schema({
   customer: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -369,7 +369,7 @@ const ReviewSchema = new Schema({
 export const Review = models.Review || model('Review', ReviewSchema);
 `,
 
-  'models/Notification.ts': `import { Schema, model, models } from 'mongoose';
+  "models/Notification.ts": `import { Schema, model, models } from 'mongoose';
 
 const NotificationSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -383,7 +383,7 @@ const NotificationSchema = new Schema({
 export const Notification = models.Notification || model('Notification', NotificationSchema);
 `,
 
-  'models/Driver.ts': `import { Schema, model, models } from 'mongoose';
+  "models/Driver.ts": `import { Schema, model, models } from 'mongoose';
 
 const DriverSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -406,7 +406,7 @@ DriverSchema.index({ location: '2dsphere' });
 export const Driver = models.Driver || model('Driver', DriverSchema);
 `,
 
-  'models/Payment.ts': `import { Schema, model, models } from 'mongoose';
+  "models/Payment.ts": `import { Schema, model, models } from 'mongoose';
 
 const PaymentSchema = new Schema({
   transactionId: { type: String, required: true, unique: true },
@@ -423,9 +423,8 @@ const PaymentSchema = new Schema({
 export const Payment = models.Payment || model('Payment', PaymentSchema);
 `,
 
-
   // --- 6. Repository Pattern Scaffolding ---
-  ...['User', 'Kitchen', 'Order', 'Menu', 'Coupon', 'Payment', 'Review'].reduce((acc, name) => {
+  ...["User", "Kitchen", "Order", "Menu", "Coupon", "Payment", "Review"].reduce((acc, name) => {
     acc[`repositories/${name}Repository.ts`] = `
 export class ${name}Repository {
   async findById(id: string) {
@@ -453,7 +452,17 @@ export class ${name}Repository {
   }, {}),
 
   // --- 7. Service Pattern Scaffolding ---
-  ...['Auth', 'Menu', 'Kitchen', 'Order', 'Coupon', 'Payment', 'Notification', 'Review', 'User'].reduce((acc, name) => {
+  ...[
+    "Auth",
+    "Menu",
+    "Kitchen",
+    "Order",
+    "Coupon",
+    "Payment",
+    "Notification",
+    "Review",
+    "User",
+  ].reduce((acc, name) => {
     acc[`services/${name}Service.ts`] = `
 export class ${name}Service {
   async handleBusinessLogic() {
@@ -464,7 +473,6 @@ export class ${name}Service {
 `;
     return acc;
   }, {}),
-
 };
 
 // Write Files
@@ -474,4 +482,4 @@ for (const [relPath, content] of Object.entries(files)) {
   fs.writeFileSync(fullPath, content);
 }
 
-console.log('Advanced Backend Architecture generated successfully!');
+console.log("Advanced Backend Architecture generated successfully!");

@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const src = path.join(__dirname, 'src');
+const src = path.join(__dirname, "src");
 
 const jwtContent = `
 import { SignJWT, jwtVerify } from 'jose';
@@ -62,29 +62,37 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 };
 `;
 
-fs.writeFileSync(path.join(src, 'utils/jwt.ts'), jwtContent);
-fs.writeFileSync(path.join(src, 'utils/password.ts'), passwordContent);
-if (fs.existsSync(path.join(src, 'utils/security.ts'))) {
-  fs.unlinkSync(path.join(src, 'utils/security.ts'));
+fs.writeFileSync(path.join(src, "utils/jwt.ts"), jwtContent);
+fs.writeFileSync(path.join(src, "utils/password.ts"), passwordContent);
+if (fs.existsSync(path.join(src, "utils/security.ts"))) {
+  fs.unlinkSync(path.join(src, "utils/security.ts"));
 }
 
 // Update references
 const replaceInFile = (file, replacements) => {
-  let content = fs.readFileSync(file, 'utf8');
-  replacements.forEach(r => content = content.replace(r.search, r.replace));
+  let content = fs.readFileSync(file, "utf8");
+  replacements.forEach((r) => (content = content.replace(r.search, r.replace)));
   fs.writeFileSync(file, content);
 };
 
-replaceInFile(path.join(src, 'middleware.ts'), [
-  { search: /'\.\/utils\/security'/g, replace: "'./utils/jwt'" }
+replaceInFile(path.join(src, "middleware.ts"), [
+  { search: /'\.\/utils\/security'/g, replace: "'./utils/jwt'" },
 ]);
 
-replaceInFile(path.join(src, 'actions/auth.ts'), [
-  { search: /import \{ hashPassword, verifyPassword, generateToken, setAuthCookie, clearAuthCookie \} from '\.\.\/utils\/security';/g, replace: "import { generateToken, setAuthCookie, clearAuthCookie } from '../utils/jwt';\nimport { hashPassword, verifyPassword } from '../utils/password';" }
+replaceInFile(path.join(src, "actions/auth.ts"), [
+  {
+    search:
+      /import \{ hashPassword, verifyPassword, generateToken, setAuthCookie, clearAuthCookie \} from '\.\.\/utils\/security';/g,
+    replace:
+      "import { generateToken, setAuthCookie, clearAuthCookie } from '../utils/jwt';\nimport { hashPassword, verifyPassword } from '../utils/password';",
+  },
 ]);
 
-replaceInFile(path.join(src, 'actions/user.ts'), [
-  { search: /import \{ getAuthCookie, verifyToken \} from '\.\.\/utils\/security';/g, replace: "import { getAuthCookie, verifyToken } from '../utils/jwt';" }
+replaceInFile(path.join(src, "actions/user.ts"), [
+  {
+    search: /import \{ getAuthCookie, verifyToken \} from '\.\.\/utils\/security';/g,
+    replace: "import { getAuthCookie, verifyToken } from '../utils/jwt';",
+  },
 ]);
 
-console.log('Security files split.');
+console.log("Security files split.");

@@ -1,5 +1,5 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { Order } from '../../models/Order';
+import { connectToDatabase } from "../../database/mongoose";
+import { Order } from "../../models/Order";
 
 export class KitchenAnalyticsService {
   /**
@@ -14,25 +14,25 @@ export class KitchenAnalyticsService {
     const orders = await Order.find({
       kitchenId,
       createdAt: { $gte: thirtyDaysAgo },
-      orderStatus: 'delivered'
+      orderStatus: "delivered",
     }).lean();
 
     const cancelledOrders = await Order.countDocuments({
       kitchenId,
       createdAt: { $gte: thirtyDaysAgo },
-      orderStatus: 'cancelled'
+      orderStatus: "cancelled",
     });
 
     const totalOrders = orders.length;
-    const avgOrderValue = totalOrders > 0 
-      ? orders.reduce((sum, o) => sum + (o.grandTotal || 0), 0) / totalOrders 
-      : 0;
+    const avgOrderValue =
+      totalOrders > 0 ? orders.reduce((sum, o) => sum + (o.grandTotal || 0), 0) / totalOrders : 0;
 
     return {
       totalOrders,
       cancelledOrders,
       avgOrderValue,
-      efficiencyScore: totalOrders > 0 ? ((totalOrders / (totalOrders + cancelledOrders)) * 100).toFixed(1) : 0
+      efficiencyScore:
+        totalOrders > 0 ? ((totalOrders / (totalOrders + cancelledOrders)) * 100).toFixed(1) : 0,
     };
   }
 }

@@ -1,4 +1,3 @@
-
 export class KitchenService {
   async handleBusinessLogic() {
     // Scaffold

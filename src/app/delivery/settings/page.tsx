@@ -1,13 +1,16 @@
-import { requireDriverAccess } from '@/actions/delivery/auth';
-import { ArrowLeft, Bell, Map, Moon } from 'lucide-react';
-import Link from 'next/link';
+import { requireDriverAccess } from "@/actions/delivery/auth";
+import { ArrowLeft, Bell, Map, Moon } from "lucide-react";
+import Link from "next/link";
 
 export default async function DeliverySettingsPage() {
   await requireDriverAccess();
 
   return (
     <div className="max-w-lg mx-auto space-y-6 pb-6">
-      <Link href="/delivery/profile" className="text-blue-500 hover:text-blue-400 flex items-center gap-2 text-sm font-bold w-fit mb-2">
+      <Link
+        href="/delivery/profile"
+        className="text-blue-500 hover:text-blue-400 flex items-center gap-2 text-sm font-bold w-fit mb-2"
+      >
         <ArrowLeft className="w-4 h-4" /> Back to Profile
       </Link>
 

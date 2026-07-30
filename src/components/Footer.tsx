@@ -2,27 +2,49 @@
 
 import Link from "next/link";
 
-
 export function Footer() {
   return (
     <footer className="mt-20 bg-ink text-cream">
       <div className="mx-auto max-w-7xl px-6 py-16 grid gap-12 md:grid-cols-4">
         <div className="md:col-span-2">
           <div className="font-display text-4xl md:text-5xl leading-[0.95]">
-            order <span className="text-lime">direct.</span><br/>
+            order <span className="text-lime">direct.</span>
+            <br />
             skip the <span className="italic">middleman.</span>
           </div>
           <p className="mt-6 text-cream/60 max-w-sm text-sm leading-relaxed">
-            Malashree's own ordering platform. Lower fees, faster kitchens, the same food you love — straight from us to you.
+            Malashree's own ordering platform. Lower fees, faster kitchens, the same food you love —
+            straight from us to you.
           </p>
         </div>
         <div>
           <div className="text-xs uppercase tracking-widest text-lime/80 mb-4">Explore</div>
           <ul className="space-y-2 text-sm">
-            <li><Link href="/menu" className="hover:text-lime">Menu</Link></li>
-            <li><Link href="/branches" className="hover:text-lime">Branches</Link></li>
-            <li><Link href="/profile" className="hover:text-lime">Profile</Link></li>
-            <li><Link href="/register" className="hover:text-lime">Register</Link></li>
+            <li>
+              <Link href="/menu" className="hover:text-lime">
+                Menu
+              </Link>
+            </li>
+            <li>
+              <Link href="/branches" className="hover:text-lime">
+                Branches
+              </Link>
+            </li>
+            <li>
+              <Link href="/profile" className="hover:text-lime">
+                Profile
+              </Link>
+            </li>
+            <li>
+              <Link href="/register" className="hover:text-lime">
+                Register
+              </Link>
+            </li>
+            <li>
+              <Link href="/complaints" className="hover:text-lime">
+                Complaints & Support
+              </Link>
+            </li>
           </ul>
         </div>
         <div>

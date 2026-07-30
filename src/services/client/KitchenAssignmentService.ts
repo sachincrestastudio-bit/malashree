@@ -2,10 +2,10 @@
 import { calculateHaversineDistance } from '../../utils/client/locationUtils';
 import { BRANCHES } from '../../lib/data';
 
-const KITCHENS_COORDS: Record<string, { lat: number; lng: number, radiusKm: number }> = {
-  "pimple-saudagar": { lat: 18.5987, lng: 73.7978, radiusKm: 15 },
-  "chinchwad": { lat: 18.6253, lng: 73.7788, radiusKm: 15 },
-  "sangvi": { lat: 18.5772, lng: 73.8055, radiusKm: 15 },
+const KITCHENS_COORDS: Record<string, { lat: number; lng: number; radiusKm: number }> = {
+  "pimple-saudagar": { lat: 18.5989276, lng: 73.7978578, radiusKm: 15 },
+  "sangvi": { lat: 18.5814833, lng: 73.8174781, radiusKm: 15 },
+  "chinchwad": { lat: 18.6319125, lng: 73.7935409, radiusKm: 15 },
 };
 
 export interface KitchenAssignmentResult {

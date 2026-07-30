@@ -1,43 +1,39 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/actions/user';
-import Link from 'next/link';
-import { 
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/actions/user";
+import Link from "next/link";
+import {
   ChefHat,
-  LayoutDashboard, 
-  ListOrdered, 
-  UtensilsCrossed, 
+  LayoutDashboard,
+  ListOrdered,
+  UtensilsCrossed,
   History,
   Settings,
   LogOut,
   Clock,
-  Store
-} from 'lucide-react';
+  Store,
+} from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: 'Malashree Kitchen Ops',
+  title: "Malashree Kitchen Ops",
 };
 
 const navigation = [
-  { name: 'Dashboard', href: '/kitchen/dashboard', icon: LayoutDashboard },
-  { name: 'Live Queue', href: '/kitchen/orders', icon: ListOrdered },
-  { name: 'Menu & Stock', href: '/kitchen/menu', icon: UtensilsCrossed },
-  { name: 'Order History', href: '/kitchen/history', icon: History },
-  { name: 'Availability', href: '/kitchen/availability', icon: Clock },
-  { name: 'Settings', href: '/kitchen/settings', icon: Settings },
+  { name: "Dashboard", href: "/kitchen/dashboard", icon: LayoutDashboard },
+  { name: "Live Queue", href: "/kitchen/orders", icon: ListOrdered },
+  { name: "Menu & Stock", href: "/kitchen/menu", icon: UtensilsCrossed },
+  { name: "Order History", href: "/kitchen/history", icon: History },
+  { name: "Availability", href: "/kitchen/availability", icon: Clock },
+  { name: "Settings", href: "/kitchen/settings", icon: Settings },
 ];
 
-export default async function KitchenLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function KitchenLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
 
   // Strict Server-Side Authorization for Kitchen Staff
-  if (!user || user.role !== 'kitchen_manager') {
-    redirect('/'); // Redirect unauthorized users to customer home
+  if (!user || user.role !== "kitchen_manager") {
+    redirect("/"); // Redirect unauthorized users to customer home
   }
 
   // Ensure they have an assigned kitchen
@@ -47,8 +43,13 @@ export default async function KitchenLayout({
         <div className="text-center p-8 bg-slate-800 rounded-xl max-w-md">
           <Store className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Unassigned Kitchen</h1>
-          <p className="text-slate-400 mb-6">Your account is not linked to a specific kitchen. Please contact the administrator.</p>
-          <Link href="/" className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg font-medium transition-colors">
+          <p className="text-slate-400 mb-6">
+            Your account is not linked to a specific kitchen. Please contact the administrator.
+          </p>
+          <Link
+            href="/"
+            className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg font-medium transition-colors"
+          >
             Return Home
           </Link>
         </div>
@@ -64,7 +65,7 @@ export default async function KitchenLayout({
           <ChefHat className="w-6 h-6 text-orange-500 mr-2" />
           Kitchen <span className="text-orange-500 ml-1">Ops</span>
         </div>
-        
+
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
@@ -84,7 +85,7 @@ export default async function KitchenLayout({
         <div className="p-4 border-t border-slate-800 bg-slate-900">
           <div className="flex items-center gap-3 px-3 py-2">
             <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold text-sm border border-slate-700">
-              {user.name?.charAt(0) || 'K'}
+              {user.name?.charAt(0) || "K"}
             </div>
             <div className="flex-1 truncate">
               <p className="text-sm font-medium text-white truncate">{user.name}</p>
@@ -103,9 +104,7 @@ export default async function KitchenLayout({
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-950">
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">{children}</div>
       </main>
     </div>
   );

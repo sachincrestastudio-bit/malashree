@@ -1,6 +1,6 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { Order } from '../../models/Order';
-import { DriverProfile } from '../../models/DriverProfile';
+import { connectToDatabase } from "../../database/mongoose";
+import { Order } from "../../models/Order";
+import { DriverProfile } from "../../models/DriverProfile";
 
 export class EarningsService {
   /**
@@ -10,17 +10,17 @@ export class EarningsService {
     await connectToDatabase();
 
     const profile = await DriverProfile.findOne({ user: driverId }).lean();
-    
+
     // In a real application, you would calculate this based on a ledger of Delivery payouts.
     // For this prototype, we'll return the aggregated fields from the profile.
-    
+
     return {
       todaysEarnings: profile?.todaysEarnings || 0,
       weeklyEarnings: profile?.weeklyEarnings || 0,
       monthlyEarnings: profile?.monthlyEarnings || 0,
       totalDeliveries: profile?.totalDeliveries || 0,
       averageRating: profile?.averageRating || 5.0,
-      averageDeliveryTime: '24 mins' // Mocked derived metric
+      averageDeliveryTime: "24 mins", // Mocked derived metric
     };
   }
 
@@ -33,24 +33,24 @@ export class EarningsService {
 
     const orders = await Order.find({
       driverId,
-      orderStatus: { $in: ['delivered', 'cancelled'] }
+      orderStatus: { $in: ["delivered", "cancelled"] },
     })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .populate('kitchen', 'name')
-    .lean();
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("kitchen", "name")
+      .lean();
 
     const total = await Order.countDocuments({
       driverId,
-      orderStatus: { $in: ['delivered', 'cancelled'] }
+      orderStatus: { $in: ["delivered", "cancelled"] },
     });
 
     return {
       orders: JSON.parse(JSON.stringify(orders)),
       total,
       page,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / limit),
     };
   }
 }

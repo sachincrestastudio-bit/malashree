@@ -1,5 +1,5 @@
-import { connectToDatabase } from '../database/mongoose';
-import { Order } from '../models/Order';
+import { connectToDatabase } from "../database/mongoose";
+import { Order } from "../models/Order";
 
 export class OrderService {
   /**
@@ -7,10 +7,10 @@ export class OrderService {
    */
   static async createOrder(orderPayload: any) {
     await connectToDatabase();
-    
+
     const newOrder = new Order(orderPayload);
     await newOrder.save();
-    
+
     return newOrder;
   }
 }

@@ -1,6 +1,6 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { Order } from '../../models/Order';
-import { Kitchen } from '../../models/Kitchen';
+import { connectToDatabase } from "../../database/mongoose";
+import { Order } from "../../models/Order";
+import { Kitchen } from "../../models/Kitchen";
 
 export class KitchenDashboardService {
   /**
@@ -16,34 +16,36 @@ export class KitchenDashboardService {
     todayEnd.setHours(23, 59, 59, 999);
 
     const kitchen = await Kitchen.findById(kitchenId).lean();
-    if (!kitchen) throw new Error('Kitchen not found');
+    if (!kitchen) throw new Error("Kitchen not found");
 
     const todaysOrders = await Order.find({
       kitchenId,
       createdAt: { $gte: todayStart, $lte: todayEnd },
-      orderStatus: { $ne: 'cancelled' }
+      orderStatus: { $ne: "cancelled" },
     });
 
     const todaysRevenue = todaysOrders.reduce((sum, order) => sum + (order.grandTotal || 0), 0);
-    const completedOrders = todaysOrders.filter(o => o.orderStatus === 'delivered' || o.orderStatus === 'ready').length;
-    
-    const pendingOrders = await Order.countDocuments({ kitchenId, orderStatus: 'placed' });
-    const preparingOrders = await Order.countDocuments({ kitchenId, orderStatus: 'preparing' });
-    const readyOrders = await Order.countDocuments({ kitchenId, orderStatus: 'ready' });
+    const completedOrders = todaysOrders.filter(
+      (o) => o.orderStatus === "delivered" || o.orderStatus === "ready",
+    ).length;
+
+    const pendingOrders = await Order.countDocuments({ kitchenId, orderStatus: "placed" });
+    const preparingOrders = await Order.countDocuments({ kitchenId, orderStatus: "preparing" });
+    const readyOrders = await Order.countDocuments({ kitchenId, orderStatus: "ready" });
 
     // Calculate Average Preparation Time (mocked logic or based on actual timeline diff)
     // For now we will just use a hardcoded value or simple average if timeline data exists.
-    const avgPrepTime = '18 mins'; 
+    const avgPrepTime = "18 mins";
 
     return {
-      kitchenStatus: kitchen.isActive ? 'Open' : 'Closed',
+      kitchenStatus: kitchen.isActive ? "Open" : "Closed",
       todaysRevenue,
       todaysOrders: todaysOrders.length,
       completedOrders,
       pendingOrders,
       preparingOrders,
       readyOrders,
-      avgPrepTime
+      avgPrepTime,
     };
   }
 }

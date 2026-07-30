@@ -1,4 +1,3 @@
-
 export class NotificationService {
   async handleBusinessLogic() {
     // Scaffold

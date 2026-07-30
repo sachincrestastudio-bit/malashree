@@ -1,5 +1,5 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { Order } from '../../models/Order';
+import { connectToDatabase } from "../../database/mongoose";
+import { Order } from "../../models/Order";
 
 export class AnalyticsService {
   /**
@@ -11,21 +11,21 @@ export class AnalyticsService {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const pipeline = [
+    const pipeline: any[] = [
       {
         $match: {
           createdAt: { $gte: thirtyDaysAgo },
-          orderStatus: { $ne: 'cancelled' }
-        }
+          orderStatus: { $ne: "cancelled" },
+        },
       },
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
           revenue: { $sum: "$grandTotal" },
-          orders: { $sum: 1 }
-        }
+          orders: { $sum: 1 },
+        },
       },
-      { $sort: { "_id": 1 } }
+      { $sort: { _id: 1 } },
     ];
 
     const result = await Order.aggregate(pipeline);

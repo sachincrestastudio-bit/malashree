@@ -1,5 +1,5 @@
-import { connectToDatabase } from '../database/mongoose';
-import { Order } from '../models/Order';
+import { connectToDatabase } from "../database/mongoose";
+import { Order } from "../models/Order";
 
 export class KitchenWorkflowService {
   /**
@@ -8,11 +8,13 @@ export class KitchenWorkflowService {
    */
   static async getActiveOrders(kitchenId: string) {
     await connectToDatabase();
-    
+
     return Order.find({
       kitchen: kitchenId,
-      orderStatus: { $nin: ['delivered', 'cancelled'] }
-    }).sort({ createdAt: 1 }).lean();
+      orderStatus: { $nin: ["delivered", "cancelled"] },
+    })
+      .sort({ createdAt: 1 })
+      .lean();
   }
 
   /**

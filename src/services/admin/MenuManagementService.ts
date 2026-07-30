@@ -1,7 +1,7 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { MenuItem } from '../../models/MenuItem';
-import { Category } from '../../models/Category';
-import { Kitchen } from '../../models/Kitchen';
+import { connectToDatabase } from "../../database/mongoose";
+import { MenuItem } from "../../models/MenuItem";
+import { Category } from "../../models/Category";
+import { Kitchen } from "../../models/Kitchen";
 
 export class MenuManagementService {
   /**
@@ -9,14 +9,14 @@ export class MenuManagementService {
    */
   static async getAllMenuItems(filters = {}) {
     await connectToDatabase();
-    
+
     // Touch models to prevent tree-shaking which causes MissingSchemaError
     Category.modelName;
     Kitchen.modelName;
 
     return MenuItem.find(filters)
-      .populate('category', 'name')
-      .populate('kitchenId', 'name')
+      .populate("category", "name")
+      .populate("kitchenId", "name")
       .sort({ name: 1 })
       .lean();
   }

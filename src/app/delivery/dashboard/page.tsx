@@ -1,7 +1,7 @@
-import { requireDriverAccess } from '@/actions/delivery/auth';
-import { DeliveryDashboardService } from '@/services/delivery/DeliveryDashboardService';
-import { Bike, Navigation, MapPin, Wallet, CheckCircle, Clock } from 'lucide-react';
-import Link from 'next/link';
+import { requireDriverAccess } from "@/actions/delivery/auth";
+import { DeliveryDashboardService } from "@/services/delivery/DeliveryDashboardService";
+import { Bike, Navigation, MapPin, Wallet, CheckCircle, Clock } from "lucide-react";
+import Link from "next/link";
 
 export default async function DeliveryDashboardPage() {
   const { driverId } = await requireDriverAccess();
@@ -30,11 +30,15 @@ export default async function DeliveryDashboardPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Today's Pay</p>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+              Today's Pay
+            </p>
             <p className="text-2xl font-bold text-emerald-400">₹{metrics.todaysEarnings}</p>
           </div>
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Deliveries</p>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+              Deliveries
+            </p>
             <p className="text-2xl font-bold text-white">{metrics.completedDeliveries}</p>
           </div>
         </div>
@@ -47,10 +51,17 @@ export default async function DeliveryDashboardPage() {
             <h3 className="font-bold text-blue-400 flex items-center gap-2">
               <Navigation className="w-5 h-5 animate-pulse" /> Active Assignment
             </h3>
-            <span className="bg-blue-900 text-blue-100 text-xs font-bold px-2 py-1 rounded">Action Required</span>
+            <span className="bg-blue-900 text-blue-100 text-xs font-bold px-2 py-1 rounded">
+              Action Required
+            </span>
           </div>
-          <p className="text-slate-300 text-sm mb-4">You have active orders that require your attention.</p>
-          <Link href="/delivery/orders" className="block w-full bg-blue-600 hover:bg-blue-500 text-white text-center py-3 rounded-xl font-bold transition-colors">
+          <p className="text-slate-300 text-sm mb-4">
+            You have active orders that require your attention.
+          </p>
+          <Link
+            href="/delivery/orders"
+            className="block w-full bg-blue-600 hover:bg-blue-500 text-white text-center py-3 rounded-xl font-bold transition-colors"
+          >
             View Live Route
           </Link>
         </div>
@@ -58,7 +69,9 @@ export default async function DeliveryDashboardPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center flex flex-col items-center justify-center">
           <MapPin className="w-12 h-12 text-slate-700 mb-4" />
           <h3 className="text-white font-bold mb-2">Looking for orders...</h3>
-          <p className="text-slate-400 text-sm max-w-[200px] mx-auto">Stay in your current zone to receive the next delivery ping.</p>
+          <p className="text-slate-400 text-sm max-w-[200px] mx-auto">
+            Stay in your current zone to receive the next delivery ping.
+          </p>
         </div>
       )}
 

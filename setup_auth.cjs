@@ -1,10 +1,10 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const src = path.join(__dirname, 'src');
+const src = path.join(__dirname, "src");
 
 const files = {
-  'utils/security.ts': `
+  "utils/security.ts": `
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
@@ -59,7 +59,7 @@ export const clearAuthCookie = async () => {
 };
 `,
 
-  'middleware.ts': `
+  "middleware.ts": `
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken } from './utils/security';
@@ -104,7 +104,7 @@ export const config = {
 };
 `,
 
-  'actions/auth.ts': `
+  "actions/auth.ts": `
 'use server';
 
 import { connectToDatabase } from '../database/mongoose';
@@ -194,7 +194,7 @@ export const logoutUser = async () => {
 };
 `,
 
-  'actions/user.ts': `
+  "actions/user.ts": `
 'use server';
 
 import { connectToDatabase } from '../database/mongoose';
@@ -227,7 +227,7 @@ export const getCurrentUser = async () => {
     return null;
   }
 };
-`
+`,
 };
 
 for (const [relPath, content] of Object.entries(files)) {
@@ -235,4 +235,4 @@ for (const [relPath, content] of Object.entries(files)) {
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, content);
 }
-console.log('Auth setup scripts generated.');
+console.log("Auth setup scripts generated.");

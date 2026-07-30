@@ -1,7 +1,7 @@
-import { requireDriverAccess } from '@/actions/delivery/auth';
-import { EarningsService } from '@/services/delivery/EarningsService';
-import { Wallet, TrendingUp, Calendar, Clock, Award } from 'lucide-react';
-import Link from 'next/link';
+import { requireDriverAccess } from "@/actions/delivery/auth";
+import { EarningsService } from "@/services/delivery/EarningsService";
+import { Wallet, TrendingUp, Calendar, Clock, Award } from "lucide-react";
+import Link from "next/link";
 
 export default async function DeliveryEarningsPage() {
   const { driverId } = await requireDriverAccess();
@@ -22,20 +22,30 @@ export default async function DeliveryEarningsPage() {
         <div className="absolute top-0 right-0 p-4 opacity-10">
           <Wallet className="w-24 h-24 text-emerald-500" />
         </div>
-        <p className="text-emerald-400 font-bold text-sm uppercase tracking-wider mb-2 relative z-10">Today's Earnings</p>
-        <p className="text-4xl font-bold text-white mb-1 relative z-10">₹{earnings.todaysEarnings.toFixed(2)}</p>
-        <p className="text-slate-400 text-sm relative z-10">Based on {earnings.totalDeliveries} deliveries today</p>
+        <p className="text-emerald-400 font-bold text-sm uppercase tracking-wider mb-2 relative z-10">
+          Today's Earnings
+        </p>
+        <p className="text-4xl font-bold text-white mb-1 relative z-10">
+          ₹{earnings.todaysEarnings.toFixed(2)}
+        </p>
+        <p className="text-slate-400 text-sm relative z-10">
+          Based on {earnings.totalDeliveries} deliveries today
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
           <Calendar className="w-5 h-5 text-blue-500 mb-3" />
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">This Week</p>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+            This Week
+          </p>
           <p className="text-xl font-bold text-white">₹{earnings.weeklyEarnings.toFixed(2)}</p>
         </div>
         <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
           <TrendingUp className="w-5 h-5 text-purple-500 mb-3" />
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">This Month</p>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+            This Month
+          </p>
           <p className="text-xl font-bold text-white">₹{earnings.monthlyEarnings.toFixed(2)}</p>
         </div>
       </div>
@@ -51,7 +61,7 @@ export default async function DeliveryEarningsPage() {
           </div>
           <p className="text-xl font-bold text-white">{earnings.averageRating.toFixed(1)} ⭐</p>
         </div>
-        
+
         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center">

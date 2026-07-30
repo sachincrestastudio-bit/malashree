@@ -1,43 +1,31 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/actions/user';
-import Link from 'next/link';
-import { 
-  Bike,
-  LayoutDashboard, 
-  ListOrdered, 
-  Wallet, 
-  UserCircle,
-  MapPin
-} from 'lucide-react';
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/actions/user";
+import Link from "next/link";
+import { Bike, LayoutDashboard, ListOrdered, Wallet, UserCircle, MapPin } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: 'Malashree Delivery Partner',
+  title: "Malashree Delivery Partner",
 };
 
 const bottomNav = [
-  { name: 'Home', href: '/delivery/dashboard', icon: LayoutDashboard },
-  { name: 'Orders', href: '/delivery/orders', icon: ListOrdered },
-  { name: 'Earnings', href: '/delivery/earnings', icon: Wallet },
-  { name: 'Profile', href: '/delivery/profile', icon: UserCircle },
+  { name: "Home", href: "/delivery/dashboard", icon: LayoutDashboard },
+  { name: "Orders", href: "/delivery/orders", icon: ListOrdered },
+  { name: "Earnings", href: "/delivery/earnings", icon: Wallet },
+  { name: "Profile", href: "/delivery/profile", icon: UserCircle },
 ];
 
-export default async function DeliveryLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function DeliveryLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
 
   // Strict Server-Side Authorization for Delivery Partners
-  if (!user || user.role !== 'driver') {
-    redirect('/'); // Redirect unauthorized users to customer home
+  if (!user || user.role !== "driver") {
+    redirect("/"); // Redirect unauthorized users to customer home
   }
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-slate-300 pb-20 md:pb-0 flex flex-col md:flex-row">
-      
       {/* Mobile Top App Bar */}
       <div className="md:hidden sticky top-0 z-50 bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2 font-bold text-white text-lg">
@@ -77,9 +65,7 @@ export default async function DeliveryLayout({
 
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 overflow-x-hidden bg-slate-950 flex flex-col">
-        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-          {children}
-        </div>
+        <div className="flex-1 p-4 md:p-8 overflow-y-auto">{children}</div>
       </main>
 
       {/* Mobile Bottom Navigation Bar */}

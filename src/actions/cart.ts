@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { CartService } from '../services/CartService';
-import { getAssignedKitchenId } from './kitchen';
-import { getCurrentUser } from './user';
+import { CartService } from "../services/CartService";
+import { getAssignedKitchenId } from "./kitchen";
+import { getCurrentUser } from "./user";
 
 /**
  * Syncs the local guest cart with the server to get trusted pricing and validation.
@@ -10,7 +10,7 @@ import { getCurrentUser } from './user';
  */
 export const syncCart = async (
   items: { dishId: string; qty: number }[],
-  couponCode: string | null = null
+  couponCode: string | null = null,
 ) => {
   try {
     const kitchenId = await getAssignedKitchenId();
@@ -27,20 +27,27 @@ export const syncCart = async (
         tax: dbCart.tax,
         deliveryFee: dbCart.deliveryFee,
         grandTotal: dbCart.grandTotal,
-        validCartItems: dbCart.items.map((i: any) => ({ dishId: i.menuItemId.toString(), qty: i.quantity })),
-        couponCode: dbCart.couponCode
+        validCartItems: dbCart.items.map((i: any) => ({
+          dishId: i.menuItemId.toString(),
+          qty: i.quantity,
+        })),
+        couponCode: dbCart.couponCode,
       };
     } else {
       // Guest User: Calculate and return totals without saving to DB
-      const { totals, validCartItems } = await CartService.calculateCart(kitchenId, items, couponCode);
+      const { totals, validCartItems } = await CartService.calculateCart(
+        kitchenId,
+        items,
+        couponCode,
+      );
       return {
         ...totals,
         validCartItems: validCartItems.map((i: any) => ({ dishId: i.menuItemId, qty: i.quantity })),
-        couponCode: couponCode
+        couponCode: couponCode,
       };
     }
   } catch (error) {
-    console.error('syncCart error:', error);
+    console.error("syncCart error:", error);
     return null;
   }
 };
@@ -56,17 +63,17 @@ export const mergeGuestCart = async (localItems: { dishId: string; qty: number }
 
     // 1. Get existing DB cart
     const existingDbCart = await CartService.getUserCart(user.id, kitchenId);
-    
+
     // 2. Combine items
     const mergedMap = new Map<string, number>();
-    
+
     if (existingDbCart) {
       existingDbCart.items.forEach((i: any) => {
         mergedMap.set(i.menuItemId.toString(), i.quantity);
       });
     }
 
-    localItems.forEach(i => {
+    localItems.forEach((i) => {
       const currentQty = mergedMap.get(i.dishId) || 0;
       mergedMap.set(i.dishId, currentQty + i.qty);
     });
@@ -75,7 +82,7 @@ export const mergeGuestCart = async (localItems: { dishId: string; qty: number }
 
     // 3. Sync the new merged list back to DB
     const dbCart = await CartService.syncUserCart(user.id, kitchenId, mergedItems);
-    
+
     return {
       items: dbCart.items.map((i: any) => ({ dishId: i.menuItemId.toString(), qty: i.quantity })),
       totals: {
@@ -84,11 +91,11 @@ export const mergeGuestCart = async (localItems: { dishId: string; qty: number }
         tax: dbCart.tax,
         deliveryFee: dbCart.deliveryFee,
         grandTotal: dbCart.grandTotal,
-        couponCode: dbCart.couponCode
-      }
+        couponCode: dbCart.couponCode,
+      },
     };
   } catch (error) {
-    console.error('mergeGuestCart error:', error);
+    console.error("mergeGuestCart error:", error);
     return null;
   }
 };
@@ -107,7 +114,7 @@ export const clearUserCart = async () => {
     await CartService.clearUserCart(user.id, kitchenId);
     return true;
   } catch (error) {
-    console.error('clearUserCart error:', error);
+    console.error("clearUserCart error:", error);
     return false;
   }
 };

@@ -1,6 +1,6 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { Kitchen } from '../../models/Kitchen';
-import { logAdminAction } from '../../actions/admin/auth';
+import { connectToDatabase } from "../../database/mongoose";
+import { Kitchen } from "../../models/Kitchen";
+import { logAdminAction } from "../../actions/admin/auth";
 
 export class KitchenManagementService {
   /**
@@ -16,9 +16,9 @@ export class KitchenManagementService {
    */
   static async updateKitchen(id: string, updates: any) {
     await connectToDatabase();
-    
+
     const kitchen = await Kitchen.findById(id);
-    if (!kitchen) throw new Error('Kitchen not found');
+    if (!kitchen) throw new Error("Kitchen not found");
 
     const previousValue = kitchen.toObject();
 
@@ -29,7 +29,7 @@ export class KitchenManagementService {
     // or we can just return the old/new state for the action to log.
     return {
       kitchen: JSON.parse(JSON.stringify(kitchen)),
-      previousValue: JSON.parse(JSON.stringify(previousValue))
+      previousValue: JSON.parse(JSON.stringify(previousValue)),
     };
   }
 }

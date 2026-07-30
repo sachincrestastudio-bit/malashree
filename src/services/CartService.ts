@@ -1,8 +1,8 @@
-import { connectToDatabase } from '../database/mongoose';
-import { Cart } from '../models/Cart';
-import { MenuItem } from '../models/MenuItem';
-import { PricingService } from './PricingService';
-import { CouponService } from './CouponService';
+import { connectToDatabase } from "../database/mongoose";
+import { Cart } from "../models/Cart";
+import { MenuItem } from "../models/MenuItem";
+import { PricingService } from "./PricingService";
+import { CouponService } from "./CouponService";
 
 export class CartService {
   /**
@@ -12,20 +12,20 @@ export class CartService {
   static async calculateCart(
     kitchenId: string,
     requestedItems: { dishId: string; qty: number }[],
-    couponCode: string | null = null
+    couponCode: string | null = null,
   ) {
     await connectToDatabase();
 
-    const dishIds = requestedItems.map(i => i.dishId);
-    
+    const dishIds = requestedItems.map((i) => i.dishId);
+
     // Fetch only available items belonging to the assigned kitchen
     const validItems = await MenuItem.find({
       _id: { $in: dishIds },
       kitchenId,
-      isAvailable: true
+      isAvailable: true,
     }).lean();
 
-    const validItemsMap = new Map(validItems.map(item => [item._id.toString(), item.price]));
+    const validItemsMap = new Map(validItems.map((item) => [item._id.toString(), item.price]));
 
     const itemsToPrice = [];
     const validCartItems = []; // Safe array of items to store in DB
@@ -47,11 +47,16 @@ export class CartService {
   /**
    * Syncs a user's DB cart by completely recalculating it with the given items.
    */
-  static async syncUserCart(userId: string, kitchenId: string, items: { dishId: string; qty: number }[], couponCode: string | null = null) {
+  static async syncUserCart(
+    userId: string,
+    kitchenId: string,
+    items: { dishId: string; qty: number }[],
+    couponCode: string | null = null,
+  ) {
     const { totals, validCartItems } = await this.calculateCart(kitchenId, items, couponCode);
 
     const cart = await Cart.findOneAndUpdate(
-      { userId, kitchenId, status: 'active' },
+      { userId, kitchenId, status: "active" },
       {
         $set: {
           items: validCartItems,
@@ -61,9 +66,9 @@ export class CartService {
           tax: totals.tax,
           deliveryFee: totals.deliveryFee,
           grandTotal: totals.grandTotal,
-        }
+        },
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { new: true, upsert: true, setDefaultsOnInsert: true },
     );
 
     return cart;
@@ -74,7 +79,7 @@ export class CartService {
    */
   static async getUserCart(userId: string, kitchenId: string) {
     await connectToDatabase();
-    return await Cart.findOne({ userId, kitchenId, status: 'active' }).lean();
+    return await Cart.findOne({ userId, kitchenId, status: "active" }).lean();
   }
 
   /**
@@ -82,6 +87,6 @@ export class CartService {
    */
   static async clearUserCart(userId: string, kitchenId: string) {
     await connectToDatabase();
-    await Cart.findOneAndDelete({ userId, kitchenId, status: 'active' });
+    await Cart.findOneAndDelete({ userId, kitchenId, status: "active" });
   }
 }

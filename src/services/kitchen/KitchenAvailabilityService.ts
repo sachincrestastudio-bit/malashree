@@ -1,6 +1,6 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { MenuItem } from '../../models/MenuItem';
-import { requireKitchenAccess } from '../../actions/kitchen/auth';
+import { connectToDatabase } from "../../database/mongoose";
+import { MenuItem } from "../../models/MenuItem";
+import { requireKitchenAccess } from "../../actions/kitchen/auth";
 
 export class KitchenAvailabilityService {
   /**
@@ -8,10 +8,10 @@ export class KitchenAvailabilityService {
    */
   static async getKitchenMenu(kitchenId: string) {
     await connectToDatabase();
-    
+
     // We only fetch items specifically linked to this kitchenId
     const items = await MenuItem.find({ kitchenId })
-      .populate('category', 'name')
+      .populate("category", "name")
       .sort({ name: 1 })
       .lean();
 
@@ -26,10 +26,10 @@ export class KitchenAvailabilityService {
     const user = await requireKitchenAccess();
 
     const item = await MenuItem.findById(itemId);
-    if (!item) throw new Error('Item not found');
+    if (!item) throw new Error("Item not found");
 
     if (item.kitchenId.toString() !== user.kitchenId) {
-      throw new Error('Forbidden: Item belongs to a different kitchen');
+      throw new Error("Forbidden: Item belongs to a different kitchen");
     }
 
     item.isAvailable = isAvailable;

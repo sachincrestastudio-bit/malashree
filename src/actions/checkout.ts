@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { CheckoutService } from '../services/CheckoutService';
-import { getAssignedKitchenId } from './kitchen';
-import { getCurrentUser } from './user';
+import { CheckoutService } from "../services/CheckoutService";
+import { getAssignedKitchenId } from "./kitchen";
+import { getCurrentUser } from "./user";
 
 /**
  * Validates and places an order based on the user's cart.
@@ -11,17 +11,21 @@ export const placeOrder = async (
   cartItems: { dishId: string; qty: number }[],
   couponCode: string | null,
   addressString: string | undefined,
-  paymentMethod: string
+  paymentMethod: string,
 ) => {
   try {
     const kitchenId = await getAssignedKitchenId();
     if (!kitchenId) {
-      return { success: false, error: 'Kitchen assignment is missing. Please refresh.' };
+      return { success: false, error: "Kitchen assignment is missing. Please refresh." };
     }
 
     const user = await getCurrentUser();
     if (!user) {
-      return { success: false, error: 'You must be logged in to place an order.' };
+      return { success: false, error: "You must be logged in to place an order." };
+    }
+
+    if (paymentMethod === "cod") {
+      return { success: false, error: "Cash on Delivery (COD) is not available. Please select UPI or Card." };
     }
 
     const order = await CheckoutService.processCheckout(
@@ -30,12 +34,12 @@ export const placeOrder = async (
       cartItems,
       couponCode,
       addressString,
-      paymentMethod
+      paymentMethod,
     );
 
     return { success: true, orderNumber: order.orderNumber };
   } catch (error: any) {
-    console.error('placeOrder error:', error);
-    return { success: false, error: error.message || 'An error occurred during checkout.' };
+    console.error("placeOrder error:", error);
+    return { success: false, error: error.message || "An error occurred during checkout." };
   }
 };

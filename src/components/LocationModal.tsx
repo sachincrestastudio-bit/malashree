@@ -10,9 +10,9 @@ import { useLocationStore } from "@/store/locationStore";
 import { setAssignedKitchen } from "@/actions/kitchen";
 
 export function LocationModal() {
-  const resolved = useStore(s => s.locationResolved);
-  const resolve = useStore(s => s.resolveLocation);
-  
+  const resolved = useStore((s) => s.locationResolved);
+  const resolve = useStore((s) => s.resolveLocation);
+
   const { setLocation, setPermissionError, setLoading } = useLocationStore();
 
   const [open, setOpen] = useState(false);
@@ -38,35 +38,40 @@ export function LocationModal() {
       const assignment = assignNearestKitchen(coords.latitude, coords.longitude);
 
       if (assignment.isOutsideDeliveryArea || !assignment.kitchenId) {
-        setError("Outside Delivery Area. Currently we only deliver within our kitchen radius.");
-        setPermissionError('error');
+        setError("Outside Delivery Area. Currently we only deliver within our registered kitchen zones.");
+        setPermissionError("error");
         setDetecting(false);
         setLoading(false);
         return;
       }
 
-      setLocation(coords.latitude, coords.longitude, assignment.kitchenId, assignment.distance, 'gps');
+      setLocation(
+        coords.latitude,
+        coords.longitude,
+        assignment.kitchenId,
+        assignment.distance,
+        "gps",
+      );
       resolve(assignment.kitchenId);
-      
-      // Securely set the kitchen context server-side
+
       await setAssignedKitchen(assignment.kitchenId);
-      
+
       setOpen(false);
       setDetecting(false);
     } catch (err: any) {
-      console.error("GPS Error:", err);
-      let msg = "GPS is off or permission was denied. Location is required to order.";
-      if (err.code === 1 || err.code === err.PERMISSION_DENIED) {
-        msg = "Location permission denied. Please allow location access in your browser settings to place an order.";
-        setPermissionError('denied');
-      } else if (err.code === 2 || err.code === err.POSITION_UNAVAILABLE) {
-        msg = "GPS location unavailable. Please make sure your device GPS is turned on and try again.";
-        setPermissionError('error');
-      } else if (err.code === 3 || err.code === err.TIMEOUT) {
-        msg = "GPS location request timed out. Please try again.";
-        setPermissionError('error');
+      console.error("GPS Error:", err?.message || err?.code || err);
+      let msg = "GPS is turned off or permission was denied. Location access is required for automatic kitchen allotment.";
+      if (err?.code === 1) {
+        msg = "Location permission denied. Please enable location access in your browser settings to find your allotted kitchen.";
+        setPermissionError("denied");
+      } else if (err?.code === 2) {
+        msg = "GPS location unavailable. Please turn on device GPS and try again.";
+        setPermissionError("error");
+      } else if (err?.code === 3) {
+        msg = "GPS request timed out. Please try again.";
+        setPermissionError("error");
       } else {
-        setPermissionError('error');
+        setPermissionError("error");
       }
       setError(msg);
       setDetecting(false);
@@ -99,11 +104,11 @@ export function LocationModal() {
             </h2>
 
             <p className="mt-3 text-sm text-olive-dark leading-relaxed">
-              To guarantee your food arrives piping hot, we cook and deliver directly from our local kitchen zones. GPS access is required to place an order.
+              To guarantee your food arrives piping hot, our system automatically allot you to the nearest kitchen branch based on your exact GPS location.
             </p>
 
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-5 p-4 rounded-2xl border border-red-500/20 bg-red-500/5 text-xs text-red-700 flex gap-3 items-start"
@@ -121,18 +126,18 @@ export function LocationModal() {
               {detecting ? (
                 <>
                   <RefreshCw className="size-4 animate-spin text-lime" />
-                  Requesting GPS satellites...
+                  Detecting Nearest Kitchen...
                 </>
               ) : (
                 <>
                   <Navigation className="size-4 text-lime fill-lime" />
-                  Enable GPS Location
+                  Auto-Detect My Branch via GPS
                 </>
               )}
             </button>
 
             <div className="mt-4 text-[10px] text-center text-olive font-semibold tracking-wide uppercase">
-              GPS Location is Mandatory
+              Strict GPS Branch Allotment Only
             </div>
           </motion.div>
         </motion.div>

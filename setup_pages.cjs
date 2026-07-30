@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const src = path.join(__dirname, 'src');
+const src = path.join(__dirname, "src");
 
 const registerContent = `
 "use client";
@@ -250,8 +250,8 @@ export default function Login() {
 }
 `;
 
-fs.writeFileSync(path.join(src, 'app/register/page.tsx'), registerContent);
-fs.mkdirSync(path.join(src, 'app/login'), { recursive: true });
-fs.writeFileSync(path.join(src, 'app/login/page.tsx'), loginContent);
+fs.writeFileSync(path.join(src, "app/register/page.tsx"), registerContent);
+fs.mkdirSync(path.join(src, "app/login"), { recursive: true });
+fs.writeFileSync(path.join(src, "app/login/page.tsx"), loginContent);
 
-console.log('Pages generated.');
+console.log("Pages generated.");

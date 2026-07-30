@@ -1,5 +1,5 @@
-import { connectToDatabase } from '../../database/mongoose';
-import { Order } from '../../models/Order';
+import { connectToDatabase } from "../../database/mongoose";
+import { Order } from "../../models/Order";
 
 export class KitchenQueueService {
   /**
@@ -11,11 +11,11 @@ export class KitchenQueueService {
     // Fetch active orders that the kitchen needs to look at right now
     const orders = await Order.find({
       kitchenId,
-      orderStatus: { $in: ['placed', 'accepted', 'preparing', 'ready'] }
+      orderStatus: { $in: ["placed", "accepted", "preparing", "ready"] },
     })
-    .sort({ createdAt: 1 }) // oldest first (FIFO)
-    .populate('customer', 'name phone')
-    .lean();
+      .sort({ createdAt: 1 }) // oldest first (FIFO)
+      .populate("customer", "name phone")
+      .lean();
 
     return JSON.parse(JSON.stringify(orders));
   }
@@ -30,24 +30,24 @@ export class KitchenQueueService {
 
     const orders = await Order.find({
       kitchenId,
-      orderStatus: { $in: ['delivered', 'cancelled'] }
+      orderStatus: { $in: ["delivered", "cancelled"] },
     })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .populate('customer', 'name')
-    .lean();
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("customer", "name")
+      .lean();
 
     const total = await Order.countDocuments({
       kitchenId,
-      orderStatus: { $in: ['delivered', 'cancelled'] }
+      orderStatus: { $in: ["delivered", "cancelled"] },
     });
 
     return {
       orders: JSON.parse(JSON.stringify(orders)),
       total,
       page,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / limit),
     };
   }
 }

@@ -1,6 +1,6 @@
-import { requireKitchenAccess } from '@/actions/kitchen/auth';
-import { KitchenAvailabilityService } from '@/services/kitchen/KitchenAvailabilityService';
-import { ToggleLeft, ToggleRight, UtensilsCrossed } from 'lucide-react';
+import { requireKitchenAccess } from "@/actions/kitchen/auth";
+import { KitchenAvailabilityService } from "@/services/kitchen/KitchenAvailabilityService";
+import { ToggleLeft, ToggleRight, UtensilsCrossed } from "lucide-react";
 
 export default async function KitchenMenuPage() {
   const user = await requireKitchenAccess();
@@ -13,7 +13,9 @@ export default async function KitchenMenuPage() {
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <UtensilsCrossed className="w-6 h-6 text-orange-500" /> Menu Availability
           </h2>
-          <p className="text-slate-400 mt-1">Toggle stock status for items. Affects only your kitchen.</p>
+          <p className="text-slate-400 mt-1">
+            Toggle stock status for items. Affects only your kitchen.
+          </p>
         </div>
       </div>
 
@@ -41,7 +43,7 @@ export default async function KitchenMenuPage() {
                     <p className="text-white font-medium">{item.name}</p>
                   </td>
                   <td className="px-6 py-4 text-slate-400 text-sm">
-                    {item.category?.name || 'Uncategorized'}
+                    {item.category?.name || "Uncategorized"}
                   </td>
                   <td className="px-6 py-4">
                     {item.isAvailable ? (

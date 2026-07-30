@@ -6,16 +6,16 @@ export class ETAService {
    */
   static calculateInitialETAs() {
     const now = new Date();
-    
+
     // Assume 20 mins for prep + 10 mins padding
     const estimatedReadyTime = new Date(now.getTime() + 30 * 60000);
-    
+
     // Assume 15 mins for delivery after ready
     const estimatedDeliveryTime = new Date(estimatedReadyTime.getTime() + 15 * 60000);
-    
+
     return {
       estimatedReadyTime,
-      estimatedDeliveryTime
+      estimatedDeliveryTime,
     };
   }
 
