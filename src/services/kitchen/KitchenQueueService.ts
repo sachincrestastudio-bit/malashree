@@ -1,5 +1,6 @@
 import { connectToDatabase } from "../../database/mongoose";
 import { Order } from "../../models/Order";
+import mongoose from "mongoose";
 
 export class KitchenQueueService {
   /**
@@ -8,9 +9,19 @@ export class KitchenQueueService {
   static async getLiveQueue(kitchenId: string) {
     await connectToDatabase();
 
+    const isObjectId = mongoose.Types.ObjectId.isValid(kitchenId);
+    const targetId = isObjectId ? new mongoose.Types.ObjectId(kitchenId) : kitchenId;
+
+    const kitchenMatch = {
+      $or: [
+        { kitchen: targetId },
+        { kitchenId: targetId },
+      ],
+    };
+
     // Fetch active orders that the kitchen needs to look at right now
     const orders = await Order.find({
-      kitchenId,
+      ...kitchenMatch,
       orderStatus: { $in: ["placed", "accepted", "preparing", "ready"] },
     })
       .sort({ createdAt: 1 }) // oldest first (FIFO)
@@ -27,9 +38,18 @@ export class KitchenQueueService {
     await connectToDatabase();
 
     const skip = (page - 1) * limit;
+    const isObjectId = mongoose.Types.ObjectId.isValid(kitchenId);
+    const targetId = isObjectId ? new mongoose.Types.ObjectId(kitchenId) : kitchenId;
+
+    const kitchenMatch = {
+      $or: [
+        { kitchen: targetId },
+        { kitchenId: targetId },
+      ],
+    };
 
     const orders = await Order.find({
-      kitchenId,
+      ...kitchenMatch,
       orderStatus: { $in: ["delivered", "cancelled"] },
     })
       .sort({ createdAt: -1 })
@@ -39,7 +59,7 @@ export class KitchenQueueService {
       .lean();
 
     const total = await Order.countDocuments({
-      kitchenId,
+      ...kitchenMatch,
       orderStatus: { $in: ["delivered", "cancelled"] },
     });
 
@@ -47,7 +67,7 @@ export class KitchenQueueService {
       orders: JSON.parse(JSON.stringify(orders)),
       total,
       page,
-      pages: Math.ceil(total / limit),
+      pages: Math.ceil(total / limit) || 1,
     };
   }
 }
