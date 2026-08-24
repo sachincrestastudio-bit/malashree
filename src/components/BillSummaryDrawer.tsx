@@ -61,52 +61,57 @@ export function BillSummaryDrawer({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           {/* Backdrop Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/65 backdrop-blur-xs"
           />
 
-          {/* Close button floating above card */}
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={onClose}
-            className="absolute z-60 top-4 right-4 sm:top-auto sm:bottom-[calc(100%-10px)] sm:right-auto sm:left-1/2 sm:-translate-x-1/2 mb-3 size-10 rounded-full bg-[#1c2421]/90 text-white hover:bg-black transition shadow-lg grid place-items-center cursor-pointer border border-white/20"
-          >
-            <X className="size-5" />
-          </motion.button>
-
-          {/* Slide-up Card Container */}
+          {/* Card Container (Responsive: Bottom Sheet on Mobile, Centered Modal on Laptop/Desktop) */}
           <motion.div
             initial={{ y: "100%", opacity: 0.5 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="relative z-50 w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl border border-[#e6e2d8] overflow-hidden max-h-[85vh] flex flex-col"
+            transition={{ type: "spring", damping: 30, stiffness: 320 }}
+            className="relative z-50 w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl border border-[#e6e2d8] overflow-hidden max-h-[90vh] sm:max-h-[85vh] flex flex-col"
           >
-            {/* Scrollable Bill Content */}
-            <div className="p-6 overflow-y-auto space-y-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-[#0d261e] tracking-tight">
-                  Bill Summary
-                </h2>
-                <span className="text-[11px] font-bold text-[#064e3b] bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-md">
-                  100% PURE VEG
-                </span>
+            {/* Modal Header with Close Button */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="size-8 rounded-xl bg-emerald-50 text-[#064e3b] grid place-items-center">
+                  <Receipt className="size-4 text-[#064e3b]" />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black text-[#0d261e] tracking-tight leading-tight">
+                    Bill Summary
+                  </h2>
+                  <span className="text-[10px] font-bold text-[#064e3b]">
+                    Malashree Pure Veg · 100% Verified
+                  </span>
+                </div>
               </div>
 
+              <button
+                onClick={onClose}
+                className="size-8 rounded-full bg-gray-100 hover:bg-gray-200 text-[#0d261e] transition grid place-items-center cursor-pointer"
+                title="Close"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Bill Content */}
+            <div className="p-6 overflow-y-auto space-y-5">
               {/* Itemized breakdown table */}
               <div className="space-y-3.5 text-xs text-[#52635c] font-medium">
                 {/* 1. Item Total */}
                 <div className="flex justify-between items-center">
                   <span className="text-[#0d261e] font-semibold text-xs">Item total</span>
-                  <span className="text-[#0d261e] font-extrabold text-sm">₹{subtotal}</span>
+                  <span className="text-[#0d261e] font-extrabold text-sm">₹{subtotal.toFixed(2)}</span>
                 </div>
 
                 {/* 2. Restaurant Packaging Charges */}
@@ -115,7 +120,7 @@ export function BillSummaryDrawer({
                     <span className="underline decoration-dotted decoration-gray-400 font-semibold text-[#0d261e]">
                       Restaurant packaging charges
                     </span>
-                    <span className="text-[#0d261e] font-bold">₹{packagingCharge}</span>
+                    <span className="text-[#0d261e] font-bold">₹{packagingCharge.toFixed(2)}</span>
                   </div>
                   <p className="text-[10px] text-[#52635c]">
                     This is decided & charged by the restaurant
@@ -132,7 +137,7 @@ export function BillSummaryDrawer({
                       {effectiveDelivery === 0 ? (
                         <span className="text-[#064e3b] font-black">FREE</span>
                       ) : (
-                        `₹${effectiveDelivery}`
+                        `₹${effectiveDelivery.toFixed(2)}`
                       )}
                     </span>
                   </div>
@@ -142,10 +147,10 @@ export function BillSummaryDrawer({
                 </div>
 
                 {/* 4. Malashree Gold Free Delivery Banner */}
-                <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-center justify-between gap-3">
+                <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="size-6 rounded-full bg-[#d4af37]/20 text-[#064e3b] grid place-items-center shrink-0">
-                      <Crown className="size-3.5 fill-[#d4af37] text-[#064e3b]" />
+                    <div className="size-7 rounded-full bg-[#d4af37]/20 text-[#064e3b] grid place-items-center shrink-0">
+                      <Crown className="size-4 fill-[#d4af37] text-[#064e3b]" />
                     </div>
                     <div className="min-w-0">
                       <span className="font-bold text-amber-950 text-xs block truncate">
@@ -185,12 +190,12 @@ export function BillSummaryDrawer({
 
                 {/* 7. Coupon Discount (if active) */}
                 {discount > 0 && (
-                  <div className="flex justify-between items-center text-[#064e3b] font-bold bg-emerald-50/70 p-2 rounded-xl border border-emerald-200">
+                  <div className="flex justify-between items-center text-[#064e3b] font-bold bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200">
                     <div className="flex items-center gap-1.5">
                       <Sparkles className="size-3.5 text-[#064e3b]" />
                       <span>Coupon Discount ({couponCode || "PROMO"})</span>
                     </div>
-                    <span>-₹{discount}</span>
+                    <span>-₹{discount.toFixed(2)}</span>
                   </div>
                 )}
 
@@ -198,13 +203,13 @@ export function BillSummaryDrawer({
                 {tipAmount > 0 && (
                   <div className="flex justify-between items-center text-[#064e3b] font-bold">
                     <span>Delivery Partner Tip</span>
-                    <span>₹{tipAmount}</span>
+                    <span>₹{tipAmount.toFixed(2)}</span>
                   </div>
                 )}
               </div>
 
               {/* Total To Pay Row */}
-              <div className="pt-3 border-t border-[#e6e2d8] flex justify-between items-center">
+              <div className="pt-4 border-t border-[#e6e2d8] flex justify-between items-center">
                 <span className="font-extrabold text-base text-[#0d261e]">To pay</span>
                 <span className="font-black text-xl text-[#0d261e]">
                   ₹{effectiveTotal.toFixed(2)}
@@ -247,7 +252,7 @@ export function BillSummaryDrawer({
                     </div>
                   </div>
 
-                  <div className="size-16 rounded-full bg-emerald-50 border border-emerald-200 grid place-items-center shrink-0">
+                  <div className="size-14 rounded-full bg-emerald-50 border border-emerald-200 grid place-items-center shrink-0">
                     <span className="text-2xl">🙏</span>
                   </div>
                 </div>
@@ -267,7 +272,7 @@ export function BillSummaryDrawer({
 
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 rounded-xl bg-[#064e3b] text-[#d4af37] font-extrabold text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition border border-[#d4af37]/30 cursor-pointer"
+                className="px-7 py-2.5 rounded-xl bg-[#064e3b] text-[#d4af37] font-extrabold text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition border border-[#d4af37]/30 cursor-pointer shadow-xs"
               >
                 Done
               </button>
