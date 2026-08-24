@@ -9,6 +9,7 @@ import { MenuItem } from "@/models/MenuItem";
 import { Coupon } from "@/models/Coupon";
 import { HomepageContent } from "@/models/HomepageContent";
 import { User } from "@/models/User";
+import { SystemSetting } from "@/models/SystemSetting";
 
 export const seedDatabase = async () => {
   try {
@@ -78,23 +79,27 @@ export const seedDatabase = async () => {
       },
     ];
 
-    // Clear old kitchens and insert the 6 branches
-    await Kitchen.deleteMany({});
+    // Upsert or create the 6 branches
     const createdKitchens: any[] = [];
     for (const k of kitchensData) {
-      const doc = await Kitchen.create(k);
+      const doc = await Kitchen.findOneAndUpdate(
+        { code: k.code },
+        { ...k, deletedAt: null },
+        { upsert: true, new: true }
+      );
       createdKitchens.push(doc);
     }
 
     // 2. CATEGORIES
     const categoriesData = [
+      { name: "Royal Thalis", description: "Complete grand meals with sweets, breads & curries" },
       { name: "Main Course", description: "Rich North Indian gravies & cottage cheese delights" },
       { name: "Biryani & Pulao", description: "Aromatic basmati rice cooked with whole royal spices" },
+      { name: "Dal & Curries", description: "Slow-cooked lentils & home-style comfort curries" },
       { name: "Breads & Naan", description: "Fresh from the tandoor clay oven" },
-      { name: "Starters & Snacks", description: "Crispy tandoori kebabs & appetizers" },
-      { name: "Dal & Curries", description: "Slow-cooked lentils & home-style curries" },
-      { name: "Royal Thalis", description: "Complete grand meals with sweets, breads & curries" },
-      { name: "Desserts & Beverages", description: "Authentic Indian sweets & refreshing drinks" },
+      { name: "Starters & Snacks", description: "Crispy appetizers, Indo-Chinese & evening snacks" },
+      { name: "Combos", description: "Quick lunch & dinner combos ready in minutes" },
+      { name: "Desserts & Beverages", description: "Authentic Indian sweets & refreshing chilled drinks" },
     ];
 
     const categoryMap = new Map<string, string>();
@@ -107,8 +112,127 @@ export const seedDatabase = async () => {
       categoryMap.set(cat.name, doc._id.toString());
     }
 
-    // 3. MASTER MENU ITEMS (Equipped with branch pricing for all 6 branches)
+    // 3. MASTER MENU ITEMS (INCLUDING ALL CHINCHWAD ITEMS + SIGNATURE ITEMS)
     const dishesData = [
+      // --- ALL CHINCHWAD MENU ITEMS ---
+      {
+        name: "Malashree Special Thali",
+        description: "Dal makhani, seasonal veg sabzi, shahi paneer, 3 butter rotis, jeera rice, salad, papad & sweet.",
+        price: 220,
+        category: "Royal Thalis",
+        image: "https://images.unsplash.com/photo-1567337710282-00832b415979?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.8,
+        tag: "Office Favorite",
+      },
+      {
+        name: "Mini Veg Thali",
+        description: "Quick lunch combo: Paneer curry, yellow dal tadka, 2 rotis, steamed rice & pickle. Ready in 12 mins.",
+        price: 160,
+        category: "Royal Thalis",
+        image: "https://images.unsplash.com/photo-1626777553635-c95b16635c0e?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.6,
+        tag: "Quick Lunch",
+      },
+      {
+        name: "Punjabi Chole Bhature",
+        description: "Two golden fluffy bhature served with slow-cooked Amritsari pindi chole, pickled onions & green chutney.",
+        price: 180,
+        category: "Main Course",
+        image: "https://images.unsplash.com/photo-1626132647523-66f5bf380027?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.9,
+        tag: "Bestseller",
+      },
+      {
+        name: "Rajma Chawal Combo",
+        description: "Comfort food classic: Slow-simmered Kashmiri rajma served with fragrant jeera basmati rice & salad.",
+        price: 170,
+        category: "Combos",
+        image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.7,
+        tag: "Comfort Food",
+      },
+      {
+        name: "Veg Pulao + Raita",
+        description: "Aromatic basmati pulao loaded with garden fresh vegetables, served with cooling roasted cumin boondi raita.",
+        price: 150,
+        category: "Biryani & Pulao",
+        image: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.6,
+      },
+      {
+        name: "Masala Chai",
+        description: "Authentic Pune style cutting chai brewed with fresh ginger, crushed cardamom, cloves and whole milk.",
+        price: 30,
+        category: "Desserts & Beverages",
+        image: "https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.9,
+        tag: "Hot & Fresh",
+      },
+      {
+        name: "Schezwan Veg Noodles",
+        description: "Wok-tossed hakka noodles with crisp shredded veggies in spicy homemade fiery schezwan sauce.",
+        price: 180,
+        category: "Starters & Snacks",
+        image: "https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.7,
+        tag: "Late-night Hit",
+      },
+      {
+        name: "Crispy Honey Chilli Potato",
+        description: "Crisp potato fingers tossed in sweet honey chilli glaze, toasted sesame seeds and fresh spring onions.",
+        price: 200,
+        category: "Starters & Snacks",
+        image: "https://images.unsplash.com/photo-1626804475297-41608ea09aeb?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.8,
+        tag: "Trending",
+      },
+      {
+        name: "Veg Manchurian Dry",
+        description: "Crispy hand-rolled vegetable dumplings tossed in ginger garlic soya glaze with green chillies.",
+        price: 190,
+        category: "Starters & Snacks",
+        image: "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.6,
+      },
+      {
+        name: "Paneer Chilli",
+        description: "Indo-Chinese favorite: Crispy paneer tossed with capsicum, onions, dark soy and spicy green chillies.",
+        price: 240,
+        category: "Starters & Snacks",
+        image: "https://images.unsplash.com/photo-1606491956689-2ea866880c84?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.8,
+        tag: "Must Try",
+      },
+      {
+        name: "Cheese Burst Maggi",
+        description: "Late-night favorite: Masala Maggi loaded with molten mozzarella cheese and toasted butter.",
+        price: 140,
+        category: "Starters & Snacks",
+        image: "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.9,
+      },
+      {
+        name: "Cold Coffee Frappé",
+        description: "Chilled blended coffee with rich dark roasted espresso, vanilla ice cream, and cocoa powder.",
+        price: 160,
+        category: "Desserts & Beverages",
+        image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.7,
+      },
+
+      // --- SIGNATURE ROYAL MAINS & CURRIES ---
       {
         name: "Paneer Butter Masala",
         description: "Fresh cottage cheese cubes cooked in rich, velvety tomato and cashew butter gravy.",
@@ -120,6 +244,26 @@ export const seedDatabase = async () => {
         tag: "Bestseller",
       },
       {
+        name: "Paneer Lababdar",
+        description: "Luscious cubes of cottage cheese simmered in spicy, chunky onion-tomato gravy with grated paneer.",
+        price: 320,
+        category: "Main Course",
+        image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.9,
+        tag: "Royal Special",
+      },
+      {
+        name: "Paneer Tikka Masala",
+        description: "Charcoal grilled paneer tikka tossed in robust spiced bell pepper and tomato masala.",
+        price: 340,
+        category: "Main Course",
+        image: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&q=80",
+        isVeg: true,
+        rating: 4.8,
+        tag: "Chef Special",
+      },
+      {
         name: "Kadhai Paneer Special",
         description: "Cottage cheese tossed with crunchy bell peppers, onions, and freshly ground kadhai spices.",
         price: 290,
@@ -127,7 +271,6 @@ export const seedDatabase = async () => {
         image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80",
         isVeg: true,
         rating: 4.8,
-        tag: "Chef Special",
       },
       {
         name: "Malai Kofta Deluxe",
@@ -137,21 +280,20 @@ export const seedDatabase = async () => {
         image: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=600&q=80",
         isVeg: true,
         rating: 4.9,
-        tag: "Must Try",
       },
       {
         name: "Dal Makhani (Slow Cooked 18h)",
-        description: "Black lentils simmered overnight over slow charcoal with white butter and cream.",
+        description: "Black lentils simmered overnight over slow charcoal with white butter and fresh cream.",
         price: 240,
         category: "Dal & Curries",
         image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80",
         isVeg: true,
         rating: 4.9,
-        tag: "Bestseller",
+        tag: "Signature",
       },
       {
         name: "Dal Tadka (Double Tadka)",
-        description: "Yellow lentils tempered with ghee, cumin seeds, garlic, and dry Kashmiri red chillies.",
+        description: "Yellow lentils tempered with desi ghee, cumin seeds, garlic, and dry Kashmiri red chillies.",
         price: 190,
         category: "Dal & Curries",
         image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80",
@@ -176,7 +318,6 @@ export const seedDatabase = async () => {
         image: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=600&q=80",
         isVeg: true,
         rating: 4.8,
-        tag: "Chef Special",
       },
       {
         name: "Royal Jeera Rice",
@@ -235,32 +376,14 @@ export const seedDatabase = async () => {
         rating: 4.7,
       },
       {
-        name: "Crispy Veg Spring Rolls",
-        description: "Golden fried crispy rolls stuffed with julienned vegetables and sweet chilli dip.",
-        price: 190,
-        category: "Starters & Snacks",
-        image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80",
-        isVeg: true,
-        rating: 4.6,
-      },
-      {
         name: "Malashree Royal Maharaja Thali",
-        description: "Grand meal with Paneer Gravy, Dal Makhani, Veg Sabzi, 2 Butter Naans, Jeera Rice, Gulab Jamun, Papad & Salad.",
+        description: "Grand feast: Shahi Paneer, Dal Makhani, Mix Veg, 2 Butter Naans, Jeera Rice, Gulab Jamun, Papad & Salad.",
         price: 349,
         category: "Royal Thalis",
         image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80",
         isVeg: true,
         rating: 4.9,
-        tag: "Best Value",
-      },
-      {
-        name: "Executive Mini Thali",
-        description: "Paneer Butter Masala, Dal Tadka, 2 Rotis, Rice, Salad & Pickle.",
-        price: 219,
-        category: "Royal Thalis",
-        image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80",
-        isVeg: true,
-        rating: 4.8,
+        tag: "Grand Feast",
       },
       {
         name: "Warm Gulab Jamun (2 pcs)",
@@ -292,6 +415,7 @@ export const seedDatabase = async () => {
       },
     ];
 
+    // Seed master dishes with default branchPricing for all 6 branches
     for (const d of dishesData) {
       const catId = categoryMap.get(d.category);
       if (!catId) continue;
@@ -312,10 +436,10 @@ export const seedDatabase = async () => {
           category: catId,
           isGlobalMaster: true,
           branchPricing,
-          images: [d.image],
           isVeg: d.isVeg,
-          rating: d.rating,
+          rating: d.rating || 4.8,
           tags: d.tag ? [d.tag] : [],
+          images: [d.image],
           isAvailable: true,
           deletedAt: null,
         },
@@ -329,28 +453,27 @@ export const seedDatabase = async () => {
         code: "ROYAL60",
         discountType: "percentage",
         discountValue: 60,
-        maximumDiscount: 120,
-        minimumOrder: 199,
-        expiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        status: "active",
+        minOrderAmount: 149,
+        maxDiscountAmount: 120,
+        isActive: true,
+        description: "Flat 60% OFF up to ₹120 on your pure veg order",
       },
       {
-        code: "WELCOME50",
+        code: "FAMILY20",
         discountType: "percentage",
-        discountValue: 50,
-        maximumDiscount: 100,
-        minimumOrder: 149,
-        expiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        status: "active",
+        discountValue: 20,
+        minOrderAmount: 699,
+        maxDiscountAmount: 200,
+        isActive: true,
+        description: "Flat 20% OFF on grand family orders above ₹699",
       },
       {
-        code: "MALASHREE100",
+        code: "LUNCH50",
         discountType: "fixed",
-        discountValue: 100,
-        maximumDiscount: 100,
-        minimumOrder: 499,
-        expiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        status: "active",
+        discountValue: 50,
+        minOrderAmount: 199,
+        isActive: true,
+        description: "Flat ₹50 OFF on weekday lunch orders",
       },
     ];
 
@@ -358,49 +481,25 @@ export const seedDatabase = async () => {
       await Coupon.findOneAndUpdate({ code: c.code }, c, { upsert: true, new: true });
     }
 
-    // 5. DEFAULT USERS
-    const salt = await bcrypt.genSalt(10);
-    const adminPass = await bcrypt.hash("admin123", salt);
-    const kitchenPass = await bcrypt.hash("kitchen123", salt);
-    const demoPass = await bcrypt.hash("demo123", salt);
-
-    await User.findOneAndUpdate(
-      { email: "admin@malashree.in" },
+    // 5. SYSTEM SETTINGS
+    await SystemSetting.findOneAndUpdate(
+      {},
       {
-        name: "System Admin",
-        email: "admin@malashree.in",
-        password: adminPass,
-        role: "admin",
-        phone: "9876543210",
-        address: "Flat 402, Green Acres, Pimple Saudagar, Pune",
+        taxPercentage: 5,
+        packagingCharge: 15,
+        platformFee: 5.0,
+        defaultDeliveryFee: 34,
+        freeDeliveryThreshold: 500,
+        maxDeliveryRadiusKm: 10,
+        isStoreOnline: true,
+        brandName: "Malashree Pure Veg",
       },
       { upsert: true, new: true }
     );
 
-    await User.findOneAndUpdate(
-      { email: "kitchen@malashree.in" },
-      {
-        name: "Pimple Saudagar Chef",
-        email: "kitchen@malashree.in",
-        password: kitchenPass,
-        role: "kitchen_manager",
-        phone: "9876543211",
-        assignedKitchen: createdKitchens[0]._id,
-        address: "Pimple Saudagar Kitchen, Pune",
-      },
-      { upsert: true, new: true }
-    );
-
-    return {
-      success: true,
-      kitchensCount: createdKitchens.length,
-      categoriesCount: categoriesData.length,
-      dishesCount: dishesData.length,
-      couponsCount: couponsData.length,
-      kitchens: createdKitchens.map((k) => ({ id: k._id.toString(), name: k.name, code: k.code })),
-    };
+    return { success: true, count: dishesData.length };
   } catch (err: any) {
     console.error("seedDatabase error:", err);
-    return { success: false, error: err.message || "Failed to seed database" };
+    return { error: err.message || "Failed to seed database." };
   }
 };

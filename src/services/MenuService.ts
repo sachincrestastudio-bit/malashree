@@ -1,17 +1,31 @@
 import { connectToDatabase } from "../database/mongoose";
 import { MenuItem } from "../models/MenuItem";
+import { Kitchen } from "../models/Kitchen";
 import mongoose from "mongoose";
 
 export class MenuService {
-  static async getMenuByKitchen(kitchenId: string) {
+  static async getMenuByKitchen(kitchenIdentifier: string) {
     await connectToDatabase();
 
-    const isObjectId = mongoose.Types.ObjectId.isValid(kitchenId);
+    if (!kitchenIdentifier) return [];
+
+    const isObjectId = mongoose.Types.ObjectId.isValid(kitchenIdentifier);
+
+    // Resolve kitchen document
+    const kitchen = (await Kitchen.findOne({
+      $or: [
+        ...(isObjectId ? [{ _id: kitchenIdentifier }] : []),
+        { code: new RegExp(`^${kitchenIdentifier}$`, "i") },
+      ],
+      deletedAt: null,
+    }).lean()) as any;
+
+    const kitchenIdStr = kitchen ? kitchen._id.toString() : (isObjectId ? kitchenIdentifier : null);
 
     const rawItems = await MenuItem.find({
       $or: [
-        ...(isObjectId ? [{ kitchenId }] : []),
         { isGlobalMaster: true },
+        ...(kitchenIdStr ? [{ kitchenId: kitchenIdStr }] : []),
         { kitchenId: null },
       ],
       deletedAt: null,
@@ -22,12 +36,12 @@ export class MenuService {
     return rawItems
       .map((item: any) => {
         let finalPrice = item.price;
-        let isAvailable = item.isAvailable;
+        let isAvailable = item.isAvailable ?? true;
         let isEnabled = true;
 
-        if (item.branchPricing && Array.isArray(item.branchPricing)) {
+        if (kitchenIdStr && item.branchPricing && Array.isArray(item.branchPricing)) {
           const override = item.branchPricing.find(
-            (bp: any) => bp.kitchenId?.toString() === kitchenId?.toString()
+            (bp: any) => bp.kitchenId?.toString() === kitchenIdStr
           );
           if (override) {
             if (override.price !== undefined && override.price !== null) {
@@ -42,11 +56,22 @@ export class MenuService {
           }
         }
 
+        // If dish is disabled for this branch, don't show on menu
         if (!isEnabled || !isAvailable) return null;
 
         return {
-          ...item,
+          id: item._id.toString(),
+          name: item.name,
+          desc: item.description || "",
           price: finalPrice,
+          category: item.category?.name || "Main Course",
+          tag: item.tags?.[0],
+          rating: item.rating || 4.8,
+          reviews: 120,
+          veg: item.isVeg !== undefined ? item.isVeg : true,
+          spice: 1,
+          time: "25 mins",
+          image: item.images?.[0] || "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
           isAvailable,
         };
       })
@@ -61,8 +86,8 @@ export class MenuService {
     return allItems.filter(
       (item: any) =>
         item.name?.toLowerCase().includes(q) ||
-        item.description?.toLowerCase().includes(q) ||
-        item.category?.name?.toLowerCase().includes(q)
+        item.desc?.toLowerCase().includes(q) ||
+        item.category?.toLowerCase().includes(q)
     );
   }
 }

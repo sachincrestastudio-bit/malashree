@@ -18,7 +18,10 @@ import {
   Check,
   Zap,
   Edit,
-  ExternalLink,
+  RotateCcw,
+  RefreshCw,
+  Tag,
+  ShieldCheck,
 } from "lucide-react";
 import {
   addMasterDish,
@@ -26,6 +29,9 @@ import {
   updateMenuItemAvailability,
   updateBranchDishOverride,
   bulkEnableAllMasterDishesForBranch,
+  bulkDisableAllMasterDishesForBranch,
+  bulkResetBranchPricesToMaster,
+  syncUniversalCatalog,
 } from "@/actions/adminMenu";
 import { uploadToCloudinary } from "@/utils/client/cloudinary";
 
@@ -86,10 +92,9 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
   const router = useRouter();
 
   // Views
-  const [activeTab, setActiveTab] = useState<"master" | "branches">("master");
-  const [selectedKitchenId, setSelectedKitchenId] = useState<string>(
-    kitchens[0]?.id || ""
-  );
+  const [activeTab, setActiveTab] = useState<"master" | "branches">("branches");
+  const [selectedKitchenId, setSelectedKitchenId] = useState<string>(kitchens[0]?.id || "");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("All");
 
   // Modals & States
   const [showForm, setShowForm] = useState(false);
@@ -109,6 +114,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
   const [branchPriceEdits, setBranchPriceEdits] = useState<{ [dishId: string]: string }>({});
   const [savingDishId, setSavingDishId] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [syncingCatalog, setSyncingCatalog] = useState(false);
 
   const showToast = (type: "success" | "error", msg: string) => {
     setToast({ type, msg });
@@ -117,17 +123,46 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
 
   const selectedKitchen = kitchens.find((k) => k.id === selectedKitchenId) || kitchens[0];
 
-  // Filter items for search
+  // Unique categories list
+  const categoryNames = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach((i) => {
+      if (i.categoryName) set.add(i.categoryName);
+    });
+    return ["All", ...Array.from(set)];
+  }, [items]);
+
+  // Filter items for search and category
   const filteredDishes = useMemo(() => {
-    if (!search.trim()) return items;
-    const q = search.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.categoryName.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q)
-    );
-  }, [items, search]);
+    return items.filter((item) => {
+      const matchCat =
+        selectedCategoryFilter === "All" ||
+        item.categoryName.toLowerCase() === selectedCategoryFilter.toLowerCase();
+      const matchSearch =
+        !search.trim() ||
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.categoryName.toLowerCase().includes(search.toLowerCase()) ||
+        item.description.toLowerCase().includes(search.toLowerCase());
+      return matchCat && matchSearch;
+    });
+  }, [items, search, selectedCategoryFilter]);
+
+  // Branch statistics
+  const branchStats = useMemo(() => {
+    if (!selectedKitchenId) return { totalMaster: items.length, activeCount: 0, customCount: 0 };
+
+    let activeCount = 0;
+    let customCount = 0;
+
+    for (const dish of items) {
+      const override = (dish.branchPricing || []).find((bp) => bp.kitchenId === selectedKitchenId);
+      const isEnabled = override?.isEnabled !== undefined ? override.isEnabled : true;
+      if (isEnabled) activeCount++;
+      if (override?.price !== undefined && override.price !== dish.price) customCount++;
+    }
+
+    return { totalMaster: items.length, activeCount, customCount };
+  }, [items, selectedKitchenId]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -193,7 +228,12 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
     setSavingDishId(null);
 
     if (res.success) {
-      showToast("success", `Updated ${dish.name} status for ${selectedKitchen?.name}!`);
+      showToast(
+        "success",
+        !currentEnabled
+          ? `Added "${dish.name}" to ${selectedKitchen?.name} menu card!`
+          : `Removed "${dish.name}" from ${selectedKitchen?.name} menu card!`
+      );
       router.refresh();
     } else {
       showToast("error", res.error || "Failed to update branch menu.");
@@ -256,11 +296,56 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
     if (res.success) {
       showToast(
         "success",
-        `Enabled all ${res.count} master catalog dishes for ${selectedKitchen?.name}!`
+        `All ${res.count} master catalog dishes enabled for ${selectedKitchen?.name}!`
       );
       router.refresh();
     } else {
       showToast("error", res.error || "Failed to bulk enable dishes.");
+    }
+  };
+
+  // Bulk Disable All Master Dishes for Branch
+  const handleBulkDisableBranch = async () => {
+    if (!confirm(`Are you sure you want to disable all dishes for ${selectedKitchen?.name}?`)) return;
+    setBulkLoading(true);
+    const res = await bulkDisableAllMasterDishesForBranch(selectedKitchenId);
+    setBulkLoading(false);
+
+    if (res.success) {
+      showToast("success", `Disabled all dishes for ${selectedKitchen?.name}.`);
+      router.refresh();
+    } else {
+      showToast("error", res.error || "Failed to disable dishes.");
+    }
+  };
+
+  // Bulk Reset Branch Prices to Master Prices
+  const handleBulkResetPrices = async () => {
+    if (!confirm(`Reset all prices to master base catalog for ${selectedKitchen?.name}?`)) return;
+    setBulkLoading(true);
+    const res = await bulkResetBranchPricesToMaster(selectedKitchenId);
+    setBulkLoading(false);
+
+    if (res.success) {
+      showToast("success", `All prices reset to master catalog for ${selectedKitchen?.name}!`);
+      setBranchPriceEdits({});
+      router.refresh();
+    } else {
+      showToast("error", res.error || "Failed to reset prices.");
+    }
+  };
+
+  // Sync Universal Catalog (Seed / Reload Chinchwad & Master catalog)
+  const handleSyncUniversalCatalog = async () => {
+    setSyncingCatalog(true);
+    const res = await syncUniversalCatalog();
+    setSyncingCatalog(false);
+
+    if (res.success) {
+      showToast("success", `Universal Catalog synced with all ${res.count} dishes including Chinchwad!`);
+      router.refresh();
+    } else {
+      showToast("error", res.error || "Failed to sync catalog.");
     }
   };
 
@@ -269,7 +354,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
     if (!confirm(`Are you sure you want to delete "${dish.name}" from the master catalog?`)) return;
     const res = await deleteMenuItem(dish.id);
     if (res.success) {
-      showToast("success", `Dish "${dish.name}" removed from catalog.`);
+      showToast("success", `Dish "${dish.name}" removed from master catalog.`);
       router.refresh();
     } else {
       showToast("error", res.error || "Failed to delete dish.");
@@ -277,35 +362,47 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 pb-20">
       {/* Top Masthead */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-[#064e3b]">
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e6e2d8] shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono tracking-widest text-[#064e3b] uppercase font-bold">
             <Sparkles className="size-4 text-[#d4af37]" />
-            <span>Universal Master Menu System</span>
+            <span>UNIVERSAL MENU ARCHITECTURE</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-[#0d261e] tracking-tight mt-1">
-            Menu <span className="italic text-[#064e3b]">Control Center</span>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#0d261e] tracking-tight mt-1">
+            Universal Menu & Branch Customizer
           </h1>
-          <p className="text-xs text-[#52635c] mt-1">
-            Create dishes once in the Universal Master Catalog, then activate & adjust prices per branch.
+          <p className="text-xs sm:text-sm text-[#52635c] mt-1 max-w-2xl">
+            All products reside in the Universal Master Catalog. Select any branch below to include/exclude products and set customized pricing per branch.
           </p>
         </div>
 
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-5 py-2.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-xs flex items-center gap-2 self-start sm:self-center border border-[#d4af37]/30 cursor-pointer"
-        >
-          <Plus className="size-4" />
-          <span>Add New Master Dish</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
+          <button
+            onClick={handleSyncUniversalCatalog}
+            disabled={syncingCatalog}
+            className="px-4 py-2.5 rounded-2xl bg-[#fbf9f4] hover:bg-[#064e3b] hover:text-[#d4af37] text-[#0d261e] font-bold text-xs transition shadow-2xs border border-[#e6e2d8] flex items-center gap-2 cursor-pointer"
+            title="Sync all Chinchwad and Signature dishes into Universal Master Menu"
+          >
+            <RefreshCw className={`size-3.5 ${syncingCatalog ? "animate-spin" : ""}`} />
+            <span>Sync All Chinchwad Dishes</span>
+          </button>
+
+          <button
+            onClick={() => setShowForm(true)}
+            className="px-5 py-2.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-xs flex items-center gap-2 border border-[#d4af37]/30 cursor-pointer"
+          >
+            <Plus className="size-4" />
+            <span>Add Master Dish</span>
+          </button>
+        </div>
       </div>
 
       {/* Toast Notice */}
       {toast && (
         <div
-          className={`p-3.5 rounded-2xl border text-xs font-bold flex items-center gap-2 shadow-sm ${
+          className={`p-4 rounded-2xl border text-xs font-bold flex items-center gap-2.5 shadow-xs ${
             toast.type === "success"
               ? "bg-emerald-50 text-emerald-900 border-emerald-300"
               : "bg-rose-50 text-rose-900 border-rose-300"
@@ -320,352 +417,410 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
         </div>
       )}
 
-      {/* Navigation Tabs (Master Catalog vs Branch Menu Cards) */}
-      <div className="flex items-center gap-2 border-b border-[#e6e2d8] overflow-x-auto no-scrollbar pb-0.5">
-        <button
-          onClick={() => setActiveTab("master")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === "master"
-              ? "border-[#064e3b] text-[#064e3b] bg-white/60"
-              : "border-transparent text-[#52635c] hover:text-[#0d261e]"
-          }`}
-        >
-          <UtensilsCrossed className="size-4" />
-          <span>1. Universal Master Catalog ({items.length})</span>
-        </button>
-
+      {/* Main Tabs */}
+      <div className="flex items-center gap-2">
         <button
           onClick={() => setActiveTab("branches")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+          className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-2xl transition cursor-pointer flex items-center gap-2 border ${
             activeTab === "branches"
-              ? "border-[#064e3b] text-[#064e3b] bg-white/60"
-              : "border-transparent text-[#52635c] hover:text-[#0d261e]"
+              ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b] shadow-xs"
+              : "bg-white text-[#52635c] border-[#e6e2d8] hover:border-[#d4af37]"
           }`}
         >
           <Store className="size-4" />
-          <span>2. Branch Menu Cards & Pricing</span>
+          <span>Branch Menu Cards & Pricing</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("master")}
+          className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-2xl transition cursor-pointer flex items-center gap-2 border ${
+            activeTab === "master"
+              ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b] shadow-xs"
+              : "bg-white text-[#52635c] border-[#e6e2d8] hover:border-[#d4af37]"
+          }`}
+        >
+          <UtensilsCrossed className="size-4" />
+          <span>Universal Master Catalog ({items.length})</span>
         </button>
       </div>
 
-      {/* Search Input */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-3 size-4 text-[#d4af37]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search dishes by name or category..."
-            className="w-full h-10 pl-10 pr-4 rounded-xl bg-white border border-[#e6e2d8] text-xs text-[#0d261e] placeholder:text-[#52635c] focus:outline-none focus:border-[#064e3b] shadow-2xs"
-          />
-        </div>
+      {/* ========================================================================= */}
+      {/* TAB 1: BRANCH MENU CARDS & PRICING MANAGER (MAIN FEATURE) */}
+      {/* ========================================================================= */}
+      {activeTab === "branches" && (
+        <div className="space-y-6">
+          {/* Branch Picker Row */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-[#064e3b]">
+                Select Target Branch Kitchen:
+              </span>
+              <div className="text-xs font-bold text-[#52635c] flex items-center gap-3">
+                <span>Active Menu: <b className="text-[#064e3b]">{branchStats.activeCount} / {branchStats.totalMaster} dishes</b></span>
+                {branchStats.customCount > 0 && (
+                  <span>· Custom Priced: <b className="text-[#d4af37]">{branchStats.customCount}</b></span>
+                )}
+              </div>
+            </div>
 
-        {activeTab === "branches" && (
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <span className="text-xs font-bold text-[#52635c]">Select Branch:</span>
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-              {kitchens.map((k) => (
+            <div className="flex flex-wrap gap-2">
+              {kitchens.map((k) => {
+                const isSelected = selectedKitchenId === k.id;
+                return (
+                  <button
+                    key={k.id}
+                    onClick={() => {
+                      setSelectedKitchenId(k.id);
+                      setBranchPriceEdits({});
+                    }}
+                    className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer border flex items-center gap-2 ${
+                      isSelected
+                        ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b] shadow-xs"
+                        : "bg-[#fbf9f4] text-[#0d261e] border-[#e6e2d8] hover:border-[#d4af37]"
+                    }`}
+                  >
+                    <Store className="size-3.5" />
+                    <span>{k.name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-extrabold ${
+                      isSelected ? "bg-[#d4af37] text-[#064e3b]" : "bg-gray-200 text-[#52635c]"
+                    }`}>
+                      {k.area || "Pune"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Controls Bar: Search + Category Filter + Bulk Branch Actions */}
+          <div className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs space-y-4">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              {/* Search Bar */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3.5 top-3 size-4 text-[#d4af37]" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={`Search ${selectedKitchen?.name} menu...`}
+                  className="w-full h-10 pl-10 pr-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] placeholder:text-[#52635c] focus:outline-none focus:border-[#064e3b]"
+                />
+              </div>
+
+              {/* Bulk Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
-                  key={k.id}
-                  onClick={() => setSelectedKitchenId(k.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                    selectedKitchenId === k.id
-                      ? "bg-[#064e3b] text-[#d4af37] shadow-xs"
-                      : "bg-white text-[#52635c] border border-[#e6e2d8] hover:border-[#d4af37]"
+                  onClick={handleBulkEnableBranch}
+                  disabled={bulkLoading}
+                  className="px-3.5 py-2 rounded-xl bg-[#064e3b] text-[#d4af37] font-black text-xs hover:bg-[#0a5c46] transition flex items-center gap-1.5 shadow-2xs cursor-pointer border border-[#d4af37]/30"
+                  title="Enable every master dish for this branch"
+                >
+                  <Zap className="size-3.5 fill-[#d4af37]" />
+                  <span>Include All Master Dishes</span>
+                </button>
+
+                <button
+                  onClick={handleBulkResetPrices}
+                  disabled={bulkLoading}
+                  className="px-3.5 py-2 rounded-xl bg-[#fbf9f4] hover:bg-gray-100 text-[#0d261e] font-bold text-xs transition flex items-center gap-1.5 border border-[#e6e2d8] cursor-pointer"
+                  title="Reset all prices to master base prices"
+                >
+                  <RotateCcw className="size-3.5 text-[#52635c]" />
+                  <span>Reset Prices</span>
+                </button>
+
+                <button
+                  onClick={handleBulkDisableBranch}
+                  disabled={bulkLoading}
+                  className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition flex items-center gap-1.5 border border-rose-200 cursor-pointer"
+                  title="Remove all dishes from this branch's menu"
+                >
+                  <X className="size-3.5" />
+                  <span>Remove All</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Category Filter Chips */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 border-t border-gray-100">
+              <span className="text-[11px] font-bold text-[#52635c] shrink-0">Filter:</span>
+              {categoryNames.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategoryFilter(cat)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                    selectedCategoryFilter === cat
+                      ? "bg-[#064e3b] text-[#d4af37]"
+                      : "bg-[#fbf9f4] text-[#52635c] hover:text-[#0d261e] border border-[#e6e2d8]"
                   }`}
                 >
-                  {k.name} ({k.area || "Pune"})
+                  {cat}
                 </button>
               ))}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* ========================================================================= */}
-      {/* TAB 1: UNIVERSAL MASTER CATALOG VIEW */}
-      {/* ========================================================================= */}
-      {activeTab === "master" && (
-        <div className="bg-white rounded-3xl border border-[#e6e2d8] shadow-2xs overflow-hidden">
-          <div className="p-4 sm:p-5 border-b border-[#e6e2d8] bg-[#fbf9f4]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <h3 className="font-black text-sm text-[#0d261e] uppercase tracking-wider">
-                Universal Master Dishes ({filteredDishes.length})
-              </h3>
-              <p className="text-xs text-[#52635c] mt-0.5">
-                Every dish here is automatically ready for all branches to activate and price.
-              </p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#fbf9f4] border-b border-[#e6e2d8] text-[10px] font-black font-mono tracking-wider uppercase text-[#52635c]">
-                <tr>
-                  <th className="px-5 py-3">Dish</th>
-                  <th className="px-5 py-3">Category</th>
-                  <th className="px-5 py-3">Base Price</th>
-                  <th className="px-5 py-3">Type</th>
-                  <th className="px-5 py-3">Branch Overrides</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#e6e2d8]/60">
-                {filteredDishes.length === 0 ? (
+          {/* Interactive Branch Menu Table */}
+          <div className="bg-white rounded-3xl border border-[#e6e2d8] shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#fbf9f4] border-b border-[#e6e2d8] text-[10px] font-black font-mono tracking-wider uppercase text-[#52635c]">
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-xs text-[#52635c] font-bold">
-                      No master dishes found. Click "Add New Master Dish" to create one!
-                    </td>
+                    <th className="px-5 py-3.5 text-center">Include in Branch?</th>
+                    <th className="px-5 py-3.5">Product</th>
+                    <th className="px-5 py-3.5">Category</th>
+                    <th className="px-5 py-3.5">Master Price</th>
+                    <th className="px-5 py-3.5">Branch Custom Price (₹)</th>
+                    <th className="px-5 py-3.5 text-center">In-Stock Today</th>
                   </tr>
-                ) : (
-                  filteredDishes.map((dish) => {
-                    const overridesCount = (dish.branchPricing || []).filter(
-                      (bp) => bp.price !== undefined && bp.price !== dish.price
-                    ).length;
+                </thead>
+                <tbody className="divide-y divide-[#e6e2d8]/60">
+                  {filteredDishes.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-xs text-[#52635c] font-bold">
+                        No dishes found matching your search.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredDishes.map((dish) => {
+                      const override = (dish.branchPricing || []).find(
+                        (bp) => bp.kitchenId === selectedKitchenId
+                      );
 
-                    return (
-                      <tr key={dish.id} className="hover:bg-[#fbf9f4]/50 transition">
-                        {/* Dish Details */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={dish.image}
-                              alt={dish.name}
-                              className="size-12 rounded-xl object-cover shadow-2xs shrink-0"
-                            />
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <h4 className="font-extrabold text-sm text-[#0d261e]">
-                                  {dish.name}
-                                </h4>
-                                {dish.tag && (
-                                  <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-[#064e3b] text-[9px] font-bold">
-                                    {dish.tag}
-                                  </span>
-                                )}
+                      const isEnabled = override?.isEnabled !== undefined ? override.isEnabled : true;
+                      const isAvailable = override?.isAvailable !== undefined ? override.isAvailable : true;
+                      const currentBranchPrice = override?.price !== undefined ? override.price : dish.price;
+                      const isPriceOverridden = override?.price !== undefined && override.price !== dish.price;
+                      const isDirty =
+                        branchPriceEdits[dish.id] !== undefined &&
+                        branchPriceEdits[dish.id] !== String(currentBranchPrice);
+
+                      return (
+                        <tr
+                          key={dish.id}
+                          className={`transition ${
+                            !isEnabled ? "bg-gray-50/70 opacity-60" : "hover:bg-[#fbf9f4]/60"
+                          }`}
+                        >
+                          {/* 1. Include in Branch Toggle */}
+                          <td className="px-5 py-3.5 text-center">
+                            <button
+                              onClick={() => handleToggleBranchEnabled(dish, isEnabled)}
+                              disabled={savingDishId === dish.id}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer border ${
+                                isEnabled
+                                  ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b] shadow-2xs"
+                                  : "bg-white text-gray-400 border-gray-300 hover:border-gray-400"
+                              }`}
+                            >
+                              {isEnabled ? "Included ✓" : "Excluded ✕"}
+                            </button>
+                          </td>
+
+                          {/* 2. Product Details */}
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={dish.image}
+                                alt={dish.name}
+                                className="size-12 rounded-xl object-cover shadow-2xs shrink-0"
+                              />
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <h4 className="font-extrabold text-sm text-[#0d261e]">
+                                    {dish.name}
+                                  </h4>
+                                  {dish.tag && (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-[#064e3b] text-[9px] font-bold">
+                                      {dish.tag}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-[#52635c] line-clamp-1 max-w-xs">
+                                  {dish.description}
+                                </p>
                               </div>
-                              <p className="text-[11px] text-[#52635c] line-clamp-1 max-w-xs">
-                                {dish.description || "No description provided."}
-                              </p>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Category */}
-                        <td className="px-5 py-3.5 font-bold text-[#0d261e]">
-                          {dish.categoryName}
-                        </td>
+                          {/* 3. Category */}
+                          <td className="px-5 py-3.5 font-bold text-[#52635c]">
+                            {dish.categoryName}
+                          </td>
 
-                        {/* Base Price */}
-                        <td className="px-5 py-3.5 font-black text-sm text-[#064e3b]">
-                          ₹{dish.price}
-                        </td>
+                          {/* 4. Universal Master Price */}
+                          <td className="px-5 py-3.5 font-bold text-[#52635c]">
+                            ₹{dish.price}
+                          </td>
 
-                        {/* Veg/Non-Veg */}
-                        <td className="px-5 py-3.5">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                              dish.isVeg
-                                ? "bg-emerald-50 text-[#064e3b] border border-emerald-300"
-                                : "bg-red-50 text-red-700 border border-red-300"
-                            }`}
-                          >
-                            {dish.isVeg ? "Pure Veg" : "Non-Veg"}
-                          </span>
-                        </td>
+                          {/* 5. Branch Custom Price Field */}
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-2">
+                              <div className="relative w-28">
+                                <span className="absolute left-3 top-2.5 text-xs font-bold text-[#52635c]">
+                                  ₹
+                                </span>
+                                <input
+                                  type="number"
+                                  value={
+                                    branchPriceEdits[dish.id] !== undefined
+                                      ? branchPriceEdits[dish.id]
+                                      : currentBranchPrice
+                                  }
+                                  onChange={(e) =>
+                                    setBranchPriceEdits({
+                                      ...branchPriceEdits,
+                                      [dish.id]: e.target.value,
+                                    })
+                                  }
+                                  className="w-full h-9 pl-6 pr-2 rounded-xl bg-white border border-[#e6e2d8] text-xs font-black text-[#064e3b] focus:outline-none focus:border-[#064e3b] shadow-2xs"
+                                />
+                              </div>
 
-                        {/* Branch Overrides Count */}
-                        <td className="px-5 py-3.5 font-semibold text-[#52635c]">
-                          {overridesCount > 0 ? (
-                            <span className="text-[#064e3b] font-bold">
-                              {overridesCount} custom prices
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">Default base price</span>
-                          )}
-                        </td>
+                              {isDirty ? (
+                                <button
+                                  onClick={() => handleSaveBranchPrice(dish)}
+                                  disabled={savingDishId === dish.id}
+                                  className="px-3 h-9 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs flex items-center gap-1 hover:bg-[#0a5c46] transition cursor-pointer shadow-xs"
+                                >
+                                  {savingDishId === dish.id ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <Save className="size-3.5" />
+                                  )}
+                                  <span>Save</span>
+                                </button>
+                              ) : isPriceOverridden ? (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+                                  Custom
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
 
-                        {/* Actions */}
-                        <td className="px-5 py-3.5 text-right">
-                          <button
-                            onClick={() => handleDeleteMasterDish(dish)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-                            title="Delete from Master Catalog"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                          {/* 6. In-Stock Status */}
+                          <td className="px-5 py-3.5 text-center">
+                            <button
+                              onClick={() => handleToggleBranchStock(dish, isAvailable)}
+                              disabled={savingDishId === dish.id}
+                              className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                isAvailable
+                                  ? "bg-emerald-50 text-[#064e3b] border border-emerald-300"
+                                  : "bg-rose-50 text-rose-700 border border-rose-200"
+                              }`}
+                            >
+                              {isAvailable ? "In Stock" : "Sold Out"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: BRANCH MENU CARDS & PRICING MANAGER */}
+      {/* TAB 2: UNIVERSAL MASTER CATALOG VIEW */}
       {/* ========================================================================= */}
-      {activeTab === "branches" && (
-        <div className="bg-white rounded-3xl border border-[#e6e2d8] shadow-2xs overflow-hidden space-y-4">
-          <div className="p-4 sm:p-5 border-b border-[#e6e2d8] bg-[#fbf9f4]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {activeTab === "master" && (
+        <div className="bg-white rounded-3xl border border-[#e6e2d8] shadow-2xs overflow-hidden">
+          <div className="p-5 border-b border-[#e6e2d8] bg-[#fbf9f4]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <div className="flex items-center gap-2">
-                <Store className="size-4 text-[#d4af37]" />
-                <h3 className="font-black text-base text-[#0d261e]">
-                  {selectedKitchen?.name} Menu Card
-                </h3>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-[#064e3b] text-[10px] font-black">
-                  {selectedKitchen?.area || "Pune"}
-                </span>
-              </div>
+              <h3 className="font-black text-sm text-[#0d261e] uppercase tracking-wider">
+                Universal Master Dishes ({filteredDishes.length})
+              </h3>
               <p className="text-xs text-[#52635c] mt-0.5">
-                Toggle dish availability and change prices specifically for this branch.
+                Every dish added here is globally available for all 6 branches to activate and price.
               </p>
             </div>
-
-            <button
-              onClick={handleBulkEnableBranch}
-              disabled={bulkLoading}
-              className="px-4 py-2 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition flex items-center gap-2 shadow-2xs self-start sm:self-center cursor-pointer border border-[#d4af37]/30"
-            >
-              {bulkLoading ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Zap className="size-3.5 fill-[#d4af37]" />
-              )}
-              <span>Enable All Master Dishes</span>
-            </button>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-[#fbf9f4] border-b border-[#e6e2d8] text-[10px] font-black font-mono tracking-wider uppercase text-[#52635c]">
                 <tr>
-                  <th className="px-5 py-3">Dish</th>
-                  <th className="px-5 py-3">Category</th>
-                  <th className="px-5 py-3">Master Price</th>
-                  <th className="px-5 py-3">Branch Price (Override)</th>
-                  <th className="px-5 py-3 text-center">In Stock Today?</th>
-                  <th className="px-5 py-3 text-center">On Branch Menu?</th>
+                  <th className="px-5 py-3.5">Product Name</th>
+                  <th className="px-5 py-3.5">Category</th>
+                  <th className="px-5 py-3.5">Universal Base Price</th>
+                  <th className="px-5 py-3.5">Dietary</th>
+                  <th className="px-5 py-3.5">Branch Overrides</th>
+                  <th className="px-5 py-3.5 text-right">Delete</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e6e2d8]/60">
                 {filteredDishes.map((dish) => {
-                  const override = (dish.branchPricing || []).find(
-                    (bp) => bp.kitchenId === selectedKitchenId
-                  );
-
-                  const isEnabled = override?.isEnabled !== undefined ? override.isEnabled : true;
-                  const isAvailable = override?.isAvailable !== undefined ? override.isAvailable : true;
-                  const currentBranchPrice = override?.price !== undefined ? override.price : dish.price;
-                  const isDirty =
-                    branchPriceEdits[dish.id] !== undefined &&
-                    branchPriceEdits[dish.id] !== String(currentBranchPrice);
+                  const overridesCount = (dish.branchPricing || []).filter(
+                    (bp) => bp.price !== undefined && bp.price !== dish.price
+                  ).length;
 
                   return (
-                    <tr
-                      key={dish.id}
-                      className={`transition ${
-                        !isEnabled ? "bg-gray-50/70 opacity-60" : "hover:bg-[#fbf9f4]/50"
-                      }`}
-                    >
-                      {/* Dish */}
+                    <tr key={dish.id} className="hover:bg-[#fbf9f4]/50 transition">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <img
                             src={dish.image}
                             alt={dish.name}
-                            className="size-11 rounded-xl object-cover shadow-2xs shrink-0"
+                            className="size-12 rounded-xl object-cover shadow-2xs shrink-0"
                           />
                           <div>
-                            <h4 className="font-extrabold text-sm text-[#0d261e]">{dish.name}</h4>
-                            <span className="text-[10px] text-[#52635c]">{dish.categoryName}</span>
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="font-extrabold text-sm text-[#0d261e]">
+                                {dish.name}
+                              </h4>
+                              {dish.tag && (
+                                <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-[#064e3b] text-[9px] font-bold">
+                                  {dish.tag}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-[#52635c] line-clamp-1 max-w-xs">
+                              {dish.description}
+                            </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Category */}
-                      <td className="px-5 py-3.5 font-bold text-[#52635c]">
+                      <td className="px-5 py-3.5 font-bold text-[#0d261e]">
                         {dish.categoryName}
                       </td>
 
-                      {/* Master Price */}
-                      <td className="px-5 py-3.5 font-semibold text-[#52635c]">
+                      <td className="px-5 py-3.5 font-black text-sm text-[#064e3b]">
                         ₹{dish.price}
                       </td>
 
-                      {/* Branch Price Override Input */}
                       <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="relative w-28">
-                            <span className="absolute left-3 top-2.5 text-xs font-bold text-[#52635c]">
-                              ₹
-                            </span>
-                            <input
-                              type="number"
-                              value={
-                                branchPriceEdits[dish.id] !== undefined
-                                  ? branchPriceEdits[dish.id]
-                                  : currentBranchPrice
-                              }
-                              onChange={(e) =>
-                                setBranchPriceEdits({
-                                  ...branchPriceEdits,
-                                  [dish.id]: e.target.value,
-                                })
-                              }
-                              className="w-full h-9 pl-6 pr-2 rounded-xl bg-white border border-[#e6e2d8] text-xs font-black text-[#064e3b] focus:outline-none focus:border-[#064e3b] shadow-2xs"
-                            />
-                          </div>
-
-                          {isDirty && (
-                            <button
-                              onClick={() => handleSaveBranchPrice(dish)}
-                              disabled={savingDishId === dish.id}
-                              className="px-3 h-9 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs flex items-center gap-1 hover:bg-[#0a5c46] transition cursor-pointer shadow-xs"
-                              title="Save custom branch price"
-                            >
-                              {savingDishId === dish.id ? (
-                                <Loader2 className="size-3.5 animate-spin" />
-                              ) : (
-                                <Save className="size-3.5" />
-                              )}
-                              <span>Save</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* In Stock Toggle */}
-                      <td className="px-5 py-3.5 text-center">
-                        <button
-                          onClick={() => handleToggleBranchStock(dish, isAvailable)}
-                          disabled={savingDishId === dish.id}
-                          className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
-                            isAvailable
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                            dish.isVeg
                               ? "bg-emerald-50 text-[#064e3b] border border-emerald-300"
-                              : "bg-rose-50 text-rose-700 border border-rose-200"
+                              : "bg-red-50 text-red-700 border border-red-300"
                           }`}
                         >
-                          {isAvailable ? "In Stock" : "Out of Stock"}
-                        </button>
+                          {dish.isVeg ? "Pure Veg" : "Non-Veg"}
+                        </span>
                       </td>
 
-                      {/* On Branch Menu Toggle */}
-                      <td className="px-5 py-3.5 text-center">
+                      <td className="px-5 py-3.5 font-semibold text-[#52635c]">
+                        {overridesCount > 0 ? (
+                          <span className="text-[#064e3b] font-bold">
+                            {overridesCount} custom prices
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">Default base price</span>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-right">
                         <button
-                          onClick={() => handleToggleBranchEnabled(dish, isEnabled)}
-                          disabled={savingDishId === dish.id}
-                          className={`px-3.5 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
-                            isEnabled
-                              ? "bg-[#064e3b] text-[#d4af37] shadow-2xs"
-                              : "bg-gray-200 text-gray-600"
-                          }`}
+                          onClick={() => handleDeleteMasterDish(dish)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                          title="Delete from Master Catalog"
                         >
-                          {isEnabled ? "Active on Menu" : "Hidden / Disabled"}
+                          <Trash2 className="size-4" />
                         </button>
                       </td>
                     </tr>
@@ -777,7 +932,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                     type="text"
                     value={form.tags}
                     onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                    placeholder="e.g. Bestseller, Chef Special"
+                    placeholder="e.g. Bestseller, Office Favorite"
                     className="w-full h-10 px-3.5 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
                   />
                 </div>
@@ -796,64 +951,56 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                 </div>
               </div>
 
+              {/* Image Input */}
               <div>
                 <label className="block text-xs font-bold text-[#0d261e] mb-1">
-                  Dish Photo (Upload or URL)
+                  Dish Image (Upload File or Enter Image URL)
                 </label>
-                <div className="flex gap-2">
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    className="text-xs text-[#52635c] file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#064e3b] file:text-[#d4af37] file:cursor-pointer"
+                  />
                   <input
                     type="text"
                     value={form.images}
                     onChange={(e) => setForm({ ...form, images: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
-                    className="flex-1 h-10 px-3.5 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
+                    placeholder="Or paste Unsplash image URL..."
+                    className="w-full h-9 px-3.5 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:outline-none focus:border-[#064e3b]"
                   />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 h-10 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs font-bold text-[#52635c] hover:bg-gray-100 transition flex items-center gap-1.5"
-                  >
-                    <ImagePlus className="size-4" />
-                    <span>Upload</span>
-                  </button>
+                  {imagePreview && (
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="size-16 rounded-xl object-cover border border-[#e6e2d8] shadow-2xs"
+                    />
+                  )}
                 </div>
-
-                {imagePreview && (
-                  <div className="mt-2 relative size-16 rounded-xl overflow-hidden border border-[#e6e2d8]">
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                )}
               </div>
 
-              <div className="pt-3 flex gap-2">
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold text-xs hover:bg-gray-200 transition"
+                  className="px-4 py-2 text-xs font-bold text-[#52635c] hover:text-[#0d261e] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || uploading}
-                  className="flex-1 py-2.5 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition flex items-center justify-center gap-2 shadow-xs border border-[#d4af37]/30 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-[#064e3b] text-[#d4af37] text-xs font-bold hover:bg-[#0a5c46] transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {loading || uploading ? (
                     <>
                       <Loader2 className="size-3.5 animate-spin" />
-                      <span>Creating Dish...</span>
+                      <span>{uploading ? "Uploading..." : "Saving Dish..."}</span>
                     </>
                   ) : (
-                    <>
-                      <span>Save Master Dish</span>
-                    </>
+                    <span>Add to Master Catalog</span>
                   )}
                 </button>
               </div>

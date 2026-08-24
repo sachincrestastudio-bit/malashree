@@ -5,6 +5,7 @@ import { MenuItem } from "@/models/MenuItem";
 import { Category } from "@/models/Category";
 import { Kitchen } from "@/models/Kitchen";
 import { revalidatePath } from "next/cache";
+import { seedDatabase } from "@/actions/seed";
 
 /**
  * 1. Add a Universal Master Dish (Available across all branches by default)
@@ -152,7 +153,83 @@ export const bulkEnableAllMasterDishesForBranch = async (kitchenId: string) => {
 };
 
 /**
- * 4. Legacy single-item addition
+ * 4. Bulk Disable All Master Dishes for a Branch
+ */
+export const bulkDisableAllMasterDishesForBranch = async (kitchenId: string) => {
+  try {
+    await connectToDatabase();
+
+    const dishes = await MenuItem.find({ isGlobalMaster: true, deletedAt: null });
+
+    for (const dish of dishes) {
+      if (!dish.branchPricing) dish.branchPricing = [];
+
+      const existingIndex = dish.branchPricing.findIndex(
+        (bp: any) => bp.kitchenId.toString() === kitchenId
+      );
+
+      if (existingIndex >= 0) {
+        dish.branchPricing[existingIndex].isEnabled = false;
+      } else {
+        dish.branchPricing.push({
+          kitchenId,
+          price: dish.price,
+          isEnabled: false,
+          isAvailable: true,
+        });
+      }
+      await dish.save();
+    }
+
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+    return { success: true, count: dishes.length };
+  } catch (err: any) {
+    console.error("bulkDisableAllMasterDishesForBranch error:", err);
+    return { error: err.message || "Failed to bulk disable dishes." };
+  }
+};
+
+/**
+ * 5. Bulk Reset Branch Prices to Master Catalog Base Prices
+ */
+export const bulkResetBranchPricesToMaster = async (kitchenId: string) => {
+  try {
+    await connectToDatabase();
+
+    const dishes = await MenuItem.find({ isGlobalMaster: true, deletedAt: null });
+
+    for (const dish of dishes) {
+      if (!dish.branchPricing) continue;
+
+      const existingIndex = dish.branchPricing.findIndex(
+        (bp: any) => bp.kitchenId.toString() === kitchenId
+      );
+
+      if (existingIndex >= 0) {
+        dish.branchPricing[existingIndex].price = dish.price;
+        await dish.save();
+      }
+    }
+
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+    return { success: true, count: dishes.length };
+  } catch (err: any) {
+    console.error("bulkResetBranchPricesToMaster error:", err);
+    return { error: err.message || "Failed to reset prices." };
+  }
+};
+
+/**
+ * 6. Sync / Copy all Chinchwad and Signature dishes into Universal Master Catalog
+ */
+export const syncUniversalCatalog = async () => {
+  return seedDatabase();
+};
+
+/**
+ * 7. Legacy single-item addition
  */
 export const addMenuItem = async (formData: {
   name: string;
@@ -176,7 +253,7 @@ export const addMenuItem = async (formData: {
 };
 
 /**
- * 5. Update Master Dish General Availability
+ * 8. Update Master Dish General Availability
  */
 export const updateMenuItemAvailability = async (id: string, isAvailable: boolean) => {
   try {
@@ -192,7 +269,7 @@ export const updateMenuItemAvailability = async (id: string, isAvailable: boolea
 };
 
 /**
- * 6. Delete a Dish
+ * 9. Delete a Dish
  */
 export const deleteMenuItem = async (id: string) => {
   try {
@@ -208,7 +285,7 @@ export const deleteMenuItem = async (id: string) => {
 };
 
 /**
- * 7. Get form data (kitchens & categories)
+ * 10. Get form data (kitchens & categories)
  */
 export const getMenuFormData = async () => {
   await connectToDatabase();
