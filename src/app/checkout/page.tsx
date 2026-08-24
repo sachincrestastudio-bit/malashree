@@ -15,8 +15,11 @@ import {
   ChevronRight,
   Building,
   Smartphone,
+  Receipt,
+  Info,
 } from "lucide-react";
 import { Header } from "@/components/Header";
+import { BillSummaryDrawer } from "@/components/BillSummaryDrawer";
 import { useStore } from "@/lib/store";
 import { getAssignedKitchenDetails } from "@/actions/kitchen";
 import { getKitchenMenu } from "@/actions/menu";
@@ -30,12 +33,14 @@ export default function CheckoutPage() {
   const branchId = useStore((s) => s.branchId);
   const kitchenMenu = useStore((s) => s.kitchenMenu);
   const setKitchenMenu = useStore((s) => s.setKitchenMenu);
+  const userLocation = useStore((s) => s.userLocation);
 
   const [kitchenDetails, setKitchenDetails] = useState<any>(null);
   const [pay, setPay] = useState<string>("upi");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [showBillDrawer, setShowBillDrawer] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState(
     profile?.address || "Flat 402, Green Acres, Pimple Saudagar, Pune"
   );
@@ -77,9 +82,12 @@ export default function CheckoutPage() {
 
   const subtotal = cartTotals?.subtotal ?? localSubtotal;
   const discount = cartTotals?.discount ?? 0;
-  const delivery = cartTotals?.deliveryFee ?? (localSubtotal > 500 || localSubtotal === 0 ? 0 : 40);
+  const delivery = cartTotals?.deliveryFee ?? (localSubtotal > 500 || localSubtotal === 0 ? 0 : 34);
   const gst = cartTotals?.tax ?? Math.round(localSubtotal * 0.05);
-  const total = cartTotals?.grandTotal ?? Math.max(0, localSubtotal + gst + delivery - discount);
+  const packaging = 15;
+  const platformFee = 5.0;
+  const donation = 3.0;
+  const total = Math.max(0, subtotal + packaging + delivery + platformFee + donation + gst - discount);
   const coupon = cartTotals?.couponCode || null;
 
   const handlePlaceOrder = async () => {
@@ -268,44 +276,64 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        {/* 3. Order Summary Details */}
-        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-3">
-          <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
-            Order Breakdown
-          </h3>
-          <div className="space-y-2 text-xs text-[#52635c] font-medium">
-            <div className="flex justify-between">
-              <span>Items Total ({items.length} items)</span>
-              <span className="text-[#0d261e] font-bold">₹{subtotal}</span>
+        {/* 3. Compact Total Bill Row with Arrow (Zomato-style) */}
+        <section
+          onClick={() => setShowBillDrawer(true)}
+          className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between cursor-pointer hover:border-[#064e3b] transition group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-2xl bg-emerald-50 text-[#064e3b] border border-emerald-200 grid place-items-center">
+              <Receipt className="size-5 text-[#064e3b]" />
             </div>
-            {discount > 0 && (
-              <div className="flex justify-between text-[#064e3b] font-bold">
-                <span>Coupon Applied</span>
-                <span>-₹{discount}</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm text-[#0d261e]">Total Bill</span>
               </div>
-            )}
-            <div className="flex justify-between">
-              <span>Delivery Fee</span>
-              <span>{delivery === 0 ? <span className="text-[#064e3b] font-bold">FREE</span> : `₹${delivery}`}</span>
+              <span className="text-[11px] text-[#52635c] group-hover:text-[#064e3b] transition flex items-center gap-1 font-medium">
+                Incl. taxes and charges
+              </span>
             </div>
-            <div className="flex justify-between">
-              <span>Taxes & GST (5%)</span>
-              <span>₹{gst}</span>
-            </div>
-            <div className="border-t border-[#e6e2d8] pt-3 flex justify-between items-center text-sm font-black text-[#0d261e]">
-              <span>Grand Total</span>
-              <span className="text-base text-[#064e3b]">₹{total}</span>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <span className="font-black text-base text-[#0d261e]">₹{total.toFixed(2)}</span>
+            <div className="size-7 rounded-full bg-[#fbf9f4] border border-[#e6e2d8] grid place-items-center group-hover:bg-[#064e3b] group-hover:text-[#d4af37] transition">
+              <ChevronRight className="size-4 text-[#52635c] group-hover:text-[#d4af37] transition" />
             </div>
           </div>
         </section>
       </main>
 
+      {/* Slide-Up Bill Summary Drawer / Modal */}
+      <BillSummaryDrawer
+        isOpen={showBillDrawer}
+        onClose={() => setShowBillDrawer(false)}
+        subtotal={subtotal}
+        packagingCharge={packaging}
+        deliveryFee={delivery}
+        distanceKm={userLocation?.distanceKm || 2.1}
+        platformFee={platformFee}
+        donation={donation}
+        gst={gst}
+        discount={discount}
+        couponCode={coupon}
+        grandTotal={total}
+      />
+
       {/* Fixed Bottom Payment Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e6e2d8] p-4 shadow-xl">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-          <div>
-            <span className="text-xs font-bold text-[#52635c] block leading-none">TOTAL TO PAY</span>
-            <span className="text-xl font-black text-[#0d261e]">₹{total}</span>
+          <div
+            onClick={() => setShowBillDrawer(true)}
+            className="cursor-pointer group flex items-center gap-1.5"
+          >
+            <div>
+              <span className="text-[10px] font-bold text-[#52635c] block leading-none flex items-center gap-1">
+                <span>TOTAL TO PAY</span>
+                <span className="text-[#064e3b] underline font-semibold">(View)</span>
+              </span>
+              <span className="text-xl font-black text-[#0d261e]">₹{total.toFixed(2)}</span>
+            </div>
           </div>
 
           <button

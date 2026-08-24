@@ -16,8 +16,11 @@ import {
   Heart,
   ChevronRight,
   ShieldCheck,
+  Receipt,
+  Info,
 } from "lucide-react";
 import { Header } from "@/components/Header";
+import { BillSummaryDrawer } from "@/components/BillSummaryDrawer";
 import { useStore } from "@/lib/store";
 import { getBranch, findDish, ALL_CATEGORY_DISHES, Dish } from "@/lib/data";
 import { syncCartWithServer, applyCouponCode } from "@/actions/cart";
@@ -33,6 +36,7 @@ export default function CartPage() {
   const setCartTotals = useStore((s) => s.setCartTotals);
   const kitchenMenu = useStore((s) => s.kitchenMenu) || [];
   const profile = useStore((s) => s.profile);
+  const userLocation = useStore((s) => s.userLocation);
   const branch = getBranch(branchId);
 
   const [couponInput, setCouponInput] = useState("");
@@ -41,6 +45,7 @@ export default function CartPage() {
   const [cookingNote, setCookingNote] = useState("");
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [deliveryInstruction, setDeliveryInstruction] = useState<string | null>(null);
+  const [showBillDrawer, setShowBillDrawer] = useState(false);
 
   // Sync cart totals with server
   useEffect(() => {
@@ -104,10 +109,13 @@ export default function CartPage() {
 
   const subtotal = cartTotals?.subtotal ?? localSubtotal;
   const discount = cartTotals?.discount ?? 0;
-  const delivery = cartTotals?.deliveryFee ?? (localSubtotal > 500 || localSubtotal === 0 ? 0 : 40);
+  const delivery = cartTotals?.deliveryFee ?? (localSubtotal > 500 || localSubtotal === 0 ? 0 : 34);
   const gst = cartTotals?.tax ?? Math.round(localSubtotal * 0.05);
+  const packaging = 15;
+  const platformFee = 5.0;
+  const donation = 3.0;
   const tipAmount = selectedTip || 0;
-  const grandTotal = Math.max(0, subtotal + gst + delivery + tipAmount - discount);
+  const grandTotal = Math.max(0, subtotal + packaging + delivery + platformFee + donation + gst + tipAmount - discount);
 
   const handleApplyCoupon = async (codeToApply?: string) => {
     const code = (codeToApply || couponInput).trim();
@@ -154,7 +162,7 @@ export default function CartPage() {
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
-        {/* Restaurant Badge Header */}
+        {/* Restaurant Header */}
         <section className="bg-white rounded-3xl p-4 sm:p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-12 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
@@ -265,39 +273,6 @@ export default function CartPage() {
           </div>
         </section>
 
-        {/* Tip Delivery Partner Section */}
-        <section className="bg-white rounded-3xl p-4 sm:p-5 border border-[#e6e2d8] shadow-2xs space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider flex items-center gap-1.5">
-              <Heart className="size-3.5 text-[#d4af37] fill-[#d4af37]" />
-              Tip your delivery partner
-            </h3>
-            {selectedTip && (
-              <button
-                onClick={() => setSelectedTip(null)}
-                className="text-[11px] font-bold text-[#064e3b] hover:underline"
-              >
-                Remove tip
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {[20, 30, 50, 100].map((tip) => (
-              <button
-                key={tip}
-                onClick={() => setSelectedTip((prev) => (prev === tip ? null : tip))}
-                className={`py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                  selectedTip === tip
-                    ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b]"
-                    : "bg-[#fbf9f4] text-[#0d261e] border-[#e6e2d8] hover:border-[#d4af37]"
-                }`}
-              >
-                ₹{tip}
-              </button>
-            ))}
-          </div>
-        </section>
-
         {/* Promo Coupons Card */}
         <section className="bg-white rounded-3xl p-4 sm:p-5 border border-[#e6e2d8] shadow-2xs space-y-3">
           <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider flex items-center gap-1.5">
@@ -351,62 +326,67 @@ export default function CartPage() {
           )}
         </section>
 
-        {/* Itemized Bill Details Card */}
-        <section className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-3">
-          <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
-            Bill Details
-          </h3>
-
-          <div className="space-y-2 text-xs text-[#52635c] font-medium pt-1">
-            <div className="flex justify-between">
-              <span>Item Total</span>
-              <span className="text-[#0d261e] font-bold">₹{subtotal}</span>
+        {/* Compact Total Bill Row with Arrow (Zomato-style: only amount shown initially) */}
+        <section
+          onClick={() => setShowBillDrawer(true)}
+          className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between cursor-pointer hover:border-[#064e3b] transition group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-2xl bg-emerald-50 text-[#064e3b] border border-emerald-200 grid place-items-center">
+              <Receipt className="size-5 text-[#064e3b]" />
             </div>
-
-            {discount > 0 && (
-              <div className="flex justify-between text-[#064e3b] font-bold">
-                <span>Coupon Discount</span>
-                <span>-₹{discount}</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm text-[#0d261e]">Total Bill</span>
               </div>
-            )}
-
-            <div className="flex justify-between">
-              <span>Delivery Partner Fee</span>
-              <span>
-                {delivery === 0 ? (
-                  <span className="text-[#064e3b] font-bold">FREE</span>
-                ) : (
-                  `₹${delivery}`
-                )}
+              <span className="text-[11px] text-[#52635c] group-hover:text-[#064e3b] transition flex items-center gap-1 font-medium">
+                Incl. taxes and charges
               </span>
             </div>
+          </div>
 
-            <div className="flex justify-between">
-              <span>Taxes & Restaurant Charges (5% GST)</span>
-              <span>₹{gst}</span>
-            </div>
-
-            {selectedTip && (
-              <div className="flex justify-between text-[#064e3b] font-bold">
-                <span>Delivery Partner Tip</span>
-                <span>₹{selectedTip}</span>
-              </div>
-            )}
-
-            <div className="border-t border-[#e6e2d8] pt-3 flex justify-between items-center text-sm font-black text-[#0d261e]">
-              <span>To Pay</span>
-              <span className="text-base text-[#064e3b]">₹{grandTotal}</span>
+          <div className="flex items-center gap-2.5">
+            <span className="font-black text-base text-[#0d261e]">₹{grandTotal.toFixed(2)}</span>
+            <div className="size-7 rounded-full bg-[#fbf9f4] border border-[#e6e2d8] grid place-items-center group-hover:bg-[#064e3b] group-hover:text-[#d4af37] transition">
+              <ChevronRight className="size-4 text-[#52635c] group-hover:text-[#d4af37] transition" />
             </div>
           </div>
         </section>
       </main>
 
+      {/* Slide-Up Bill Summary Drawer / Modal */}
+      <BillSummaryDrawer
+        isOpen={showBillDrawer}
+        onClose={() => setShowBillDrawer(false)}
+        subtotal={subtotal}
+        packagingCharge={packaging}
+        deliveryFee={delivery}
+        distanceKm={userLocation?.distanceKm || 2.1}
+        platformFee={platformFee}
+        donation={donation}
+        gst={gst}
+        discount={discount}
+        couponCode={cartTotals?.couponCode}
+        tipAmount={tipAmount}
+        grandTotal={grandTotal}
+        selectedTip={selectedTip}
+        onSelectTip={setSelectedTip}
+      />
+
       {/* Fixed Checkout Action Bar at Bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e6e2d8] p-4 shadow-xl">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-          <div>
-            <span className="text-xs font-bold text-[#52635c] block leading-none">TOTAL</span>
-            <span className="text-xl font-black text-[#0d261e]">₹{grandTotal}</span>
+          <div
+            onClick={() => setShowBillDrawer(true)}
+            className="cursor-pointer group flex items-center gap-1.5"
+          >
+            <div>
+              <span className="text-[10px] font-bold text-[#52635c] block leading-none flex items-center gap-1">
+                <span>TOTAL BILL</span>
+                <span className="text-[#064e3b] underline font-semibold">(View)</span>
+              </span>
+              <span className="text-xl font-black text-[#0d261e]">₹{grandTotal.toFixed(2)}</span>
+            </div>
           </div>
 
           <Link
