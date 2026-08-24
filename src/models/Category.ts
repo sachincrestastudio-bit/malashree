@@ -6,12 +6,14 @@ const CategorySchema = new Schema(
     name: { type: String, required: true },
     description: { type: String },
     images: [{ type: String }],
-    kitchenId: { type: Schema.Types.ObjectId, ref: "Kitchen", required: true },
+    kitchenId: { type: Schema.Types.ObjectId, ref: "Kitchen", required: false, default: null },
+    isGlobal: { type: Boolean, default: true },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
 
 CategorySchema.index({ kitchenId: 1 });
+CategorySchema.index({ name: 1 });
 
 export const Category = models.Category || model("Category", CategorySchema);

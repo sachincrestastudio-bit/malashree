@@ -1,38 +1,56 @@
 "use client";
 
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
-import { motion } from "motion/react";
-import { Check, CreditCard, Wallet, Banknote, MapPin, RefreshCw, AlertTriangle, ArrowRight } from "lucide-react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { useStore } from "@/lib/store";
-import { findDish, getBranch } from "@/lib/data";
-import { placeOrder } from "@/actions/checkout";
-import { getKitchenMenu } from "@/actions/menu";
 import Link from "next/link";
+import { motion } from "motion/react";
+import {
+  MapPin,
+  CreditCard,
+  Banknote,
+  CheckCircle2,
+  RefreshCw,
+  AlertTriangle,
+  ArrowLeft,
+  ChevronRight,
+  Building,
+  Smartphone,
+} from "lucide-react";
+import { Header } from "@/components/Header";
+import { useStore } from "@/lib/store";
+import { getAssignedKitchenDetails } from "@/actions/kitchen";
+import { getKitchenMenu } from "@/actions/menu";
+import { placeOrder } from "@/actions/checkout";
 
-function Checkout() {
-  const branchId = useStore((s) => s.branchId);
+export default function CheckoutPage() {
   const cart = useStore((s) => s.cart);
-  const kitchenMenu = useStore((s) => s.kitchenMenu);
-  const setKitchenMenu = useStore((s) => s.setKitchenMenu);
-  const branch = getBranch(branchId);
-  const profile = useStore((s) => s.profile);
-  const locationResolved = useStore((s) => s.locationResolved);
   const clearCart = useStore((s) => s.clearCart);
   const cartTotals = useStore((s) => s.cartTotals);
+  const profile = useStore((s) => s.profile);
+  const branchId = useStore((s) => s.branchId);
+  const kitchenMenu = useStore((s) => s.kitchenMenu);
+  const setKitchenMenu = useStore((s) => s.setKitchenMenu);
 
-  const [pay, setPay] = useState("upi");
-  const [done, setDone] = useState<string | null>(null);
+  const [kitchenDetails, setKitchenDetails] = useState<any>(null);
+  const [pay, setPay] = useState<string>("upi");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState(
+    profile?.address || "Flat 402, Green Acres, Pimple Saudagar, Pune"
+  );
+
   const nav = useRouter();
 
-  // Load kitchen menu if not already populated in store
+  useEffect(() => {
+    getAssignedKitchenDetails().then((details) => {
+      if (details) setKitchenDetails(details);
+    });
+  }, []);
+
   useEffect(() => {
     let mounted = true;
-    if (kitchenMenu.length === 0) {
+    if (!kitchenMenu || kitchenMenu.length === 0) {
       getKitchenMenu(branchId).then((menu) => {
         if (mounted && menu && menu.length > 0) {
           setKitchenMenu(menu);
@@ -42,13 +60,12 @@ function Checkout() {
     return () => {
       mounted = false;
     };
-  }, [branchId, kitchenMenu.length, setKitchenMenu]);
+  }, [branchId, kitchenMenu, setKitchenMenu]);
 
-  // Resolve dish objects dynamically from database menu or static fallback
   const items = useMemo(() => {
     return cart
       .map((c) => {
-        const dish = kitchenMenu.find((d) => d.id === c.dishId) || findDish(c.dishId);
+        const dish = (kitchenMenu || []).find((d) => d.id === c.dishId);
         return { ...c, dish };
       })
       .filter((i) => i.dish);
@@ -65,22 +82,11 @@ function Checkout() {
   const total = cartTotals?.grandTotal ?? Math.max(0, localSubtotal + gst + delivery - discount);
   const coupon = cartTotals?.couponCode || null;
 
-  useEffect(() => {
-    if (!locationResolved) {
-      nav.push("/");
-    }
-  }, [locationResolved, nav]);
-
-  const submit = async () => {
-    if (!profile) {
-      nav.push("/login");
-      return;
-    }
-
+  const handlePlaceOrder = async () => {
     setLoading(true);
     setError(null);
 
-    const address = profile.address || "Pimple Saudagar, Pune";
+    const address = deliveryAddress.trim() || "Pimple Saudagar, Pune";
     const res = await placeOrder(cart, coupon, address, pay);
 
     setLoading(false);
@@ -88,33 +94,34 @@ function Checkout() {
     if (res.success && res.orderNumber) {
       setDone(res.orderNumber);
       clearCart();
-      setTimeout(() => nav.push(`/orders/${res.orderNumber}/track`), 2500);
+      setTimeout(() => nav.push(`/orders/${res.orderNumber}/track`), 1800);
     } else {
-      setError(res.error || "Failed to place order. Please try again.");
+      setError(res.error || "Failed to place order. Please check your credentials.");
     }
   };
 
   if (done) {
     return (
-      <div className="min-h-screen bg-cream grid place-items-center px-4">
+      <div className="min-h-screen bg-[#fbf9f4] grid place-items-center px-4">
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="text-center bg-white border-2 border-ink p-8 rounded-3xl max-w-md shadow-lg"
+          className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-xl border border-[#e6e2d8] space-y-4"
         >
-          <div className="size-20 rounded-full bg-lime grid place-items-center mx-auto mb-4 border border-ink">
-            <Check className="size-10 text-ink" />
+          <div className="size-20 bg-emerald-100 text-[#064e3b] rounded-full grid place-items-center mx-auto">
+            <CheckCircle2 className="size-10" />
           </div>
-          <h1 className="font-display text-4xl text-ink">Order Placed!</h1>
-          <p className="mt-3 text-sm text-olive-dark font-mono">
-            Order <span className="font-bold text-ink">#{done}</span> · Arriving in ~{branch.etaMin} mins from {branch.area}
+          <h2 className="text-2xl font-black text-[#0d261e] tracking-tight">Order Placed!</h2>
+          <p className="text-xs text-[#52635c]">
+            Order <span className="font-bold text-[#0d261e]">#{done}</span> has been transmitted to Malashree Kitchen.
           </p>
-          <div className="mt-6 flex flex-col gap-2">
+          <div className="pt-2">
             <Link
               href={`/orders/${done}/track`}
-              className="px-6 py-3 bg-ink text-lime text-xs font-mono font-bold uppercase tracking-widest rounded-full hover:bg-emerald transition flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-bold text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition flex items-center justify-center gap-2 border border-[#d4af37]/30"
             >
-              Track Live Order 🛵 <ArrowRight className="size-3.5" />
+              <span>Track Live Delivery</span>
+              <ChevronRight className="size-4" />
             </Link>
           </div>
         </motion.div>
@@ -122,175 +129,204 @@ function Checkout() {
     );
   }
 
-  if (cart.length === 0 || (kitchenMenu.length > 0 && items.length === 0)) {
-    return (
-      <div className="min-h-screen bg-cream">
-        <Header />
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h1 className="font-display text-4xl text-ink">Your cart is empty</h1>
-          <p className="text-olive-dark text-sm mt-2">Add your favorite pure-veg dishes to proceed with checkout.</p>
-          <Link
-            href="/menu"
-            className="inline-flex mt-6 px-8 py-3 bg-ink text-lime font-mono text-xs font-bold uppercase tracking-widest rounded-full hover:bg-emerald transition"
-          >
-            Browse Menu
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const methods = [
-    { id: "upi", label: "UPI Instant Pay", icon: Wallet, sub: "Google Pay, PhonePe, Paytm" },
-    { id: "card", label: "Credit / Debit Card", icon: CreditCard, sub: "Visa, MasterCard, RuPay" },
-  ];
-
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-36">
       <Header />
-      <section className="mx-auto max-w-5xl px-4 sm:px-6 py-10">
-        <div className="border-b border-ink/10 pb-4 mb-8">
-          <h1 className="font-display text-4xl sm:text-5xl text-ink leading-[0.95]">
-            check<span className="italic text-emerald">out</span>
+
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Link href="/cart" className="p-2 rounded-xl bg-white border border-[#e6e2d8] text-[#0d261e] hover:bg-[#fbf9f4] transition shadow-2xs">
+            <ArrowLeft className="size-4" />
+          </Link>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0d261e] tracking-tight">
+            Checkout & Payment
           </h1>
-          <p className="text-xs font-mono uppercase tracking-widest text-olive mt-2">
-            Cooking at {branch.name} ({branch.area})
-          </p>
         </div>
 
-        <div className="grid md:grid-cols-5 gap-8">
-          <div className="md:col-span-3 space-y-6">
-            {/* Delivery Address Card */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-ink/10">
-              <div className="text-xs font-mono uppercase tracking-widest text-olive mb-3 font-semibold flex items-center gap-2">
-                <MapPin className="size-4 text-lime-deep" /> Delivery Address
-              </div>
-              <div className="font-display text-lg font-bold text-ink">{profile?.name ?? "Guest Customer"}</div>
-              <div className="text-sm text-olive-dark mt-1 leading-relaxed">
-                {profile?.address ? profile.address : "Pimple Saudagar, Pune"}
-              </div>
-              <div className="text-xs text-olive-dark font-mono mt-1">{profile?.phone ?? "Phone number linked"}</div>
+        {error && (
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 font-bold flex items-center gap-2">
+            <AlertTriangle className="size-4 text-rose-700 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
-              {!profile && (
-                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between">
-                  <span>Please sign in or register to place your order.</span>
-                  <Link href="/login" className="font-bold text-ink underline">Log In</Link>
-                </div>
-              )}
-
-              {error && (
-                <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-xl text-xs border border-red-200 flex items-center gap-2">
-                  <AlertTriangle className="size-4 shrink-0 text-red-600" />
-                  <span>{error}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Payment Method Card */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-ink/10">
-              <div className="text-xs font-mono uppercase tracking-widest text-olive mb-4 font-semibold">
-                Select Payment Method
-              </div>
-              <div className="space-y-3">
-                {methods.map((m) => {
-                  const Icon = m.icon;
-                  const selected = pay === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setPay(m.id)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition text-left ${
-                        selected ? "border-ink bg-cream/70 shadow-sm" : "border-ink/10 bg-white hover:border-ink/30"
-                      }`}
-                    >
-                      <Icon className={`size-5 ${selected ? "text-emerald" : "text-olive"}`} />
-                      <div className="flex-1">
-                        <div className="font-bold text-sm text-ink">{m.label}</div>
-                        <div className="text-xs text-olive-dark">{m.sub}</div>
-                      </div>
-                      <div
-                        className={`size-5 rounded-full border-2 grid place-items-center ${
-                          selected ? "border-ink bg-ink" : "border-ink/20"
-                        }`}
-                      >
-                        {selected && <Check className="size-3 text-lime" />}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+        {/* 1. Delivery Address Card */}
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin className="size-4 text-[#d4af37]" />
+              Delivery Address
+            </h3>
+            <span className="text-[10px] bg-emerald-50 text-[#064e3b] border border-emerald-300 font-black px-2 py-0.5 rounded-md">
+              HOME
+            </span>
           </div>
 
-          {/* Right Column: Order Summary */}
-          <aside className="md:col-span-2 bg-ink text-cream rounded-3xl p-6 h-fit shadow-md border border-lime/30">
-            <div className="text-xs font-mono uppercase tracking-widest text-lime font-bold">
-              {branch.area} Kitchen Zone
-            </div>
-            <div className="font-display text-2xl mt-1 text-cream">
-              {items.length} dish{items.length > 1 ? "es" : ""} in order
-            </div>
+          <input
+            type="text"
+            value={deliveryAddress}
+            onChange={(e) => setDeliveryAddress(e.target.value)}
+            placeholder="Flat, House no, Building, Street, Area"
+            className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs font-semibold text-[#0d261e] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
+          />
+          <p className="text-[11px] text-[#52635c]">
+            Assigned Kitchen: <span className="font-bold text-[#0d261e]">{kitchenDetails?.name || "Malashree Kitchen"}</span> ({kitchenDetails?.area || "Pimple Saudagar"})
+          </p>
+        </section>
 
-            <div className="mt-4 space-y-2 text-xs font-mono border-t border-cream/10 pt-4">
-              {items.map((i) => {
-                if (!i.dish) return null;
-                return (
-                  <div key={i.dishId} className="flex justify-between text-cream/80">
-                    <span className="truncate pr-2">
-                      {i.qty}× {i.dish.name}
-                    </span>
-                    <span className="text-lime font-bold">₹{i.dish.price * i.qty}</span>
-                  </div>
-                );
-              })}
-            </div>
+        {/* 2. Payment Options Selector */}
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-4">
+          <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider flex items-center gap-1.5">
+            <CreditCard className="size-4 text-[#d4af37]" />
+            Choose Payment Method
+          </h3>
 
-            <div className="mt-5 pt-4 border-t border-cream/10 space-y-1.5 text-xs font-mono text-cream/70">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span className="text-cream">₹{subtotal}</span>
-              </div>
-              {discount > 0 && (
-                <div className="flex justify-between text-lime font-bold">
-                  <span>Discount ({coupon})</span>
-                  <span>−₹{discount}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span>Delivery</span>
-                <span>{delivery === 0 ? "FREE" : `₹${delivery}`}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>GST (5%)</span>
-                <span>₹{gst}</span>
-              </div>
-            </div>
-
-            <div className="mt-5 pt-4 border-t border-cream/20 flex justify-between items-baseline">
-              <span className="text-sm font-mono uppercase tracking-widest">Grand Total</span>
-              <span className="font-display text-3xl text-lime font-bold">₹{total}</span>
-            </div>
-
-            <button
-              onClick={submit}
-              disabled={loading}
-              className="mt-6 w-full h-13 rounded-full bg-lime text-ink font-mono font-bold text-xs uppercase tracking-widest hover:bg-lime/90 transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          <div className="space-y-2.5">
+            {/* UPI Option */}
+            <label
+              onClick={() => setPay("upi")}
+              className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
+                pay === "upi"
+                  ? "border-[#064e3b] bg-emerald-50/50 text-[#0d261e]"
+                  : "border-[#e6e2d8] hover:border-[#d4af37]"
+              }`}
             >
-              {loading ? (
-                <>
-                  <RefreshCw className="size-4 animate-spin text-ink" /> Placing Order…
-                </>
-              ) : (
-                "Confirm & Place Order"
-              )}
-            </button>
-          </aside>
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-amber-500/10 grid place-items-center text-[#d4af37]">
+                  <Smartphone className="size-5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-[#0d261e]">UPI Instant Payment</h4>
+                  <p className="text-xs text-[#52635c]">Google Pay, PhonePe, Paytm, BHIM</p>
+                </div>
+              </div>
+              <input type="radio" name="payment" checked={pay === "upi"} onChange={() => setPay("upi")} className="accent-[#064e3b]" />
+            </label>
+
+            {/* Card Option */}
+            <label
+              onClick={() => setPay("card")}
+              className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
+                pay === "card"
+                  ? "border-[#064e3b] bg-emerald-50/50 text-[#0d261e]"
+                  : "border-[#e6e2d8] hover:border-[#d4af37]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-blue-500/10 grid place-items-center text-[#064e3b]">
+                  <CreditCard className="size-5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-[#0d261e]">Credit / Debit Cards</h4>
+                  <p className="text-xs text-[#52635c]">Visa, Mastercard, RuPay, Diners</p>
+                </div>
+              </div>
+              <input type="radio" name="payment" checked={pay === "card"} onChange={() => setPay("card")} className="accent-[#064e3b]" />
+            </label>
+
+            {/* Net Banking */}
+            <label
+              onClick={() => setPay("netbanking")}
+              className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
+                pay === "netbanking"
+                  ? "border-[#064e3b] bg-emerald-50/50 text-[#0d261e]"
+                  : "border-[#e6e2d8] hover:border-[#d4af37]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-purple-500/10 grid place-items-center text-purple-700">
+                  <Building className="size-5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-[#0d261e]">Net Banking</h4>
+                  <p className="text-xs text-[#52635c]">All major Indian banks supported</p>
+                </div>
+              </div>
+              <input type="radio" name="payment" checked={pay === "netbanking"} onChange={() => setPay("netbanking")} className="accent-[#064e3b]" />
+            </label>
+
+            {/* COD */}
+            <label
+              onClick={() => setPay("cod")}
+              className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
+                pay === "cod"
+                  ? "border-[#064e3b] bg-emerald-50/50 text-[#0d261e]"
+                  : "border-[#e6e2d8] hover:border-[#d4af37]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-emerald-500/10 grid place-items-center text-[#064e3b]">
+                  <Banknote className="size-5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-[#0d261e]">Cash on Delivery</h4>
+                  <p className="text-xs text-[#52635c]">Pay cash upon doorstep arrival</p>
+                </div>
+              </div>
+              <input type="radio" name="payment" checked={pay === "cod"} onChange={() => setPay("cod")} className="accent-[#064e3b]" />
+            </label>
+          </div>
+        </section>
+
+        {/* 3. Order Summary Details */}
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-3">
+          <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
+            Order Breakdown
+          </h3>
+          <div className="space-y-2 text-xs text-[#52635c] font-medium">
+            <div className="flex justify-between">
+              <span>Items Total ({items.length} items)</span>
+              <span className="text-[#0d261e] font-bold">₹{subtotal}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-[#064e3b] font-bold">
+                <span>Coupon Applied</span>
+                <span>-₹{discount}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>Delivery Fee</span>
+              <span>{delivery === 0 ? <span className="text-[#064e3b] font-bold">FREE</span> : `₹${delivery}`}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Taxes & GST (5%)</span>
+              <span>₹{gst}</span>
+            </div>
+            <div className="border-t border-[#e6e2d8] pt-3 flex justify-between items-center text-sm font-black text-[#0d261e]">
+              <span>Grand Total</span>
+              <span className="text-base text-[#064e3b]">₹{total}</span>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Fixed Bottom Payment Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e6e2d8] p-4 shadow-xl">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <span className="text-xs font-bold text-[#52635c] block leading-none">TOTAL TO PAY</span>
+            <span className="text-xl font-black text-[#0d261e]">₹{total}</span>
+          </div>
+
+          <button
+            onClick={handlePlaceOrder}
+            disabled={loading}
+            className="px-8 py-3.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-md flex items-center gap-2 disabled:opacity-60 cursor-pointer border border-[#d4af37]/30"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="size-4 animate-spin" />
+                <span>Processing Order...</span>
+              </>
+            ) : (
+              <>
+                <span>Place Order & Pay</span>
+                <ChevronRight className="size-4" />
+              </>
+            )}
+          </button>
         </div>
-      </section>
-      <Footer />
+      </div>
     </div>
   );
 }
-
-export default Checkout;

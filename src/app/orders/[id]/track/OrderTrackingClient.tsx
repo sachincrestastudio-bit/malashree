@@ -3,10 +3,19 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, CheckCircle2, Clock, MapPin, Navigation, Phone, Store, Package, Bike, RefreshCw, Compass
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  Phone,
+  Store,
+  Package,
+  Bike,
+  RefreshCw,
+  ShieldCheck,
+  ChevronRight,
 } from "lucide-react";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { DeliveryMap } from "@/components/DeliveryMap";
 import { getOrderTrackingData } from "@/actions/delivery/orders";
 
@@ -17,8 +26,8 @@ interface OrderTrackingClientProps {
 
 const STATUS_STEPS = [
   { key: "placed", label: "Order Placed", icon: Package },
-  { key: "preparing", label: "Preparing", icon: Clock },
-  { key: "ready", label: "Ready", icon: Store },
+  { key: "preparing", label: "Preparing in Kitchen", icon: Clock },
+  { key: "ready", label: "Ready for Pickup", icon: Store },
   { key: "out_for_delivery", label: "Out for Delivery", icon: Bike },
   { key: "delivered", label: "Delivered", icon: CheckCircle2 },
 ];
@@ -30,7 +39,7 @@ export default function OrderTrackingClient({ initialData, orderId }: OrderTrack
   const order = data.order;
   const driverProfile = data.driverProfile;
 
-  // Poll for live driver movement & order status updates every 6s
+  // Poll for live driver movement & order status updates
   useEffect(() => {
     let mounted = true;
     const interval = setInterval(async () => {
@@ -48,206 +57,171 @@ export default function OrderTrackingClient({ initialData, orderId }: OrderTrack
     };
   }, [orderId]);
 
-  // Coordinates
   const kitchenLat = order.kitchen?.location?.coordinates?.[1] || 18.5987;
   const kitchenLng = order.kitchen?.location?.coordinates?.[0] || 73.7978;
-
   const driverLat = driverProfile?.location?.lat;
   const driverLng = driverProfile?.location?.lng;
-
   const customerLat = order.deliveryAddress?.latitude || kitchenLat + 0.015;
   const customerLng = order.deliveryAddress?.longitude || kitchenLng + 0.015;
 
-  const currentStepIndex = STATUS_STEPS.findIndex((s) => s.key === order.orderStatus);
+  const currentStepIndex = Math.max(
+    0,
+    STATUS_STEPS.findIndex((s) => s.key === order.status)
+  );
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-32">
       <Header />
 
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-8 space-y-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
         {/* Top Navigation */}
         <div className="flex items-center justify-between">
           <Link
             href="/profile"
-            className="flex items-center gap-2 text-xs font-mono tracking-[0.2em] uppercase text-olive-dark hover:text-ink transition"
+            className="flex items-center gap-2 text-xs font-bold text-[#0d261e] bg-white px-3.5 py-2 rounded-xl border border-[#e6e2d8] shadow-2xs hover:bg-gray-50 transition"
           >
-            <ArrowLeft className="size-4" /> Back to Profile
+            <ArrowLeft className="size-4 text-[#064e3b]" />
+            <span>Back to Orders</span>
           </Link>
-          <div className="flex items-center gap-2 text-[10px] font-mono text-lime-deep uppercase tracking-widest bg-lime/10 px-3 py-1 border border-lime/30">
-            {refreshing ? (
-              <>
-                <RefreshCw className="size-3 animate-spin" /> Live Syncing...
-              </>
-            ) : (
-              <>
-                <span className="size-2 rounded-full bg-lime animate-pulse" /> Live GPS Dispatch
-              </>
-            )}
+
+          <div className="flex items-center gap-2">
+            {refreshing && <RefreshCw className="size-3.5 animate-spin text-[#064e3b]" />}
+            <span className="text-xs font-bold text-[#52635c]">Order #{order.orderNumber}</span>
           </div>
         </div>
 
-        {/* Masthead */}
-        <div className="border-b-2 border-ink pb-4 flex items-end justify-between">
-          <div>
-            <div className="flex items-center gap-3 text-[10px] font-mono tracking-[0.28em] uppercase text-lime-deep mb-2">
-              <span className="h-px w-8 bg-lime" />
-              Order Dispatch Status
+        {/* Live Arrival ETA Hero Banner */}
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span className="text-xs font-extrabold text-[#064e3b] uppercase tracking-wider block">
+                {order.status === "delivered" ? "Order Delivered" : "Estimated Delivery Time"}
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-[#0d261e] tracking-tight mt-0.5">
+                {order.status === "delivered"
+                  ? "Arrived at Doorstep"
+                  : order.status === "out_for_delivery"
+                  ? "Arriving in 15-20 mins"
+                  : "Arriving in 25-30 mins"}
+              </h2>
             </div>
-            <h1 className="font-display text-4xl sm:text-5xl text-ink leading-[0.95]">
-              Track <span className="italic text-emerald">Order #{order.orderNumber}</span>
-            </h1>
-            <p className="text-sm text-olive-dark mt-2 italic font-light">
-              Cooking fresh at {order.kitchenName} · Real-time GPS tracking.
-            </p>
+
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              <span className="px-3 py-1 rounded-full bg-emerald-50 text-[#064e3b] border border-emerald-300 font-extrabold text-xs flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-[#064e3b] animate-pulse" />
+                Live Dispatch
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* Progress Tracker Stepper */}
-        <div className="bg-white border border-ink/10 p-6 space-y-6">
-          <h2 className="font-display text-xl text-ink flex items-center justify-between">
-            <span>Order Progress</span>
-            <span className="text-xs font-mono uppercase tracking-widest text-lime-deep border border-lime/40 bg-lime/10 px-3 py-1">
-              {order.orderStatus.replace(/_/g, " ")}
-            </span>
-          </h2>
+          {/* Visual Order Progress Stepper */}
+          <div className="pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-5 gap-1 text-center">
+              {STATUS_STEPS.map((step, idx) => {
+                const isCompleted = idx <= currentStepIndex;
+                const isCurrent = idx === currentStepIndex;
+                const Icon = step.icon;
 
-          <div className="grid grid-cols-5 gap-2 relative">
-            {STATUS_STEPS.map((step, idx) => {
-              const Icon = step.icon;
-              const isCompleted = idx <= currentStepIndex;
-              const isCurrent = idx === currentStepIndex;
-
-              return (
-                <div key={step.key} className="flex flex-col items-center text-center group">
-                  <div
-                    className={`size-10 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isCurrent
-                        ? "bg-ink border-ink text-lime scale-110 shadow-md"
-                        : isCompleted
-                        ? "bg-lime/20 border-lime text-lime-deep"
-                        : "bg-cream border-ink/10 text-olive/40"
-                    }`}
-                  >
-                    <Icon className="size-4" />
+                return (
+                  <div key={step.key} className="flex flex-col items-center space-y-1.5">
+                    <div
+                      className={`size-9 rounded-2xl grid place-items-center transition ${
+                        isCurrent
+                          ? "bg-[#064e3b] text-[#d4af37] shadow-md ring-4 ring-[#064e3b]/20"
+                          : isCompleted
+                          ? "bg-[#064e3b] text-white"
+                          : "bg-gray-100 text-gray-400"
+                      }`}
+                    >
+                      <Icon className="size-4" />
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold leading-tight ${
+                        isCurrent ? "text-[#064e3b] font-black" : isCompleted ? "text-[#0d261e]" : "text-gray-400"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
                   </div>
-                  <span
-                    className={`text-[9px] font-mono uppercase tracking-wider mt-2.5 leading-tight ${
-                      isCurrent ? "font-bold text-ink" : isCompleted ? "text-olive-dark" : "text-olive/40"
-                    }`}
-                  >
-                    {step.label}
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Live GPS Interactive Map */}
+        <section className="bg-white rounded-3xl p-3 border border-[#e6e2d8] shadow-2xs overflow-hidden">
+          <div className="w-full h-72 sm:h-96 rounded-2xl overflow-hidden relative border border-[#e6e2d8]">
+            <DeliveryMap
+              kitchenLocation={{ lat: kitchenLat, lng: kitchenLng }}
+              driverLocation={driverLat && driverLng ? { lat: driverLat, lng: driverLng } : undefined}
+              customerLocation={{ lat: customerLat, lng: customerLng }}
+              className="w-full h-full"
+            />
+          </div>
+        </section>
+
+        {/* Delivery Partner Card */}
+        {driverProfile && (
+          <section className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="size-14 rounded-2xl bg-gray-100 overflow-hidden shrink-0 border border-[#e6e2d8]">
+                <img
+                  src={driverProfile.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"}
+                  alt={driverProfile.name || "Delivery Partner"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h4 className="font-extrabold text-sm text-[#0d261e]">
+                    {driverProfile.name || "Malashree Valet"}
+                  </h4>
+                  <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-[#064e3b] border border-emerald-300 text-[10px] font-bold">
+                    Vaccinated
                   </span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Interactive GPS Delivery Map */}
-        <div className="bg-white border border-ink/10 p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-xl text-ink flex items-center gap-2">
-              <Compass className="size-5 text-lime-deep" /> Live Delivery Map
-            </h2>
-            <span className="text-[10px] font-mono text-olive uppercase tracking-widest">
-              Kitchen ➔ Driver ➔ Address
-            </span>
-          </div>
-
-          <DeliveryMap
-            height="380px"
-            kitchenLocation={{
-              lat: kitchenLat,
-              lng: kitchenLng,
-              label: order.kitchenName,
-              sublabel: "Cooking Kitchen",
-            }}
-            driverLocation={
-              driverLat && driverLng
-                ? {
-                    lat: driverLat,
-                    lng: driverLng,
-                    label: order.driverId?.name || "Delivery Driver",
-                    sublabel: "Live GPS Position",
-                  }
-                : undefined
-            }
-            customerLocation={{
-              lat: customerLat,
-              lng: customerLng,
-              label: "Your Address",
-              sublabel: `${order.deliveryAddress?.street}, ${order.deliveryAddress?.city}`,
-            }}
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            {/* Kitchen Info Card */}
-            <div className="border border-ink/10 p-4 bg-cream/50 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-mono tracking-widest uppercase text-lime-deep">Kitchen Branch</span>
-                <Store className="size-4 text-olive" />
+                <p className="text-xs text-[#52635c] mt-0.5">
+                  {driverProfile.vehicle ? `${driverProfile.vehicle.model} · ${driverProfile.vehicle.number}` : "Two Wheeler"}
+                </p>
               </div>
-              <p className="font-display text-lg text-ink leading-tight">{order.kitchenName}</p>
-              <p className="text-xs text-olive-dark font-mono truncate">{order.kitchen?.address || "Kitchen Location"}</p>
             </div>
 
-            {/* Driver / Pidge Info Card */}
-            <div className="border border-ink/10 p-4 bg-cream/50 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-mono tracking-widest uppercase text-lime-deep">
-                  {order.pidgeOrderId ? "Pidge Hyperlocal Partner" : "Assigned Executive"}
+            {driverProfile.phone && (
+              <a
+                href={`tel:${driverProfile.phone}`}
+                className="size-11 rounded-2xl bg-[#064e3b] text-[#d4af37] grid place-items-center shadow-xs hover:bg-[#0a5c46] transition shrink-0 border border-[#d4af37]/30"
+                title="Call Valet"
+              >
+                <Phone className="size-5" />
+              </a>
+            )}
+          </section>
+        )}
+
+        {/* Order Details Drawer Card */}
+        <section className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs space-y-3">
+          <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
+            Order Summary
+          </h3>
+
+          <div className="space-y-1.5 text-xs text-[#0d261e] pt-1">
+            {order.items?.map((item: any, i: number) => (
+              <div key={i} className="flex justify-between items-center py-1 border-b border-gray-50">
+                <span>
+                  {item.quantity}x {item.name || item.dish?.name || "Dish Item"}
                 </span>
-                <Bike className="size-4 text-olive" />
-              </div>
-              <p className="font-display text-lg text-ink leading-tight">
-                {order.pidgeRiderName || order.driverId?.name || "Assigning Nearest Partner..."}
-              </p>
-              {(order.pidgeRiderPhone || order.driverId?.phone) && (
-                <a
-                  href={`tel:${order.pidgeRiderPhone || order.driverId?.phone}`}
-                  className="inline-flex items-center gap-1.5 text-xs text-emerald font-bold hover:underline"
-                >
-                  <Phone className="size-3" /> Call Delivery Partner ({order.pidgeRiderPhone || order.driverId?.phone})
-                </a>
-              )}
-              {order.pidgeTrackingUrl && (
-                <div className="pt-1">
-                  <a
-                    href={order.pidgeTrackingUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink text-lime font-mono text-[10px] uppercase tracking-wider hover:bg-emerald hover:text-white transition"
-                  >
-                    Open Pidge Live Tracker ➔
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Order Details & Items Summary */}
-        <div className="bg-white border border-ink/10 p-6 space-y-4">
-          <h2 className="font-display text-xl text-ink border-b border-ink/10 pb-3">Items Registered</h2>
-          <div className="divide-y divide-ink/5">
-            {order.items.map((item: any, idx: number) => (
-              <div key={idx} className="py-3 flex items-center justify-between text-sm">
-                <div>
-                  <span className="font-medium text-ink">{item.dishName}</span>
-                  <span className="text-xs text-olive font-mono ml-2">× {item.quantity}</span>
-                </div>
-                <span className="font-display text-ink">₹{(item.price * item.quantity).toFixed(2)}</span>
+                <span className="font-bold text-[#0d261e]">₹{item.price * item.quantity}</span>
               </div>
             ))}
           </div>
-          <div className="border-t border-ink/10 pt-4 flex items-center justify-between font-display text-xl text-ink">
-            <span>Grand Total</span>
-            <span>₹{order.grandTotal.toFixed(2)}</span>
-          </div>
-        </div>
-      </main>
 
-      <Footer />
+          <div className="pt-2 flex justify-between items-center text-xs font-bold text-[#0d261e]">
+            <span>Total Paid ({order.paymentMethod?.toUpperCase() || "PAID"})</span>
+            <span className="text-sm text-[#064e3b] font-black">₹{order.totalAmount}</span>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

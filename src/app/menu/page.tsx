@@ -1,69 +1,78 @@
 "use client";
 
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-
-import { useMemo, useState, useEffect } from "react";
-import { Search, ChevronRight, ShoppingBag, Plus, Minus, Trash2 } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  ShoppingBag,
+  Star,
+  Clock,
+  MapPin,
+  Plus,
+  Minus,
+  Check,
+  ArrowRight,
+  X,
+} from "lucide-react";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { DishCard } from "@/components/DishCard";
 import { useStore } from "@/lib/store";
-import { getBranch, findDish } from "@/lib/data";
+import { getBranch, Dish, ALL_CATEGORY_DISHES } from "@/lib/data";
 import { getKitchenMenu, searchKitchenMenu } from "@/actions/menu";
-import { syncCart } from "@/actions/cart";
+import { syncCartWithServer } from "@/actions/cart";
 
-function MenuPage() {
-  const {
-    branchId,
-    kitchenMenu,
-    setKitchenMenu,
-    cart,
-    cartTotals,
-    setCartTotals,
-    setQty,
-    removeFromCart: remove,
-    addToCart,
-  } = useStore();
-  const branch = getBranch(branchId); // Keep for static metadata (hero, vibe)
+export default function MenuPage() {
+  const branchId = useStore((s) => s.branchId);
+  const cart = useStore((s) => s.cart);
+  const addToCart = useStore((s) => s.addToCart);
+  const removeFromCart = useStore((s) => s.removeFromCart);
+  const setQty = useStore((s) => s.setQty);
+  const kitchenMenu = useStore((s) => s.kitchenMenu);
+  const setKitchenMenu = useStore((s) => s.setKitchenMenu);
+  const setCartTotals = useStore((s) => s.setCartTotals);
+  const branch = getBranch(branchId);
 
-  const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [vegOnly, setVegOnly] = useState(true);
 
-  // Fetch menu from backend based on search query
+  // Load real menu from database
   useEffect(() => {
     let mounted = true;
     const fetchMenu = async () => {
-      setLoading(true);
-      const data =
-        q.trim().length > 0 ? await searchKitchenMenu(q, branchId) : await getKitchenMenu(branchId);
-      if (mounted) {
-        setKitchenMenu(data);
-        setLoading(false);
+      try {
+        const data = search.trim()
+          ? await searchKitchenMenu(search, branchId)
+          : await getKitchenMenu(branchId);
+        if (mounted && data && data.length > 0) {
+          setKitchenMenu(data);
+        }
+      } catch (err) {
+        console.error("Menu fetch notice:", err);
       }
     };
-
-    // Debounce search
-    const timer = setTimeout(fetchMenu, q.trim().length > 0 ? 300 : 0);
+    fetchMenu();
     return () => {
       mounted = false;
-      clearTimeout(timer);
     };
-  }, [q, branchId, setKitchenMenu]);
+  }, [branchId, search, setKitchenMenu]);
 
-  // Sync cart with server to calculate reliable totals
+  // Sync cart totals with server
   useEffect(() => {
     let mounted = true;
     const fetchTotals = async () => {
-      if (cart.length === 0) {
-        setCartTotals(null);
-        return;
-      }
-      const res = await syncCart(cart);
-      if (mounted && res) {
-        setCartTotals(res);
+      if (cart.length > 0) {
+        try {
+          const res = await syncCartWithServer(cart);
+          if (mounted && res && res.totals) {
+            setCartTotals(res.totals);
+          }
+        } catch (e) {
+          console.error("Cart sync notice:", e);
+        }
       }
     };
-
     const timer = setTimeout(fetchTotals, 300);
     return () => {
       mounted = false;
@@ -71,363 +80,289 @@ function MenuPage() {
     };
   }, [cart, setCartTotals]);
 
-  // Dynamically calculate categories present in this kitchen's menu
+  // Combine real database dishes with static branch catalog
+  const dishes: Dish[] = useMemo(() => {
+    if (kitchenMenu && kitchenMenu.length > 0) {
+      return kitchenMenu.map((k) => ({
+        id: k.id,
+        name: k.name,
+        desc: k.desc || "",
+        price: k.price,
+        category: k.category || "Main Course",
+        tag: k.tag,
+        rating: k.rating || 4.8,
+        reviews: k.reviews || 120,
+        veg: k.veg !== undefined ? k.veg : true,
+        spice: k.spice || 1,
+        time: k.time || "25 mins",
+        image:
+          k.image ||
+          "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
+        featured: k.featured,
+      }));
+    }
+
+    const map = new Map<string, Dish>();
+    for (const d of branch.menu) {
+      map.set(d.id, d);
+    }
+    for (const d of ALL_CATEGORY_DISHES) {
+      if (!map.has(d.id)) map.set(d.id, d);
+    }
+    return Array.from(map.values());
+  }, [branch.menu, kitchenMenu]);
+
+  // Categories list
   const categories = useMemo(() => {
-    return Array.from(new Set(kitchenMenu.map((d) => d.category)));
-  }, [kitchenMenu]);
+    const set = new Set<string>();
+    dishes.forEach((d) => set.add(d.category));
+    return ["All", ...Array.from(set)];
+  }, [dishes]);
 
-  // Group dishes by category, filtering by veg status
-  const groupedDishes = useMemo(() => {
-    const groups: { [key: string]: typeof kitchenMenu } = {};
-    kitchenMenu.forEach((d) => {
-      if (!groups[d.category]) {
-        groups[d.category] = [];
-      }
-      groups[d.category].push(d);
+  // Filtered dishes
+  const filteredDishes = useMemo(() => {
+    return dishes.filter((d) => {
+      const matchCat = selectedCategory === "All" || d.category.toLowerCase() === selectedCategory.toLowerCase();
+      const matchSearch =
+        !search.trim() ||
+        d.name.toLowerCase().includes(search.toLowerCase()) ||
+        d.desc.toLowerCase().includes(search.toLowerCase());
+      const matchVeg = !vegOnly || d.veg;
+      return matchCat && matchSearch && matchVeg;
     });
-    return groups;
-  }, [kitchenMenu]);
+  }, [dishes, selectedCategory, search, vegOnly]);
 
-  // Filter categories to only those containing items after search/veg filters
-  const activeCategories = useMemo(() => {
-    return categories.filter((c) => groupedDishes[c] && groupedDishes[c].length > 0);
-  }, [categories, groupedDishes]);
-
-  // Resolve full dish objects in cart
-  const cartItems = useMemo(() => {
-    return cart
-      .map((c) => {
-        const dish = kitchenMenu.find((d) => d.id === c.dishId) || findDish(c.dishId);
-        return { ...c, dish };
-      })
-      .filter((i) => i.dish);
-  }, [cart, kitchenMenu]);
-
-  // Use reliable checkout totals from the server
-  const subtotal = cartTotals?.subtotal || 0;
-  const gst = cartTotals?.tax || 0;
-  const delivery = cartTotals?.deliveryFee || 0;
-  const total = cartTotals?.grandTotal || 0;
-  const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
-
-  // Find featured dish safely
-  const featured = kitchenMenu.find((d) => d.tag) ?? kitchenMenu[0];
-  const today = new Date().toLocaleDateString("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const featuredInCart = featured ? cart.find((c) => c.dishId === featured.id) : null;
+  const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
+  const cartTotal = cart.reduce((sum, i) => {
+    const dish = dishes.find((d) => d.id === i.dishId);
+    return sum + (dish?.price || 0) * i.qty;
+  }, 0);
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-32">
       <Header />
 
-      {/* Masthead */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 pt-12 pb-6 border-b-2 border-ink">
-        <div className="flex items-center justify-between text-[10px] font-mono tracking-[0.24em] uppercase text-olive-dark">
-          <span>
-            Volume {new Date().getFullYear()} · {branch.area}
-          </span>
-          <span className="hidden sm:inline">The Malashree Gazette</span>
-          <span>{today}</span>
-        </div>
-        <div className="mt-4 flex flex-col items-center text-center">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="h-px w-10 bg-lime" />
-            <span className="text-[10px] tracking-[0.32em] uppercase font-mono text-lime">
-              Menu Édition
-            </span>
-            <span className="h-px w-10 bg-lime" />
-          </div>
-          <h1 className="font-display text-6xl sm:text-8xl md:text-[7.5rem] leading-[0.92] text-ink">
-            The <span className="italic text-emerald">Kitchen</span>
-          </h1>
-          <p className="mt-3 max-w-xl text-sm text-olive-dark italic font-light">
-            {branch.vibe} — a curated register of everything on the stove at {branch.name}, printed
-            fresh.
-          </p>
-        </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 space-y-5">
+        {/* Restaurant Cover & Info Masthead */}
+        <section className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e6e2d8] shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#0d261e] tracking-tight">
+                  Malashree Pure Veg
+                </h1>
+                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-[#064e3b] border border-emerald-300 font-extrabold text-xs">
+                  Pure Veg
+                </span>
+              </div>
+              <p className="text-xs text-[#52635c] mt-1 font-medium">
+                North Indian, Biryani, Thali, Snacks, Desserts
+              </p>
+              <p className="text-xs text-[#52635c] mt-0.5">
+                {branch.name} · {branch.area}, Pune
+              </p>
 
-        {/* Search row */}
-        <div className="mt-8 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-olive" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search the register — paneer, biryani, chilli…"
-            className="w-full h-12 pl-11 pr-4 bg-transparent border border-ink/20 focus:border-ink outline-none text-sm placeholder:italic placeholder:text-olive/60 transition"
-          />
-        </div>
-
-        {/* Horizontal Category Scroll (Mobile Only) */}
-        <div className="md:hidden sticky top-14 z-30 bg-cream/95 backdrop-blur-md py-3 -mx-4 px-4 mt-6 border-t border-ink/10 overflow-x-auto scrollbar-none">
-          <div className="flex gap-2 w-max">
-            {activeCategories.map((c) => (
-              <button
-                key={c}
-                onClick={() => {
-                  const el = document.getElementById(`category-${c}`);
-                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="px-4 h-9 bg-transparent border border-ink/20 text-ink text-[10px] font-bold tracking-[0.2em] uppercase hover:border-ink whitespace-nowrap"
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured "cover story" */}
-      {!q && featured && !loading && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 py-10 border-b border-ink/10">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 items-center">
-            <div className="md:col-span-7 relative aspect-[4/3] overflow-hidden">
-              <img
-                src={featured.image}
-                alt={featured.name}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-tr from-ink/40 via-transparent to-transparent" />
-              <div className="absolute top-4 left-4 font-mono text-[10px] tracking-[0.28em] uppercase text-cream flex items-center gap-2">
-                <span className="size-1.5 rounded-full bg-lime animate-pulse" /> Cover Story ·
-                Chef's Register
+              <div className="flex items-center gap-4 mt-3 text-xs text-[#52635c] font-medium">
+                <span className="px-2 py-0.5 rounded-md bg-[#064e3b] text-[#d4af37] font-black flex items-center gap-1">
+                  4.8 <Star className="size-3 fill-[#d4af37]" />
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="size-3.5 text-[#52635c]" />
+                  {branch.etaMin} mins
+                </span>
+                <span>•</span>
+                <span className="text-[#064e3b] font-bold">
+                  60% OFF up to ₹120 (Code: ROYAL60)
+                </span>
               </div>
             </div>
-            <div className="md:col-span-5">
-              <div className="text-[10px] font-mono tracking-[0.28em] uppercase text-lime-deep">
-                Feature № 01 — {featured.category}
-              </div>
-              <h2 className="font-display text-4xl md:text-6xl leading-[0.95] text-ink mt-3">
-                {featured.name.split(" ").slice(0, -1).join(" ")}{" "}
-                <span className="italic text-emerald">{featured.name.split(" ").slice(-1)}</span>
-              </h2>
-              <p className="mt-4 text-sm md:text-base text-olive-dark italic font-light leading-relaxed">
-                "{featured.desc}"
-              </p>
-              <div className="mt-5 flex items-center gap-6 pt-5 border-t border-ink/10">
-                <div>
-                  <div className="text-[9px] uppercase tracking-[0.24em] text-olive font-mono">
-                    Course
-                  </div>
-                  <div className="font-display text-xl text-ink">₹{featured.price}</div>
-                </div>
-                <div className="h-8 w-px bg-ink/20" />
-                <div>
-                  <div className="text-[9px] uppercase tracking-[0.24em] text-olive font-mono">
-                    Rating
-                  </div>
-                  <div className="font-display text-xl text-ink">★ {featured.rating}</div>
-                </div>
-                <button
-                  onClick={() =>
-                    featuredInCart
-                      ? setQty(featured.id, featuredInCart.qty + 1)
-                      : addToCart(featured.id)
-                  }
-                  className="ml-auto group flex items-center gap-3 px-5 h-11 bg-ink text-lime text-[10px] font-bold tracking-[0.24em] uppercase hover:bg-emerald transition"
-                >
-                  {featuredInCart ? `Added · ${featuredInCart.qty}` : "Order this"}
-                  <span className="size-6 grid place-items-center bg-lime text-ink group-hover:rotate-90 transition-transform">
-                    <Plus className="size-3" />
-                  </span>
+
+            {/* Veg Switch */}
+            <div className="flex items-center gap-2 self-start sm:self-center bg-[#fbf9f4] px-3 py-1.5 rounded-2xl border border-[#e6e2d8]">
+              <span className="text-xs font-bold text-[#0d261e]">Veg Only</span>
+              <button
+                onClick={() => setVegOnly(!vegOnly)}
+                className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out cursor-pointer ${
+                  vegOnly ? "bg-[#064e3b]" : "bg-gray-300"
+                }`}
+              >
+                <div
+                  className={`size-4 rounded-full bg-white transition-transform duration-200 ease-in-out shadow-xs ${
+                    vegOnly ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* In-Menu Search Input */}
+          <div className="mt-4 pt-4 border-t border-[#e6e2d8]">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-3 size-4 text-[#d4af37]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search within Malashree menu..."
+                className="w-full h-10 pl-10 pr-4 bg-[#fbf9f4] rounded-xl border border-[#e6e2d8] text-xs text-[#0d261e] placeholder:text-[#52635c] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-3.5 top-3 text-gray-400">
+                  <X className="size-4" />
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </section>
-      )}
 
-      {/* Main Grid: Category List | Menu Items | Sticky Live Cart */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 py-6 flex flex-col md:flex-row gap-8 pb-32 md:pb-20">
-        {/* Left Column: Vertical Category Quick Links (Desktop Only) */}
-        <aside className="hidden md:block w-48 shrink-0 h-fit sticky top-24">
-          <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-lime-deep mb-4 pb-3 border-b border-ink">
-            Index
-          </div>
-          <nav className="space-y-0">
-            {activeCategories.map((c, i) => {
-              const count = groupedDishes[c]?.length || 0;
+        {/* Sticky Horizontal Categories Bar */}
+        <section className="sticky top-16 z-30 bg-[#fbf9f4]/95 backdrop-blur-md py-2 -mx-4 px-4 sm:-mx-6 sm:px-6">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            {categories.map((cat) => {
+              const count =
+                cat === "All"
+                  ? dishes.length
+                  : dishes.filter((d) => d.category.toLowerCase() === cat.toLowerCase()).length;
+              const isSelected = selectedCategory === cat;
+
               return (
                 <button
-                  key={c}
-                  onClick={() => {
-                    const el = document.getElementById(`category-${c}`);
-                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                  className="w-full text-left py-3 border-b border-ink/10 text-olive-dark hover:text-ink hover:pl-2 transition-all flex justify-between items-baseline group"
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                    isSelected
+                      ? "bg-[#064e3b] text-[#d4af37] shadow-xs border border-[#d4af37]/30"
+                      : "bg-white text-[#52635c] border border-[#e6e2d8] hover:border-[#d4af37]"
+                  }`}
                 >
-                  <span className="flex items-baseline gap-2">
-                    <span className="font-mono text-[9px] text-lime-deep tracking-widest">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="font-display text-lg">{c}</span>
+                  <span>{cat}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                      isSelected ? "bg-[#d4af37] text-[#064e3b]" : "bg-gray-100 text-[#52635c]"
+                    }`}
+                  >
+                    {count}
                   </span>
-                  <span className="font-mono text-[9px] text-olive">{count}</span>
                 </button>
               );
             })}
-          </nav>
-        </aside>
+          </div>
+        </section>
 
-        {/* Middle Column: Dishes Grouped by Category Heading */}
-        <div className="flex-1 min-w-0 min-h-[50vh]">
-          {loading ? (
-            <div className="py-24 text-center text-olive-dark flex flex-col items-center justify-center animate-pulse">
-              <span className="size-8 border-2 border-ink border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="font-mono text-[10px] tracking-[0.28em] uppercase">
-                Loading Kitchen Menu...
-              </p>
-            </div>
-          ) : activeCategories.length === 0 ? (
-            <div className="py-24 text-center text-olive-dark border-y border-ink/10">
-              <p className="font-display text-4xl italic text-ink">Nothing on the register.</p>
-              <p className="text-xs mt-3 tracking-widest uppercase font-mono">
-                Try clearing your filters
-              </p>
-            </div>
-          ) : (
-            activeCategories.map((c, ci) => {
-              const dishes = groupedDishes[c] || [];
+        {/* Dishes Feed Grid */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base sm:text-lg font-black text-[#0d261e] tracking-tight">
+              {selectedCategory} ({filteredDishes.length} Items)
+            </h3>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredDishes.map((dish) => {
+              const inCart = cart.find((c) => c.dishId === dish.id);
+              const qty = inCart?.qty || 0;
+
               return (
-                <div key={c} id={`category-${c}`} className="mb-14 scroll-mt-24">
-                  <div className="mb-6 flex items-end justify-between gap-4 pb-3 border-b-2 border-ink">
-                    <div className="flex items-baseline gap-4">
-                      <span className="font-mono text-[10px] tracking-[0.28em] uppercase text-lime-deep">
-                        Chapter {String(ci + 1).padStart(2, "0")}
-                      </span>
-                      <h2 className="font-display text-3xl md:text-5xl text-ink leading-none">
-                        {c}
-                      </h2>
+                <div
+                  key={dish.id}
+                  className="bg-white rounded-3xl p-4 border border-[#e6e2d8] shadow-2xs flex justify-between gap-4 hover:border-[#d4af37] transition"
+                >
+                  {/* Left Details */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="size-3.5 rounded-sm border border-[#064e3b] grid place-items-center shrink-0">
+                          <div className="size-1.5 rounded-full bg-[#064e3b]" />
+                        </div>
+                        {dish.tag && (
+                          <span className="text-[10px] font-black uppercase text-[#064e3b] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                            {dish.tag}
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className="font-extrabold text-sm sm:text-base text-[#0d261e] leading-snug">
+                        {dish.name}
+                      </h4>
+                      <p className="font-black text-sm text-[#064e3b] mt-1">₹{dish.price}</p>
+                      {dish.desc && (
+                        <p className="text-xs text-[#52635c] mt-1 line-clamp-2 leading-relaxed font-normal">
+                          {dish.desc}
+                        </p>
+                      )}
                     </div>
-                    <span className="text-[10px] font-mono tracking-widest uppercase text-olive">
-                      {dishes.length} entries
-                    </span>
+
+                    <div className="flex items-center gap-2 text-xs text-[#52635c] mt-3">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-[#064e3b] font-extrabold text-[10px] flex items-center gap-1 border border-emerald-200">
+                        {dish.rating || 4.8} <Star className="size-2.5 fill-[#d4af37] text-[#d4af37]" />
+                      </span>
+                      <span>•</span>
+                      <span>{dish.time || "25 mins"}</span>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 md:gap-6">
-                    {dishes.map((d, index) => (
-                      <DishCard key={d.id} dish={d} index={index} />
-                    ))}
+
+                  {/* Right: Photo & Overlapping ADD button */}
+                  <div className="relative shrink-0 flex flex-col items-center">
+                    <div className="size-28 sm:size-32 rounded-2xl overflow-hidden bg-gray-100 shadow-2xs">
+                      <img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
+                    </div>
+
+                    <div className="absolute -bottom-2 w-20">
+                      {qty === 0 ? (
+                        <button
+                          onClick={() => addToCart(dish.id)}
+                          className="w-full h-8 bg-white border border-[#064e3b] text-[#064e3b] rounded-xl text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#064e3b] hover:text-[#d4af37] transition flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <span>ADD</span>
+                          <Plus className="size-3 stroke-[3]" />
+                        </button>
+                      ) : (
+                        <div className="w-full h-8 bg-[#064e3b] text-[#d4af37] rounded-xl flex items-center justify-between px-1.5 shadow-md">
+                          <button
+                            onClick={() => removeFromCart(dish.id)}
+                            className="p-1 hover:bg-black/20 rounded cursor-pointer"
+                          >
+                            <Minus className="size-3 stroke-[3]" />
+                          </button>
+                          <span className="text-xs font-black text-white">{qty}</span>
+                          <button
+                            onClick={() => setQty(dish.id, qty + 1)}
+                            className="p-1 hover:bg-black/20 rounded cursor-pointer"
+                          >
+                            <Plus className="size-3 stroke-[3]" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-
-        {/* Right Column: Sticky Live Cart Widget (Desktop Only) */}
-        <aside className="hidden lg:block w-80 shrink-0 h-fit sticky top-24 self-start">
-          <div className="bg-cream border border-ink p-5 relative">
-            <div className="absolute -top-3 left-4 bg-cream px-2 text-[9px] font-mono tracking-[0.28em] uppercase text-lime-deep">
-              The Bill
-            </div>
-            <div className="flex items-center justify-between pb-3 border-b border-ink/20">
-              <h3 className="font-display text-2xl text-ink flex items-center gap-2">
-                <ShoppingBag className="size-4" /> Basket
-              </h3>
-              <span className="text-[10px] font-mono tracking-widest uppercase text-olive">
-                {cartCount} items
-              </span>
-            </div>
-
-            {cartItems.length === 0 ? (
-              <div className="py-14 text-center text-olive-dark flex flex-col items-center">
-                <ShoppingBag className="size-8 text-olive/30 mb-3" />
-                <p className="font-display italic text-lg text-ink">A quiet register.</p>
-                <p className="text-[10px] font-mono uppercase tracking-widest mt-2">
-                  Add from the menu
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Cart Items list */}
-                <div className="max-h-60 overflow-y-auto pr-1 my-4 divide-y divide-ink/10">
-                  {cartItems.map(({ dish, qty, dishId }) => {
-                    if (!dish) return null;
-                    return (
-                      <div key={dishId} className="flex gap-3 items-center justify-between py-2.5">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-ink truncate font-display">
-                            {dish.name}
-                          </div>
-                          <div className="text-[10px] text-olive font-mono">
-                            ₹{dish.price} × {qty}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1 border border-ink/20">
-                          <button
-                            onClick={() => setQty(dishId, qty - 1)}
-                            className="size-6 grid place-items-center hover:bg-ink hover:text-cream transition"
-                          >
-                            <Minus className="size-2.5 text-ink" />
-                          </button>
-                          <span className="text-[10px] font-mono font-semibold w-4 text-center">
-                            {qty}
-                          </span>
-                          <button
-                            onClick={() => setQty(dishId, qty + 1)}
-                            className="size-6 grid place-items-center hover:bg-ink hover:text-cream transition"
-                          >
-                            <Plus className="size-2.5 text-ink" />
-                          </button>
-                        </div>
-
-                        <div className="font-display text-sm text-ink text-right w-14">
-                          ₹{dish.price * qty}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Subtotals & Fees */}
-                <div className="pt-3 border-t border-ink/20 space-y-1.5 text-[11px] text-olive-dark font-mono">
-                  <div className="flex justify-between">
-                    <span className="uppercase tracking-widest">Subtotal</span>
-                    <span className="text-ink">₹{subtotal}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="uppercase tracking-widest">GST 5%</span>
-                    <span className="text-ink">₹{gst}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="uppercase tracking-widest">Delivery</span>
-                    <span className="text-ink">
-                      {delivery === 0 ? (
-                        <span className="text-emerald font-semibold">Complimentary</span>
-                      ) : (
-                        `₹${delivery}`
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between pt-3 mt-2 border-t border-ink text-ink items-baseline">
-                    <span className="font-display text-lg not-italic">Total Due</span>
-                    <span className="font-display text-3xl text-ink">
-                      <span className="text-lime">₹</span>
-                      {total}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Place Order CTA */}
-                <Link
-                  href="/checkout"
-                  className="mt-5 w-full h-12 bg-ink text-lime font-bold text-[10px] tracking-[0.28em] uppercase flex items-center justify-center gap-3 hover:bg-emerald transition group"
-                >
-                  Settle the Bill{" "}
-                  <ChevronRight className="size-3.5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </>
-            )}
+            })}
           </div>
-        </aside>
-      </section>
+        </section>
+      </main>
 
-      <Footer />
+      {/* Floating View Cart Bar */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-lg">
+          <Link
+            href="/cart"
+            className="w-full h-14 bg-[#064e3b] text-white rounded-2xl px-5 flex items-center justify-between shadow-2xl hover:bg-[#0a5c46] transition border border-[#d4af37]/40"
+          >
+            <div className="flex flex-col">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#d4af37]">
+                {cartCount} item{cartCount > 1 ? "s" : ""} added
+              </span>
+              <span className="text-base font-black">₹{cartTotal} plus taxes</span>
+            </div>
+            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-[#d4af37]">
+              <span>View Cart</span>
+              <ArrowRight className="size-4" />
+            </div>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
-export default MenuPage;

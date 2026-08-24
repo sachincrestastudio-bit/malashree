@@ -1,8 +1,10 @@
+import mongoose from "mongoose";
 import { connectToDatabase } from "../database/mongoose";
 import { Cart } from "../models/Cart";
 import { MenuItem } from "../models/MenuItem";
 import { PricingService } from "./PricingService";
 import { CouponService } from "./CouponService";
+import { findDish } from "../lib/data";
 
 export class CartService {
   /**
@@ -16,14 +18,18 @@ export class CartService {
   ) {
     await connectToDatabase();
 
-    const dishIds = requestedItems.map((i) => i.dishId);
+    const objectIds = requestedItems
+      .map((i) => i.dishId)
+      .filter((id) => mongoose.Types.ObjectId.isValid(id));
 
-    // Fetch only available items belonging to the assigned kitchen
-    const validItems = await MenuItem.find({
-      _id: { $in: dishIds },
-      kitchenId,
-      isAvailable: true,
-    }).lean();
+    let validItems: any[] = [];
+    if (objectIds.length > 0 && mongoose.Types.ObjectId.isValid(kitchenId)) {
+      validItems = await MenuItem.find({
+        _id: { $in: objectIds },
+        kitchenId,
+        isAvailable: true,
+      }).lean();
+    }
 
     const validItemsMap = new Map(validItems.map((item) => [item._id.toString(), item.price]));
 
@@ -31,10 +37,16 @@ export class CartService {
     const validCartItems = []; // Safe array of items to store in DB
 
     for (const req of requestedItems) {
-      const price = validItemsMap.get(req.dishId);
+      let price = validItemsMap.get(req.dishId);
+      if (price === undefined) {
+        const staticDish = findDish(req.dishId);
+        if (staticDish) price = staticDish.price;
+      }
       if (price !== undefined && req.qty > 0) {
         itemsToPrice.push({ price, quantity: req.qty });
-        validCartItems.push({ menuItemId: req.dishId, quantity: req.qty });
+        if (mongoose.Types.ObjectId.isValid(req.dishId)) {
+          validCartItems.push({ menuItemId: req.dishId, quantity: req.qty });
+        }
       }
     }
 

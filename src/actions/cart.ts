@@ -118,3 +118,31 @@ export const clearUserCart = async () => {
     return false;
   }
 };
+
+/**
+ * Server alias for syncCart
+ */
+export const syncCartWithServer = async (
+  items: { dishId: string; qty: number }[],
+  couponCode: string | null = null
+) => {
+  const totals = await syncCart(items, couponCode);
+  return { totals };
+};
+
+/**
+ * Applies a coupon code and recalculates cart totals
+ */
+export const applyCouponCode = async (couponCode: string) => {
+  try {
+    const kitchenId = await getAssignedKitchenId();
+    if (!kitchenId) return { success: false, error: "Kitchen not found" };
+
+    const totals = await syncCart([], couponCode);
+    if (!totals) return { success: false, error: "Invalid coupon" };
+
+    return { success: true, totals };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to apply coupon" };
+  }
+};

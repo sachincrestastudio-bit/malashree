@@ -2,58 +2,48 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import Link from "next/link";
+import { motion } from "motion/react";
 import { ArrowRight, RefreshCw, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { registerUser } from "@/actions/auth";
 import { getCurrentUser } from "@/actions/user";
 import { setAssignedKitchen } from "@/actions/kitchen";
 import { useStore } from "@/lib/store";
-import { getBranch } from "@/lib/data";
 
-export default function Register() {
+export default function RegisterPage() {
   const setProfile = useStore((s) => s.setProfile);
   const setBranch = useStore((s) => s.setBranch);
   const branchId = useStore((s) => s.branchId);
-  const branch = getBranch(branchId);
   const nav = useRouter();
 
-  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [data, setData] = useState({
+  const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "",
     phone: "",
+    password: "",
     address: "",
-    branchId: branchId,
   });
 
-  const steps = [
-    { key: "name", label: "What's your name?", placeholder: "Riya Sharma", type: "text" },
-    { key: "email", label: "Your email?", placeholder: "riya@example.com", type: "email" },
-    { key: "phone", label: "Phone number?", placeholder: "+91 98765 43210", type: "tel" },
-    {
-      key: "password",
-      label: "Create a password",
-      placeholder: "Min. 6 characters",
-      type: "password",
-    },
-    {
-      key: "address",
-      label: "Delivery address?",
-      placeholder: "Flat 401, Pimple Saudagar…",
-      type: "text",
-    },
-  ] as const;
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password) {
+      setError("Please fill in all required fields.");
+      return;
+    }
 
-  const finish = async () => {
     setLoading(true);
     setError(null);
 
-    const res = await registerUser(data);
+    const payload = {
+      ...formData,
+      branchId: branchId || "pimple-saudagar",
+    };
+
+    const res = await registerUser(payload);
 
     if (res.error) {
       setError(res.error);
@@ -67,16 +57,17 @@ export default function Register() {
       setProfile({
         name: user.name,
         phone: user.phone,
-        address: user.address || "",
-        branchId: data.branchId,
+        address: user.address || formData.address,
+        branchId: payload.branchId,
         email: user.email,
         role: user.role,
         joinedDate: user.joinedDate,
       });
     }
 
-    await setAssignedKitchen(data.branchId);
-    setBranch(data.branchId);
+    await setAssignedKitchen(payload.branchId);
+    setBranch(payload.branchId);
+
     if (res.role === "admin") {
       nav.push("/admin/dashboard");
     } else {
@@ -84,100 +75,136 @@ export default function Register() {
     }
   };
 
-  const isLast = step === steps.length;
-  const current = steps[step];
-
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-[#fbf9f4] pb-32 flex flex-col font-sans">
       <Header />
-      <section className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
-        <div className="text-xs uppercase tracking-widest text-olive mb-3">
-          Step {Math.min(step + 1, steps.length + 1)} of {steps.length + 1}
-        </div>
-        <div className="h-1 bg-ink/10 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-lime"
-            animate={{ width: `${((step + 1) / (steps.length + 1)) * 100}%` }}
-          />
-        </div>
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-6 p-4 rounded-2xl border border-red-500/20 bg-red-500/5 text-xs text-red-700 flex gap-3 items-start"
-          >
-            <AlertTriangle className="size-4 shrink-0 mt-0.5 text-red-600" />
-            <span className="font-medium leading-normal">{error}</span>
-          </motion.div>
-        )}
+      <main className="flex-1 max-w-lg w-full mx-auto px-4 py-12 flex flex-col justify-center">
+        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#e6e2d8] shadow-2xs space-y-6">
+          <div className="text-center space-y-1">
+            <span className="text-2xl font-black italic tracking-tighter text-[#064e3b]">
+              malashree
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black text-[#0d261e] tracking-tight mt-1">
+              Create your account
+            </h1>
+            <p className="text-xs text-[#52635c] font-medium">
+              Join Malashree for instant food ordering & member dining privileges
+            </p>
+          </div>
 
-        <AnimatePresence mode="wait">
-          {!isLast ? (
+          {error && (
             <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
-              className="mt-12"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex gap-2.5 items-center font-bold"
             >
-              <h1 className="font-display text-5xl leading-[0.95]">{current.label}</h1>
-              <input
-                autoFocus
-                type={current.type}
-                value={(data as Record<string, string>)[current.key]}
-                onChange={(e) => setData({ ...data, [current.key]: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (data as Record<string, string>)[current.key]) {
-                    setStep(step + 1);
-                  }
-                }}
-                placeholder={current.placeholder}
-                className="mt-8 w-full h-16 px-6 rounded-full bg-white border-2 border-ink/10 focus:border-ink outline-none text-lg"
-              />
-              <button
-                onClick={() => setStep(step + 1)}
-                disabled={!(data as Record<string, string>)[current.key]}
-                className="mt-6 h-14 px-8 rounded-full bg-ink text-cream font-medium flex items-center gap-2 disabled:opacity-40 hover:bg-ink/90 transition"
-              >
-                Continue <ArrowRight className="size-4" />
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="branch"
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="mt-12"
-            >
-              <h1 className="font-display text-5xl leading-[0.95]">
-                kitchen <span className="italic">assigned.</span>
-              </h1>
-              <p className="mt-3 text-olive-dark">
-                Based on your delivery address, your local kitchen zone has been resolved and
-                locked:
-              </p>
-              <div className="mt-6 p-6 rounded-2xl bg-white border border-ink/5 shadow-sm">
-                <div className="font-semibold text-lg text-ink">{branch.name}</div>
-                <p className="text-xs text-olive-dark mt-1">
-                  {branch.tagline} · {branch.vibe}
-                </p>
-                <div className="mt-4 pt-4 border-t border-ink/5 flex justify-between text-xs text-olive font-semibold">
-                  <span>ETA: {branch.etaMin} mins</span>
-                  <span>Distance: {branch.distanceKm} km</span>
-                </div>
-              </div>
-              <button
-                onClick={finish}
-                disabled={loading}
-                className="mt-8 w-full h-14 rounded-full bg-lime text-ink font-semibold hover:brightness-95 shadow-sm flex items-center justify-center gap-2"
-              >
-                {loading ? <RefreshCw className="size-5 animate-spin" /> : "Confirm & Finish setup"}
-              </button>
+              <AlertTriangle className="size-4 shrink-0 text-rose-600" />
+              <span>{error}</span>
             </motion.div>
           )}
-        </AnimatePresence>
-      </section>
+
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-[#0d261e] mb-1">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Riya Sharma"
+                required
+                className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:border-[#064e3b] focus:bg-white outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#0d261e] mb-1">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="riya@example.com"
+                required
+                className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:border-[#064e3b] focus:bg-white outline-none transition"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-[#0d261e] mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+91 98765 43210"
+                  className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:border-[#064e3b] focus:bg-white outline-none transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#0d261e] mb-1">
+                  Password *
+                </label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Min. 6 characters"
+                  required
+                  className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:border-[#064e3b] focus:bg-white outline-none transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#0d261e] mb-1">
+                Delivery Address
+              </label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Flat 401, Pimple Saudagar, Pune"
+                className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:border-[#064e3b] focus:bg-white outline-none transition"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !formData.name || !formData.email || !formData.password}
+              className="w-full h-12 mt-2 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#0a5c46] disabled:opacity-50 transition shadow-xs cursor-pointer border border-[#d4af37]/30"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="size-3.5 animate-spin" />
+                  <span>Creating Account...</span>
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight className="size-3.5" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-[#52635c] font-medium">
+            <span>Already have an account?</span>
+            <Link
+              href="/login"
+              className="text-[#064e3b] font-black hover:text-[#d4af37] underline"
+            >
+              Log in →
+            </Link>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

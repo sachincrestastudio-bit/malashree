@@ -2,15 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowRight, RefreshCw, AlertTriangle } from "lucide-react";
+import { ArrowRight, ArrowLeft, RefreshCw, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { loginUser } from "@/actions/auth";
 import { getCurrentUser } from "@/actions/user";
 import { mergeGuestCart } from "@/actions/cart";
 import { useStore } from "@/lib/store";
 
-export default function Login() {
+export default function LoginPage() {
   const nav = useRouter();
 
   const [step, setStep] = useState(0);
@@ -23,9 +24,38 @@ export default function Login() {
   });
 
   const steps = [
-    { key: "email", label: "Your email?", placeholder: "admin@malashree.in", type: "email" },
-    { key: "password", label: "Your password?", placeholder: "••••••••", type: "password" },
-  ] as const;
+    {
+      key: "email" as const,
+      label: "Enter your email address",
+      stepNumber: "01",
+      placeholder: "admin@malashree.in or your email",
+      type: "email",
+    },
+    {
+      key: "password" as const,
+      label: "Enter your password",
+      stepNumber: "02",
+      placeholder: "••••••••",
+      type: "password",
+    },
+  ];
+
+  const handleNext = () => {
+    setError(null);
+    if (step === 0) {
+      if (!data.email.trim()) {
+        setError("Please enter your email address.");
+        return;
+      }
+      setStep(1);
+    } else if (step === 1) {
+      if (!data.password) {
+        setError("Please enter your password.");
+        return;
+      }
+      finish();
+    }
+  };
 
   const finish = async () => {
     setLoading(true);
@@ -42,11 +72,10 @@ export default function Login() {
       if (!res || res.error) {
         setError(res?.error || "Login failed. Please check your credentials.");
         setLoading(false);
-        setStep(0); // Reset to email step on error
         return;
       }
 
-      // Merge guest cart to DB now that auth cookie is set
+      // Merge guest cart to DB
       const store = useStore.getState();
       const cart = store.cart;
 
@@ -87,94 +116,130 @@ export default function Login() {
       console.error("Login Submission Error:", err);
       setError(err?.message || "An unexpected error occurred during authentication.");
       setLoading(false);
-      setStep(0);
     }
   };
 
-  const isLast = step === steps.length;
   const current = steps[step];
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-[#fbf9f4] pb-32 flex flex-col font-sans">
       <Header />
-      <section className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
-        <div className="text-xs uppercase tracking-widest text-olive font-mono mb-3">
-          Step {Math.min(step + 1, steps.length)} of {steps.length}
-        </div>
-        <div className="h-1 bg-ink/10 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-lime"
-            animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
-          />
-        </div>
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-6 p-4 rounded-2xl border border-red-500/20 bg-red-500/5 text-xs text-red-700 flex gap-3 items-start"
-          >
-            <AlertTriangle className="size-4 shrink-0 mt-0.5 text-red-600" />
-            <span className="font-medium leading-normal">{error}</span>
-          </motion.div>
-        )}
+      <main className="flex-1 max-w-lg w-full mx-auto px-4 py-12 flex flex-col justify-center">
+        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#e6e2d8] shadow-2xs space-y-6">
+          <div className="text-center space-y-1">
+            <span className="text-2xl font-black italic tracking-tighter text-[#064e3b]">
+              malashree
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black text-[#0d261e] tracking-tight mt-1">
+              Sign In to your account
+            </h1>
+            <p className="text-xs text-[#52635c] font-medium">
+              Step {current.stepNumber} of 02 · {step === 0 ? "Email Address" : "Password"}
+            </p>
+          </div>
 
-        <AnimatePresence mode="wait">
-          {!isLast ? (
+          {/* Progress Bar */}
+          <div className="h-1.5 bg-[#fbf9f4] rounded-full overflow-hidden border border-[#e6e2d8]">
             <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
-              className="mt-12"
-            >
-              <h1 className="font-display text-5xl leading-[0.95] text-ink">{current.label}</h1>
-              <input
-                autoFocus
-                type={current.type}
-                value={(data as Record<string, string>)[current.key]}
-                onChange={(e) => setData({ ...data, [current.key]: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (data as Record<string, string>)[current.key]) {
-                    if (step === steps.length - 1) {
-                      setStep(step + 1);
-                      finish();
-                    } else {
-                      setStep(step + 1);
-                    }
-                  }
-                }}
-                placeholder={current.placeholder}
-                className="mt-8 w-full h-16 px-6 rounded-full bg-white border-2 border-ink/10 focus:border-ink outline-none text-lg text-ink"
-              />
-              <button
-                onClick={() => {
-                  if (step === steps.length - 1) {
-                    setStep(step + 1);
-                    finish();
-                  } else {
-                    setStep(step + 1);
-                  }
-                }}
-                disabled={!(data as Record<string, string>)[current.key]}
-                className="mt-6 h-14 px-8 rounded-full bg-ink text-cream font-medium flex items-center gap-2 disabled:opacity-40 hover:bg-ink/90 transition"
-              >
-                Continue <ArrowRight className="size-4 text-lime" />
-              </button>
-            </motion.div>
-          ) : (
+              className="h-full bg-[#064e3b]"
+              initial={false}
+              animate={{ width: loading ? "100%" : `${((step + 1) / steps.length) * 100}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+
+          {error && (
             <motion.div
-              key="loading"
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="mt-12 text-center"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex gap-2.5 items-center font-bold"
             >
-              <RefreshCw className="size-10 animate-spin mx-auto text-lime" />
-              <h1 className="font-display text-4xl mt-6 text-ink">authenticating...</h1>
+              <AlertTriangle className="size-4 shrink-0 text-rose-600" />
+              <span>{error}</span>
             </motion.div>
           )}
-        </AnimatePresence>
-      </section>
+
+          <AnimatePresence mode="wait">
+            {loading ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="py-10 text-center space-y-3"
+              >
+                <RefreshCw className="size-8 animate-spin mx-auto text-[#064e3b]" />
+                <h2 className="text-lg font-black text-[#0d261e]">Signing in...</h2>
+              </motion.div>
+            ) : (
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 15 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -15 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-5"
+              >
+                <div>
+                  <label className="block text-xs font-bold text-[#0d261e] mb-1.5">
+                    {current.label}
+                  </label>
+                  <input
+                    autoFocus
+                    type={current.type}
+                    value={data[current.key]}
+                    onChange={(e) => setData({ ...data, [current.key]: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && data[current.key]) {
+                        handleNext();
+                      }
+                    }}
+                    placeholder={current.placeholder}
+                    className="w-full h-12 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] focus:border-[#064e3b] focus:bg-white outline-none text-sm text-[#0d261e] transition"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-1">
+                  {step === 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError(null);
+                        setStep(0);
+                      }}
+                      className="h-11 px-4 rounded-xl border border-[#e6e2d8] text-[#0d261e] font-bold text-xs hover:bg-[#fbf9f4] transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ArrowLeft className="size-3.5" />
+                      <span>Back</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    disabled={!data[current.key]}
+                    className="h-11 px-6 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:bg-[#0a5c46] disabled:opacity-50 transition shadow-xs cursor-pointer ml-auto border border-[#d4af37]/30"
+                  >
+                    <span>{step === 0 ? "Continue" : "Sign In"}</span>
+                    <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-[#52635c] font-medium">
+            <span>Don't have an account?</span>
+            <Link
+              href="/register"
+              className="text-[#064e3b] font-black hover:text-[#d4af37] underline"
+            >
+              Create Account →
+            </Link>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

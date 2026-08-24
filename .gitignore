@@ -31,6 +31,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Next.js build output
+.next/
+out/
+
 # Vercel
 .vercel/
 

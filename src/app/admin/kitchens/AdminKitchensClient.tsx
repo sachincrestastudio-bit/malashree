@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Plus, Store, AlertTriangle, X, Pencil, Trash2,
-  CheckCircle2, Clock, AlertCircle, UtensilsCrossed, MapPin, Timer,
+  CheckCircle2, Clock, AlertCircle, UtensilsCrossed, MapPin, Timer, LayoutDashboard,
 } from "lucide-react";
 import {
   createKitchen, updateKitchen, updateKitchenStatus, deleteKitchen,
@@ -225,19 +226,26 @@ export default function AdminKitchensClient({ kitchens }: { kitchens: Kitchen[] 
                 </div>
 
                 {/* Card footer */}
-                <div className="px-5 py-3 border-t border-ink/5 flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-olive">Since {k.createdAt}</span>
-                  <div className="flex items-center gap-3">
+                <div className="px-5 py-3 border-t border-ink/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-cream/30">
+                  <Link
+                    href={`/kitchen/dashboard?kitchenId=${k.id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#064e3b] text-[#d4af37] text-[10px] font-mono tracking-widest uppercase font-bold hover:bg-[#0a5c46] transition shadow-xs self-start"
+                  >
+                    <LayoutDashboard className="size-3" />
+                    <span>Open Dashboard</span>
+                  </Link>
+
+                  <div className="flex items-center gap-3 self-end sm:self-auto">
                     <button
                       onClick={() => openEdit(k)}
-                      className="flex items-center gap-1.5 text-[10px] font-mono tracking-widest uppercase text-olive-dark hover:text-ink transition"
+                      className="flex items-center gap-1.5 text-[10px] font-mono tracking-widest uppercase text-olive-dark hover:text-ink transition cursor-pointer"
                     >
                       <Pencil className="size-3" /> Edit
                     </button>
                     <button
                       onClick={() => handleDelete(k.id, k.name)}
                       disabled={deletingId === k.id}
-                      className="flex items-center gap-1.5 text-[10px] font-mono tracking-widest uppercase text-olive/50 hover:text-red-600 transition disabled:opacity-30"
+                      className="flex items-center gap-1.5 text-[10px] font-mono tracking-widest uppercase text-olive/50 hover:text-red-600 transition disabled:opacity-30 cursor-pointer"
                     >
                       <Trash2 className="size-3" /> Remove
                     </button>

@@ -1,36 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-
+import { usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { getBranch, findDish } from "@/lib/data";
-import { MapPin, ShoppingBag, User, Home, Utensils } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
-import { useMemo } from "react";
+import { MapPin, ShoppingBag, User, ChevronDown, Search, LocateFixed } from "lucide-react";
+import { useMemo, useEffect } from "react";
+import { requestGPSLocation } from "@/services/client/LocationService";
+import { findNearestKitchenAndAssign } from "@/actions/kitchen";
 
 export function Header() {
   const branchId = useStore((s) => s.branchId);
+  const setBranch = useStore((s) => s.setBranch);
+  const resolveLocation = useStore((s) => s.resolveLocation);
+  const userLocation = useStore((s) => s.userLocation);
+  const setUserLocation = useStore((s) => s.setUserLocation);
+  const locationResolved = useStore((s) => s.locationResolved);
   const cart = useStore((s) => s.cart);
   const profile = useStore((s) => s.profile);
   const branch = getBranch(branchId);
   const path = usePathname();
 
-  const kitchenMenu = useStore((s) => s.kitchenMenu);
+  const kitchenMenu = useStore((s) => s.kitchenMenu) || [];
   const cartTotals = useStore((s) => s.cartTotals);
 
-  // Calculate cart details
+  // Auto-detect nearest branch on initial load if not yet resolved
+  useEffect(() => {
+    if (!locationResolved && typeof window !== "undefined" && navigator.geolocation) {
+      requestGPSLocation()
+        .then(async (coords) => {
+          const res = await findNearestKitchenAndAssign(coords.latitude, coords.longitude);
+          if (res.success && res.nearestKitchen) {
+            setBranch(res.nearestKitchen.id);
+            resolveLocation(res.nearestKitchen.id);
+            setUserLocation({
+              lat: coords.latitude,
+              lng: coords.longitude,
+              distanceKm: res.nearestKitchen.distanceKm,
+              etaMin: res.nearestKitchen.etaMin,
+              kitchenName: res.nearestKitchen.name,
+              label: `Near ${res.nearestKitchen.area}`,
+            });
+          }
+        })
+        .catch(() => {
+          // Keep default if user dismisses prompt
+        });
+    }
+  }, [locationResolved, setBranch, resolveLocation, setUserLocation]);
+
   const cartCount = useMemo(() => cart.reduce((n, c) => n + c.qty, 0), [cart]);
 
   const cartTotal = useMemo(() => {
     if (cartTotals?.grandTotal) return cartTotals.grandTotal;
     return cart.reduce((total, c) => {
-      const dish = kitchenMenu.find((d) => d.id === c.dishId) || branch.menu.find((d) => d.id === c.dishId) || findDish(c.dishId);
+      const dish =
+        (kitchenMenu || []).find((d) => d.id === c.dishId) ||
+        branch.menu.find((d) => d.id === c.dishId) ||
+        findDish(c.dishId);
       return total + (dish?.price || 0) * c.qty;
     }, 0);
   }, [cart, kitchenMenu, branch.menu, cartTotals]);
 
-  // Extract initials if profile name is set
   const userInitials = useMemo(() => {
     if (!profile?.name) return "";
     return profile.name
@@ -42,211 +73,86 @@ export function Header() {
       .slice(0, 2);
   }, [profile]);
 
-  const navItem = (to: string, label: string) => {
-    const isActive = path === to;
-    return (
-      <Link
-        href={to}
-        className="relative px-4 py-2 text-xs font-bold tracking-wider uppercase transition-colors duration-300"
-      >
-        <span className={isActive ? "text-ink" : "text-olive-dark hover:text-ink"}>{label}</span>
-        {isActive && (
-          <motion.div
-            layoutId="active-nav-pill"
-            className="absolute inset-0 bg-ink/5 rounded-full -z-10"
-            transition={{ type: "spring", stiffness: 350, damping: 28 }}
-          />
-        )}
-      </Link>
-    );
-  };
-
-  const mobileNavItems = [
-    { to: "/", label: "Home", icon: Home },
-    { to: "/menu", label: "Menu", icon: Utensils },
-    { to: "/cart", label: "Cart", icon: ShoppingBag, count: cartCount },
-    { to: "/profile", label: "Profile", icon: User },
-  ];
-
   return (
-    <>
-      {/* Decorative Brand Accent Line */}
-      <div className="h-0.5 bg-gradient-to-r from-lime via-olive to-lime w-full sticky top-0 z-50" />
-
-      {/* Desktop Header */}
-      <motion.header
-        initial={{ y: -25, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="hidden md:block sticky top-0.5 z-40 bg-cream/80 backdrop-blur-xl border-b border-ink/5 shadow-[0_2px_15px_-3px_rgba(30,26,23,0.03)]"
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center gap-6">
-          {/* Logo & Branding */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative size-10 rounded-xl bg-gradient-to-tr from-ink to-olive-dark border border-lime/30 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300">
-              <span className="text-lime font-display text-xl font-bold leading-none select-none tracking-tight">
-                M
-              </span>
-              <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-lime border border-ink animate-pulse" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-display text-xl font-bold tracking-tight text-ink leading-none">
-                malashree
-              </span>
-              <span className="text-[9px] uppercase tracking-widest text-olive font-bold mt-1 font-sans">
-                gourmet kitchen
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="flex items-center gap-2 ml-8">
-            {navItem("/", "Home")}
-            {navItem("/menu", "Menu")}
-            {navItem("/profile", "Profile")}
-          </nav>
-
-          {/* Right Section Controls */}
-          <div className="ml-auto flex items-center gap-4">
-            {/* Active Allotted Kitchen Badge */}
-            <div
-              className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-white border border-ink/5 shadow-sm"
-              title="Allotted Kitchen Zone (determined automatically by GPS)"
-            >
-              <div className="relative size-8 rounded-full bg-lime/10 flex items-center justify-center shrink-0">
-                <MapPin
-                  className="size-4 text-olive-dark animate-bounce"
-                  style={{ animationDuration: "3s" }}
-                />
-                <span className="absolute bottom-0 right-0 size-2 bg-green-600 rounded-full border border-white" />
-              </div>
-              <div className="text-left leading-tight">
-                <div className="text-[9px] uppercase tracking-widest text-olive font-bold">
-                  Allotted Zone
-                </div>
-                <div className="text-xs font-bold text-ink flex items-center gap-1">
-                  {branch.area}
-                  <span
-                    className="inline-block size-1.5 rounded-full bg-green-500 animate-pulse"
-                    title="Kitchen is online & taking orders"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Live Basket Button */}
-            <Link
-              href="/cart"
-              className="flex items-center gap-2.5 px-4 h-10 rounded-full bg-ink text-cream hover:bg-ink/90 active:scale-95 transition-all shadow-sm group"
-            >
-              <div className="relative">
-                <ShoppingBag className="size-4 text-lime transition-transform group-hover:scale-110" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 size-3.5 bg-lime text-ink text-[8px] font-extrabold rounded-full flex items-center justify-center border border-ink">
-                    {cartCount}
-                  </span>
-                )}
-              </div>
-              <span className="text-xs font-semibold tracking-wide uppercase">
-                {cartCount > 0 ? `Basket · ₹${cartTotal}` : "Basket"}
-              </span>
-            </Link>
-
-            {/* Profile Avatar / Login */}
-            <Link
-              href="/profile"
-              className="relative flex items-center justify-center size-10 rounded-full border border-ink/5 bg-white shadow-sm hover:border-ink/20 active:scale-95 transition-all group overflow-hidden"
-              aria-label="User Profile"
-            >
-              {userInitials ? (
-                <span className="text-xs font-bold text-ink font-sans tracking-tight bg-lime/20 w-full h-full flex items-center justify-center group-hover:bg-lime/30 transition-colors">
-                  {userInitials}
-                </span>
-              ) : (
-                <User className="size-4 text-olive-dark group-hover:text-ink transition-colors" />
-              )}
-            </Link>
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Mobile Top Header Bar */}
-      {path === "/" && (
-        <header className="md:hidden w-full h-14 bg-cream/80 backdrop-blur-md border-b border-ink/5 flex items-center justify-between px-4 sticky top-0.5 z-40">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative size-8 rounded-lg bg-gradient-to-tr from-ink to-olive-dark border border-lime/30 flex items-center justify-center shadow-sm">
-              <span className="text-lime font-display text-sm font-bold leading-none select-none">
-                M
-              </span>
-              <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-lime border border-ink animate-pulse" />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight text-ink leading-none">
+    <header className="sticky top-0 z-40 bg-[#fbf9f4]/95 backdrop-blur-md border-b border-[#e6e2d8] shadow-2xs">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+        {/* Left: Brand Logo & Location */}
+        <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+          <Link href="/" className="shrink-0 flex items-center gap-2">
+            <span className="text-2xl sm:text-3xl font-black italic tracking-tighter text-[#064e3b]">
               malashree
             </span>
           </Link>
-          <div className="flex items-center gap-1.5 bg-white border border-ink/5 px-3 py-1.5 rounded-full text-xs font-bold text-ink shadow-sm">
-            <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span>{branch.area}</span>
-          </div>
-        </header>
-      )}
 
-      {/* Mobile Floating Bottom Island Navigation Dock */}
-      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-[320px]">
-        <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          className="bg-ink/95 backdrop-blur-2xl border border-white/10 rounded-full p-2.5 shadow-[0_24px_50px_-8px_rgba(0,0,0,0.65)] flex items-center justify-between text-cream/60"
-        >
-          <AnimatePresence initial={false}>
-            {mobileNavItems.map((item) => {
-              const isActive = path === item.to;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.to}
-                  href={item.to}
-                  className={`relative h-11 flex items-center justify-center rounded-full transition-all duration-300 ${
-                    isActive
-                      ? "text-ink font-bold px-4 flex-grow max-w-[100px] z-10"
-                      : "w-11 text-cream/70 hover:text-cream z-10"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="relative flex items-center justify-center">
-                      <Icon className="size-5 shrink-0" />
-                      {!isActive && item.count !== undefined && item.count > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-lime text-ink text-[8px] font-extrabold flex items-center justify-center border border-ink">
-                          {item.count}
-                        </span>
-                      )}
-                    </div>
-                    {isActive && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: "auto" }}
-                        exit={{ opacity: 0, width: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="text-[10px] font-bold tracking-wider uppercase font-sans whitespace-nowrap"
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </div>
-                  {isActive && (
-                    <motion.div
-                      layoutId="mobile-active-bg"
-                      className="absolute inset-0 bg-lime rounded-full -z-10 shadow-[0_4px_12px_rgba(240,167,58,0.25)]"
-                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
+          {/* Delivery Location Selector */}
+          <Link
+            href="/branches"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#e6e2d8] hover:border-[#d4af37] transition text-xs font-semibold text-[#0d261e] truncate shadow-2xs"
+          >
+            <MapPin className="size-4 text-[#d4af37] shrink-0" />
+            <div className="flex flex-col text-left leading-tight truncate">
+              <span className="font-extrabold text-[11px] text-[#0d261e] flex items-center gap-1">
+                {userLocation?.label || profile?.address || branch.name}
+                <ChevronDown className="size-3 text-[#52635c]" />
+              </span>
+              <span className="text-[10px] text-[#52635c] truncate max-w-[160px] sm:max-w-[200px]">
+                {userLocation?.distanceKm !== undefined
+                  ? `${userLocation.distanceKm} km · ${userLocation.etaMin || 25} mins ETA`
+                  : branch.area}
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        {/* Center: Search Link on Menu */}
+        <div className="flex-1 max-w-md hidden md:block">
+          <Link
+            href="/menu"
+            className="flex items-center gap-3 px-4 h-10 rounded-xl bg-white border border-[#e6e2d8] text-[#52635c] text-xs hover:border-[#d4af37] transition shadow-2xs"
+          >
+            <Search className="size-4 text-[#d4af37]" />
+            <span className="truncate">Search for dishes, biryani, paneer, thali...</span>
+          </Link>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Pure Veg Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-[11px] font-bold text-[#064e3b]">
+            <div className="size-3 rounded-sm border border-[#064e3b] grid place-items-center">
+              <div className="size-1.5 rounded-full bg-[#064e3b]" />
+            </div>
+            <span>Pure Veg</span>
+          </div>
+
+          {/* Cart Button */}
+          <Link
+            href="/cart"
+            className="flex items-center gap-2 px-3.5 h-10 rounded-xl bg-[#064e3b] text-[#d4af37] hover:bg-[#0a5c46] transition text-xs font-bold shadow-xs border border-[#d4af37]/30"
+          >
+            <ShoppingBag className="size-4" />
+            <span className="text-white">₹{cartTotal}</span>
+            {cartCount > 0 && (
+              <span className="size-4.5 rounded-full bg-[#d4af37] text-[#064e3b] text-[10px] font-black grid place-items-center">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+
+          {/* Profile Button */}
+          <Link
+            href="/profile"
+            className="size-10 rounded-xl bg-white hover:bg-gray-50 border border-[#e6e2d8] transition grid place-items-center text-xs font-bold text-[#064e3b] shadow-2xs"
+            title="Profile"
+          >
+            {userInitials ? (
+              <span className="text-[#064e3b] font-black">{userInitials}</span>
+            ) : (
+              <User className="size-4.5 text-[#52635c]" />
+            )}
+          </Link>
+        </div>
       </div>
-    </>
+    </header>
   );
 }

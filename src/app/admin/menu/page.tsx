@@ -9,18 +9,18 @@ import AdminMenuClient from "./AdminMenuClient";
 export default async function AdminMenuPage() {
   await connectToDatabase();
 
-  // Touch models to prevent tree-shaking MissingSchemaError
+  // Touch models to prevent tree-shaking
   Category.modelName;
   Kitchen.modelName;
 
   const [rawItems, kitchens, categories] = await Promise.all([
-    MenuItem.find()
+    MenuItem.find({ deletedAt: null })
       .populate("category", "name")
       .populate("kitchenId", "name")
       .sort({ name: 1 })
       .lean(),
-    Kitchen.find({ status: "active" }).select("name _id").lean(),
-    Category.find().select("name _id kitchenId").lean(),
+    Kitchen.find({ status: "active", deletedAt: null }).select("name _id code area").lean(),
+    Category.find({ deletedAt: null }).select("name _id").lean(),
   ]);
 
   const items = rawItems.map((item: any) => ({
@@ -29,21 +29,33 @@ export default async function AdminMenuPage() {
     description: item.description || "",
     price: item.price,
     image: item.images?.[0] || "",
-    isVeg: item.isVeg,
-    isAvailable: item.isAvailable,
+    isVeg: item.isVeg !== undefined ? item.isVeg : true,
+    isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
+    isGlobalMaster: item.isGlobalMaster !== undefined ? item.isGlobalMaster : true,
     rating: item.rating || 0,
     tag: item.tags?.[0] || "",
-    kitchenName: item.kitchenId?.name || "Global",
-    categoryName: item.category?.name || "-",
+    kitchenName: item.kitchenId?.name || "All Branches (Master)",
+    categoryName: item.category?.name || "Uncategorized",
     kitchenId: item.kitchenId?._id?.toString() || "",
     categoryId: item.category?._id?.toString() || "",
+    branchPricing: (item.branchPricing || []).map((bp: any) => ({
+      kitchenId: bp.kitchenId?.toString(),
+      price: bp.price,
+      isAvailable: bp.isAvailable !== undefined ? bp.isAvailable : true,
+      isEnabled: bp.isEnabled !== undefined ? bp.isEnabled : true,
+    })),
   }));
 
-  const serializedKitchens = kitchens.map((k: any) => ({ id: k._id.toString(), name: k.name }));
+  const serializedKitchens = kitchens.map((k: any) => ({
+    id: k._id.toString(),
+    name: k.name,
+    code: k.code,
+    area: k.area,
+  }));
+
   const serializedCategories = categories.map((c: any) => ({
     id: c._id.toString(),
     name: c.name,
-    kitchenId: c.kitchenId?.toString() || "",
   }));
 
   return (

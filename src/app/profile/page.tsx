@@ -1,54 +1,61 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import {
+  User,
+  ShoppingBag,
+  Heart,
+  MapPin,
+  LogOut,
+  Clock,
+  CheckCircle2,
+  Package,
+  Truck,
+  AlertTriangle,
+  RefreshCw,
+  ArrowRight,
+  Phone,
+  Mail,
+  ChevronRight,
+  FileText,
+} from "lucide-react";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { useStore } from "@/lib/store";
-import { findDish, getBranch } from "@/lib/data";
-import { Heart, MapPin, Package, Sparkles, RefreshCw, Clock, CheckCircle2, Truck, AlertTriangle, LogOut } from "lucide-react";
 import { logoutUser } from "@/actions/auth";
-import { getCurrentUser, getUserOrders } from "@/actions/user";
+import { getUserOrders } from "@/actions/user";
+import { findDish } from "@/lib/data";
 
-function Profile() {
+export default function ProfilePage() {
   const profile = useStore((s) => s.profile);
   const setProfile = useStore((s) => s.setProfile);
-  const favs = useStore((s) => s.favorites);
-  const branch = getBranch(useStore((s) => s.branchId));
-  const favDishes = favs.map((id) => findDish(id)).filter(Boolean);
-
-  const [dbOrders, setDbOrders] = useState<any[]>([]);
+  const favorites = useStore((s) => s.favorites);
+  const [activeTab, setActiveTab] = useState<"orders" | "addresses" | "favorites">("orders");
+  const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+
+  const favDishes = favorites.map((id) => findDish(id)).filter(Boolean);
 
   useEffect(() => {
     let mounted = true;
-    const loadProfileData = async () => {
+    const fetchOrders = async () => {
       setLoadingOrders(true);
-      const user = await getCurrentUser();
-      if (mounted && user) {
-        setProfile({
-          name: user.name,
-          phone: user.phone || "",
-          address: user.address || "Pimple Saudagar, Pune",
-          branchId: useStore.getState().branchId,
-          email: user.email,
-          role: user.role,
-          joinedDate: user.joinedDate,
-        });
-      }
-
-      const orders = await getUserOrders();
-      if (mounted) {
-        setDbOrders(orders);
-        setLoadingOrders(false);
+      try {
+        const data = await getUserOrders();
+        if (mounted && data) {
+          setOrders(data);
+        }
+      } catch (err) {
+        console.error("Failed to load user orders:", err);
+      } finally {
+        if (mounted) setLoadingOrders(false);
       }
     };
-    loadProfileData();
-
+    fetchOrders();
     return () => {
       mounted = false;
     };
-  }, [setProfile]);
+  }, []);
 
   const handleLogout = async () => {
     await logoutUser();
@@ -57,201 +64,270 @@ function Profile() {
   };
 
   const statusBadges: Record<string, { label: string; color: string; icon: any }> = {
-    placed: { label: "Placed", color: "bg-blue-50 text-blue-700 border-blue-200", icon: Clock },
-    preparing: { label: "Preparing", color: "bg-amber-50 text-amber-700 border-amber-200", icon: RefreshCw },
+    placed: { label: "Order Placed", color: "bg-blue-50 text-blue-700 border-blue-200", icon: Clock },
+    preparing: { label: "Kitchen Preparing", color: "bg-amber-50 text-[#064e3b] border-amber-200", icon: RefreshCw },
+    ready: { label: "Ready for Pickup", color: "bg-indigo-50 text-indigo-700 border-indigo-200", icon: Package },
     out_for_delivery: { label: "Out for Delivery", color: "bg-purple-50 text-purple-700 border-purple-200", icon: Truck },
-    delivered: { label: "Delivered", color: "bg-lime/20 text-emerald border-lime/50", icon: CheckCircle2 },
-    cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700 border-red-200", icon: AlertTriangle },
+    delivered: { label: "Delivered", color: "bg-emerald-50 text-[#064e3b] border-emerald-300", icon: CheckCircle2 },
+    cancelled: { label: "Cancelled", color: "bg-rose-50 text-rose-700 border-rose-200", icon: AlertTriangle },
   };
 
+  const userInitials = profile?.name
+    ? profile.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "JD";
+
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-32">
       <Header />
-      <section className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
-        {/* Profile Card Header */}
-        <div className="bg-ink text-cream rounded-[2rem] p-6 sm:p-8 md:p-12 relative overflow-hidden shadow-lg border border-lime/20">
-          <div className="absolute -right-12 -top-12 size-72 rounded-full bg-lime/20 blur-3xl" />
-          <div className="relative">
-            <div className="text-xs font-mono uppercase tracking-[0.24em] text-lime">
-              {profile ? "Gourmet Member Profile" : "Guest Mode"}
+
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
+        {/* Profile Masthead Card */}
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="size-16 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xl grid place-items-center shadow-xs border border-[#d4af37]/30">
+                {userInitials}
+              </div>
+              <div>
+                <h1 className="text-xl font-black text-[#0d261e] tracking-tight leading-tight">
+                  {profile?.name || "Guest Foodie"}
+                </h1>
+                <p className="text-xs text-[#52635c] mt-0.5 flex items-center gap-1">
+                  <Phone className="size-3 text-[#d4af37]" />
+                  {profile?.phone ? `+91 ${profile.phone}` : "+91 98765 43210"}
+                </p>
+                {profile?.email && (
+                  <p className="text-xs text-[#52635c] flex items-center gap-1 mt-0.5">
+                    <Mail className="size-3 text-[#d4af37]" />
+                    {profile.email}
+                  </p>
+                )}
+              </div>
             </div>
-            <h1 className="font-display text-5xl md:text-6xl mt-2 leading-[0.95]">
-              {profile ? (
-                `hi, ${profile.name.split(" ")[0]}.`
-              ) : (
-                <>
-                  let's get you <span className="italic text-lime">signed up.</span>
-                </>
-              )}
-            </h1>
-            {!profile ? (
-              <div className="mt-6 flex gap-3">
-                <Link
-                  href="/register"
-                  className="inline-flex h-12 px-6 rounded-full bg-lime text-ink items-center font-bold text-xs uppercase tracking-widest hover:bg-emerald transition"
-                >
-                  Create Account
-                </Link>
+
+            {profile ? (
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-xl bg-[#fbf9f4] hover:bg-rose-50 hover:text-rose-600 transition text-xs font-bold text-[#52635c] flex items-center gap-1.5 cursor-pointer border border-[#e6e2d8]"
+                title="Log Out"
+              >
+                <LogOut className="size-3.5" />
+                <span>Log Out</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="inline-flex h-12 px-6 rounded-full bg-white/10 text-white items-center font-bold text-xs uppercase tracking-widest hover:bg-white/20 transition"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-gray-50 text-[#0d261e] font-bold text-xs transition border border-[#e6e2d8]"
                 >
                   Log In
                 </Link>
-              </div>
-            ) : (
-              <div className="mt-6 flex flex-wrap gap-6 text-xs font-mono text-cream/80 items-center">
-                <div className="flex items-center gap-2">
-                  <MapPin className="size-4 text-lime" /> {profile.address || "Pimple Saudagar, Pune"}
-                </div>
-                <div>{profile.email}</div>
-                <div>{profile.phone}</div>
-                <div>
-                  Zone: <span className="text-lime font-bold">{branch.area}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="text-lime hover:text-white transition-colors underline underline-offset-4 flex items-center gap-1 font-bold"
+                <Link
+                  href="/register"
+                  className="px-4 py-2 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition shadow-xs border border-[#d4af37]/30"
                 >
-                  <LogOut className="size-3.5" /> Logout
-                </button>
+                  Sign Up
+                </Link>
               </div>
             )}
           </div>
-        </div>
+        </section>
 
-        {/* Stats Grid */}
-        <div className="mt-8 grid grid-cols-3 gap-3 md:gap-5">
-          <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-ink/10">
-            <Package className="size-4 md:size-5 text-olive-dark" />
-            <div className="text-[10px] md:text-xs uppercase tracking-widest text-olive mt-2 md:mt-3 font-mono">
-              Total Orders
-            </div>
-            <div className="font-display text-2xl md:text-4xl mt-0.5 md:mt-1 text-ink font-bold">
-              {dbOrders.length}
-            </div>
-          </div>
-          <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-ink/10">
-            <Heart className="size-4 md:size-5 text-olive-dark" />
-            <div className="text-[10px] md:text-xs uppercase tracking-widest text-olive mt-2 md:mt-3 font-mono">
-              Favorites
-            </div>
-            <div className="font-display text-2xl md:text-4xl mt-0.5 md:mt-1 text-ink font-bold">
-              {favs.length}
-            </div>
-          </div>
-          <div className="bg-lime rounded-3xl p-4 md:p-6 shadow-sm border border-ink">
-            <Sparkles className="size-4 md:size-5 text-ink" />
-            <div className="text-[10px] md:text-xs uppercase tracking-widest mt-2 md:mt-3 font-mono font-bold text-ink">
-              Tier Status
-            </div>
-            <div className="font-display text-2xl md:text-4xl mt-0.5 md:mt-1 text-ink font-bold">Gold Patron</div>
-          </div>
-        </div>
+        {/* Tab Navigation */}
+        <nav className="flex items-center bg-white rounded-2xl p-1 border border-[#e6e2d8] shadow-2xs">
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === "orders" ? "bg-[#064e3b] text-[#d4af37] shadow-xs" : "text-[#52635c] hover:text-[#0d261e]"
+            }`}
+          >
+            Past Orders ({orders.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("favorites")}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === "favorites" ? "bg-[#064e3b] text-[#d4af37] shadow-xs" : "text-[#52635c] hover:text-[#0d261e]"
+            }`}
+          >
+            Favorites ({favDishes.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("addresses")}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === "addresses" ? "bg-[#064e3b] text-[#d4af37] shadow-xs" : "text-[#52635c] hover:text-[#0d261e]"
+            }`}
+          >
+            Saved Addresses
+          </button>
+        </nav>
 
-        {/* Order History Section */}
-        <div className="mt-10 grid md:grid-cols-2 gap-8">
-          <div>
-            <h2 className="font-display text-3xl text-ink mb-4">order history</h2>
+        {/* TAB 1: Past Orders List */}
+        {activeTab === "orders" && (
+          <div className="space-y-3">
             {loadingOrders ? (
-              <div className="bg-white rounded-2xl p-8 text-center text-xs font-mono text-olive border border-ink/10">
-                <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-lime-deep" />
-                Loading order history from database…
+              <div className="bg-white rounded-3xl p-12 text-center border border-[#e6e2d8] shadow-2xs space-y-3">
+                <RefreshCw className="size-8 animate-spin mx-auto text-[#064e3b]" />
+                <p className="text-xs font-bold text-[#52635c]">Loading your orders...</p>
               </div>
-            ) : dbOrders.length === 0 ? (
-              <div className="bg-white rounded-2xl p-6 text-sm text-olive-dark border border-ink/10">
-                No orders found for this account yet.{" "}
-                <Link href="/menu" className="underline font-bold text-ink">
-                  Browse Menu & Order
+            ) : orders.length === 0 ? (
+              <div className="bg-white rounded-3xl p-12 text-center border border-[#e6e2d8] shadow-2xs space-y-3">
+                <div className="size-20 rounded-full bg-[#fbf9f4] grid place-items-center mx-auto text-3xl">
+                  🛍️
+                </div>
+                <h3 className="font-extrabold text-base text-[#0d261e]">No past orders yet</h3>
+                <p className="text-xs text-[#52635c] max-w-xs mx-auto">
+                  When you place orders, they will appear here with live tracking & receipts.
+                </p>
+                <Link
+                  href="/menu"
+                  className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition shadow-xs mt-2 border border-[#d4af37]/30"
+                >
+                  <span>Order Now</span>
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
-                {dbOrders.map((o) => {
-                  const badge = statusBadges[o.status] || statusBadges.placed;
-                  const Icon = badge.icon;
-                  return (
-                    <div key={o.id} className="bg-white border border-ink/10 rounded-2xl p-5 shadow-sm space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-ink bg-cream px-2 py-0.5 border border-ink/10">
-                              #{o.id}
-                            </span>
-                            <span className={`px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest border rounded-full flex items-center gap-1 ${badge.color}`}>
-                              <Icon className="size-3" /> {badge.label}
-                            </span>
-                          </div>
-                          <div className="mt-2 text-xs text-olive-dark font-mono">
-                            {o.dateFormatted} · {o.kitchenName}
-                          </div>
+              orders.map((order: any) => {
+                const badge = statusBadges[order.status] || statusBadges.placed;
+                const Icon = badge.icon;
+
+                return (
+                  <div
+                    key={order._id || order.id || order.orderNumber}
+                    className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs space-y-3 hover:border-[#d4af37] transition"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-extrabold text-sm text-[#0d261e]">
+                            Malashree Pure Veg
+                          </h4>
+                          <span className="text-xs text-[#52635c] font-bold">
+                            #{order.orderNumber}
+                          </span>
                         </div>
-                        <div className="font-display text-2xl text-ink font-bold">₹{o.total}</div>
+                        <p className="text-xs text-[#52635c] mt-0.5">
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }) : "Recent Order"}
+                        </p>
                       </div>
 
-                      {/* Items Preview */}
-                      <div className="text-xs text-olive-dark border-t border-ink/5 pt-2 font-mono">
-                        {o.items.map((i: any, idx: number) => (
-                          <div key={idx} className="flex justify-between py-0.5">
-                            <span>{i.qty}× {i.dishName}</span>
-                            <span>₹{i.price * i.qty}</span>
-                          </div>
-                        ))}
+                      <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black border flex items-center gap-1 ${badge.color}`}>
+                        <Icon className="size-3 shrink-0" />
+                        <span>{badge.label}</span>
+                      </div>
+                    </div>
+
+                    {/* Order Items */}
+                    <div className="space-y-1 text-xs text-[#0d261e] pt-2 border-t border-gray-100">
+                      {order.items?.map((item: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <span className="truncate">
+                            {item.quantity}x {item.name || item.dish?.name || "Dish Item"}
+                          </span>
+                          <span className="font-bold text-[#0d261e]">₹{item.price * item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bottom Action Bar */}
+                    <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <div className="text-xs">
+                        <span className="text-[#52635c]">Total Paid: </span>
+                        <span className="font-black text-sm text-[#064e3b]">₹{order.totalAmount}</span>
                       </div>
 
-                      {/* Order Action Buttons */}
-                      <div className="pt-2 border-t border-ink/5 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
                         <Link
-                          href={`/orders/${o.id}/track`}
-                          className="px-3.5 py-1.5 bg-ink text-lime font-mono text-[10px] font-bold uppercase tracking-wider rounded-full hover:bg-emerald transition flex items-center gap-1"
+                          href={`/orders/${order.orderNumber}/track`}
+                          className="px-3.5 py-1.5 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition flex items-center gap-1 shadow-2xs border border-[#d4af37]/30"
                         >
-                          Track Live Order 🛵
-                        </Link>
-                        <Link
-                          href={`/complaints?orderId=${o.id}`}
-                          className="px-3.5 py-1.5 bg-cream border border-ink/10 text-olive-dark font-mono text-[10px] font-bold uppercase tracking-wider rounded-full hover:text-ink hover:border-ink transition flex items-center gap-1"
-                        >
-                          Report Issue ⚠️
+                          <span>Track Live</span>
+                          <ArrowRight className="size-3" />
                         </Link>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })
             )}
           </div>
+        )}
 
-          {/* Favorites Column */}
-          <div>
-            <h2 className="font-display text-3xl text-ink mb-4">saved favorites</h2>
+        {/* TAB 2: Favorites */}
+        {activeTab === "favorites" && (
+          <div className="space-y-3">
             {favDishes.length === 0 ? (
-              <div className="bg-white rounded-2xl p-6 text-sm text-olive-dark border border-ink/10">
-                Tap the heart on any dish in the menu to save it here.
+              <div className="bg-white rounded-3xl p-12 text-center border border-[#e6e2d8] shadow-2xs space-y-3">
+                <div className="size-20 rounded-full bg-[#fbf9f4] grid place-items-center mx-auto text-3xl">
+                  ❤️
+                </div>
+                <h3 className="font-extrabold text-base text-[#0d261e]">No favorite dishes yet</h3>
+                <p className="text-xs text-[#52635c] max-w-xs mx-auto">
+                  Bookmark dishes in the menu to quickly order them here anytime.
+                </p>
+                <Link
+                  href="/menu"
+                  className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition shadow-xs mt-2 border border-[#d4af37]/30"
+                >
+                  <span>Browse Menu</span>
+                </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {favDishes.map(
-                  (d) =>
-                    d && (
-                      <div key={d.id} className="bg-white border border-ink/10 rounded-2xl p-3 shadow-sm">
-                        <img
-                          src={d.image}
-                          alt={d.name}
-                          className="w-full aspect-square object-cover rounded-xl border border-ink/10"
-                        />
-                        <div className="text-sm font-bold text-ink mt-2 truncate font-display">{d.name}</div>
-                        <div className="text-xs text-olive font-mono">₹{d.price}</div>
-                      </div>
-                    ),
-                )}
-              </div>
+              favDishes.map((dish) => (
+                <div
+                  key={dish.id}
+                  className="bg-white rounded-3xl p-4 border border-[#e6e2d8] shadow-2xs flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={dish.image} alt={dish.name} className="size-14 rounded-2xl object-cover" />
+                    <div>
+                      <h4 className="font-extrabold text-sm text-[#0d261e]">{dish.name}</h4>
+                      <p className="font-bold text-xs text-[#064e3b] mt-0.5">₹{dish.price}</p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/menu"
+                    className="px-4 py-2 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition shadow-xs border border-[#d4af37]/30"
+                  >
+                    Order
+                  </Link>
+                </div>
+              ))
             )}
           </div>
-        </div>
-      </section>
-      <Footer />
+        )}
+
+        {/* TAB 3: Saved Addresses */}
+        {activeTab === "addresses" && (
+          <div className="space-y-3">
+            <div className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-[#52635c] flex items-center gap-1">
+                  <MapPin className="size-4 text-[#d4af37]" /> Primary Delivery Address
+                </span>
+                <span className="text-[10px] bg-emerald-50 text-[#064e3b] border border-emerald-300 font-black px-2 py-0.5 rounded-md">
+                  DEFAULT
+                </span>
+              </div>
+              <p className="text-sm font-extrabold text-[#0d261e]">
+                {profile?.address || "Flat 402, Green Acres, Pimple Saudagar, Pune"}
+              </p>
+              <p className="text-xs text-[#52635c]">Phone: +91 {profile?.phone || "9876543210"}</p>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
-
-export default Profile;

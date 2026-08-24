@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { LocationModal } from "@/components/LocationModal";
+import { FloatingDock } from "@/components/FloatingDock";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <LocationModal />
           {children}
+          <FloatingDock />
         </Providers>
       </body>
     </html>

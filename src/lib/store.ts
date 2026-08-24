@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { BRANCHES } from "./data";
+import { BRANCHES, Dish } from "./data";
+import { setAssignedKitchen } from "@/actions/kitchen";
 
 export type CartItem = { dishId: string; qty: number };
 export type Profile = {
@@ -12,7 +13,15 @@ export type Profile = {
   role?: string;
   joinedDate?: Date | string;
 } | null;
-import { Dish } from "./data";
+
+export interface UserLocationState {
+  lat: number;
+  lng: number;
+  label?: string;
+  distanceKm?: number;
+  etaMin?: number;
+  kitchenName?: string;
+}
 
 type State = {
   branchId: string;
@@ -41,22 +50,22 @@ type State = {
   orders: { id: string; date: string; branchId: string; items: CartItem[]; total: number }[];
   locationResolved: boolean;
   resolveLocation: (branchId: string) => void;
+  userLocation: UserLocationState | null;
+  setUserLocation: (loc: UserLocationState | null) => void;
 };
-
-import { setAssignedKitchen } from "@/actions/kitchen";
 
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
-      branchId: BRANCHES[0].id,
+      branchId: "pimple-saudagar",
       setBranch: (id) => {
-        set({ branchId: id, cart: [], kitchenMenu: [], cartTotals: null, locationResolved: true });
+        set({ branchId: id, kitchenMenu: [], cartTotals: null, locationResolved: true });
         setAssignedKitchen(id).catch(console.error);
       },
       kitchenMenu: [],
-      setKitchenMenu: (menu) => set({ kitchenMenu: menu }),
+      setKitchenMenu: (menu) => set({ kitchenMenu: Array.isArray(menu) ? menu : [] }),
       cart: [],
-      setCart: (cart) => set({ cart }),
+      setCart: (cart) => set({ cart: Array.isArray(cart) ? cart : [] }),
       cartTotals: null,
       setCartTotals: (totals) => set({ cartTotals: totals }),
       addToCart: (dishId) => {
@@ -89,13 +98,14 @@ export const useStore = create<State>()(
       locationResolved: false,
       resolveLocation: (branchId) => {
         const currentBranch = get().branchId;
-        // If kitchen changes, clear the cart to prevent ordering items that don't belong to the new kitchen
         if (currentBranch && currentBranch !== branchId) {
-          set({ cart: [] });
+          // Keep items or refresh
         }
         set({ branchId, locationResolved: true });
         setAssignedKitchen(branchId).catch(console.error);
       },
+      userLocation: null,
+      setUserLocation: (loc) => set({ userLocation: loc }),
     }),
     { name: "malashree-store" },
   ),

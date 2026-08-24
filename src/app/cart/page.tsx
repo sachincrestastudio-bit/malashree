@@ -1,83 +1,103 @@
 "use client";
 
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { Minus, Plus, Trash2, Tag, ShoppingBag } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import {
+  ShoppingBag,
+  ArrowRight,
+  Plus,
+  Minus,
+  Trash2,
+  Ticket,
+  CheckCircle2,
+  AlertCircle,
+  MapPin,
+  Clock,
+  Heart,
+  ChevronRight,
+  ShieldCheck,
+} from "lucide-react";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { useStore } from "@/lib/store";
-import { findDish, getBranch } from "@/lib/data";
-import { syncCart } from "@/actions/cart";
-import { getKitchenMenu } from "@/actions/menu";
+import { getBranch, findDish, ALL_CATEGORY_DISHES, Dish } from "@/lib/data";
+import { syncCartWithServer, applyCouponCode } from "@/actions/cart";
 
-function Cart() {
+export default function CartPage() {
   const branchId = useStore((s) => s.branchId);
   const cart = useStore((s) => s.cart);
-  const kitchenMenu = useStore((s) => s.kitchenMenu);
-  const setKitchenMenu = useStore((s) => s.setKitchenMenu);
+  const addToCart = useStore((s) => s.addToCart);
+  const removeFromCart = useStore((s) => s.removeFromCart);
   const setQty = useStore((s) => s.setQty);
-  const remove = useStore((s) => s.removeFromCart);
-  const branch = getBranch(branchId);
-  const profile = useStore((s) => s.profile);
+  const clearCart = useStore((s) => s.clearCart);
   const cartTotals = useStore((s) => s.cartTotals);
   const setCartTotals = useStore((s) => s.setCartTotals);
-  const [coupon, setCoupon] = useState("");
-  const [applied, setApplied] = useState<string | null>(null);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const kitchenMenu = useStore((s) => s.kitchenMenu) || [];
+  const profile = useStore((s) => s.profile);
+  const branch = getBranch(branchId);
 
-  // Ensure menu items are loaded so dynamic dish IDs match
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
+  const [cookingNote, setCookingNote] = useState("");
+  const [selectedTip, setSelectedTip] = useState<number | null>(null);
+  const [deliveryInstruction, setDeliveryInstruction] = useState<string | null>(null);
+
+  // Sync cart totals with server
   useEffect(() => {
     let mounted = true;
-    if (kitchenMenu.length === 0) {
-      getKitchenMenu(branchId).then((menu) => {
-        if (mounted && menu && menu.length > 0) {
-          setKitchenMenu(menu);
+    const updateTotals = async () => {
+      if (cart.length > 0) {
+        try {
+          const res = await syncCartWithServer(cart);
+          if (mounted && res && res.totals) {
+            setCartTotals(res.totals);
+          }
+        } catch (e) {
+          console.error("Cart sync notice:", e);
         }
-      });
-    }
-    return () => {
-      mounted = false;
-    };
-  }, [branchId, kitchenMenu.length, setKitchenMenu]);
-
-  // Sync cart with server whenever local cart or applied coupon changes
-  useEffect(() => {
-    let mounted = true;
-    const fetchTotals = async () => {
-      if (cart.length === 0) {
-        setCartTotals(null);
-        setIsCalculating(false);
-        return;
-      }
-      setIsCalculating(true);
-      const res = await syncCart(cart, applied);
-      if (mounted) {
-        if (res) {
-          setCartTotals(res);
-        }
-        setIsCalculating(false);
       }
     };
-
-    const timer = setTimeout(fetchTotals, 200);
+    const timer = setTimeout(updateTotals, 300);
     return () => {
       mounted = false;
       clearTimeout(timer);
     };
-  }, [cart, applied, setCartTotals]);
+  }, [cart, setCartTotals]);
 
-  // Resolve dish objects dynamically from database menu or static fallback
+  // Combined dish map
+  const dishMap = useMemo(() => {
+    const map = new Map<string, Dish>();
+    for (const d of branch.menu) map.set(d.id, d);
+    for (const d of ALL_CATEGORY_DISHES) if (!map.has(d.id)) map.set(d.id, d);
+    for (const k of kitchenMenu) {
+      map.set(k.id, {
+        id: k.id,
+        name: k.name,
+        desc: k.desc || "",
+        price: k.price,
+        category: k.category,
+        tag: k.tag,
+        rating: k.rating || 4.8,
+        reviews: k.reviews || 120,
+        veg: k.veg !== undefined ? k.veg : true,
+        spice: k.spice || 1,
+        time: k.time || "25 mins",
+        image: k.image || "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
+      });
+    }
+    return map;
+  }, [branch.menu, kitchenMenu]);
+
+  // Cart item objects
   const items = useMemo(() => {
     return cart
-      .map((c) => {
-        const dish = kitchenMenu.find((d) => d.id === c.dishId) || findDish(c.dishId);
-        return { ...c, dish };
-      })
+      .map((c) => ({
+        ...c,
+        dish: dishMap.get(c.dishId) || findDish(c.dishId),
+      }))
       .filter((i) => i.dish);
-  }, [cart, kitchenMenu]);
+  }, [cart, dishMap]);
 
-  // Calculate prices (fallback to local sum if server response is pending)
   const localSubtotal = useMemo(() => {
     return items.reduce((sum, i) => sum + (i.dish?.price || 0) * i.qty, 0);
   }, [items]);
@@ -86,196 +106,318 @@ function Cart() {
   const discount = cartTotals?.discount ?? 0;
   const delivery = cartTotals?.deliveryFee ?? (localSubtotal > 500 || localSubtotal === 0 ? 0 : 40);
   const gst = cartTotals?.tax ?? Math.round(localSubtotal * 0.05);
-  const total = cartTotals?.grandTotal ?? Math.max(0, localSubtotal + gst + delivery - discount);
+  const tipAmount = selectedTip || 0;
+  const grandTotal = Math.max(0, subtotal + gst + delivery + tipAmount - discount);
 
-  const applyCoupon = () => {
-    if (!coupon.trim()) return;
-    setApplied(coupon.trim().toUpperCase());
-    setCouponMessage(`Applied coupon ${coupon.trim().toUpperCase()}`);
+  const handleApplyCoupon = async (codeToApply?: string) => {
+    const code = (codeToApply || couponInput).trim();
+    if (!code) return;
+    setCouponError(null);
+    setCouponSuccess(null);
+
+    const res = await applyCouponCode(code);
+    if (res.success && res.totals) {
+      setCartTotals(res.totals);
+      setCouponSuccess(`Coupon ${code} applied successfully!`);
+      setCouponInput("");
+    } else {
+      setCouponError(res.error || "Invalid coupon code.");
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-cream">
-      <Header />
-      <section className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
-        <div className="flex items-center justify-between border-b border-ink/10 pb-4">
-          <div>
-            <h1 className="font-display text-4xl sm:text-5xl text-ink leading-[0.95]">
-              your <span className="italic text-emerald">cart</span>
-            </h1>
-            <p className="mt-2 text-olive-dark text-sm">Delivering from {branch.name}</p>
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-28">
+        <Header />
+        <main className="max-w-xl mx-auto px-4 py-20 text-center space-y-4">
+          <div className="size-28 rounded-full bg-white border border-[#e6e2d8] shadow-xs mx-auto grid place-items-center">
+            <ShoppingBag className="size-12 text-[#d4af37]" />
           </div>
-          {isCalculating && (
-            <div className="text-xs font-mono uppercase tracking-widest text-lime-deep animate-pulse">
-              Syncing cart...
+          <h2 className="text-2xl font-black text-[#0d261e] tracking-tight">Your cart is empty</h2>
+          <p className="text-xs text-[#52635c] max-w-sm mx-auto">
+            You have no dishes in your cart yet. Explore Malashree's pure veg menu to start ordering!
+          </p>
+          <Link
+            href="/menu"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-md border border-[#d4af37]/30"
+          >
+            <span>Explore Menu</span>
+            <ArrowRight className="size-4" />
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-36">
+      <Header />
+
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
+        {/* Restaurant Badge Header */}
+        <section className="bg-white rounded-3xl p-4 sm:p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="size-12 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
+              <img src={branch.hero} alt={branch.name} className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <h2 className="font-extrabold text-base text-[#0d261e] leading-tight">
+                Malashree Pure Veg
+              </h2>
+              <p className="text-xs text-[#52635c] mt-0.5">
+                {branch.area}, Pune · <span className="text-[#064e3b] font-bold">{branch.etaMin} mins delivery</span>
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={clearCart}
+            className="text-xs font-bold text-[#52635c] hover:text-[#b91c1c] transition flex items-center gap-1 cursor-pointer"
+          >
+            <Trash2 className="size-3.5" />
+            <span className="hidden sm:inline">Clear Cart</span>
+          </button>
+        </section>
+
+        {/* Selected Items List Card */}
+        <section className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-4 divide-y divide-gray-100">
+          <div className="space-y-4">
+            {items.map((item) => {
+              const dish = item.dish!;
+              const itemPrice = dish.price * item.qty;
+
+              return (
+                <div key={item.dishId} className="flex items-center justify-between gap-3 pt-2 first:pt-0">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="size-3.5 rounded-sm border border-[#064e3b] grid place-items-center shrink-0">
+                      <div className="size-1.5 rounded-full bg-[#064e3b]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-sm text-[#0d261e] truncate">{dish.name}</h4>
+                      <p className="text-xs text-[#52635c] font-medium">₹{dish.price} each</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="h-8 bg-emerald-50 border border-emerald-300 text-[#064e3b] rounded-xl flex items-center justify-between px-1.5 shadow-2xs w-20">
+                      <button
+                        onClick={() => removeFromCart(dish.id)}
+                        className="p-1 hover:bg-emerald-200/60 rounded cursor-pointer"
+                      >
+                        <Minus className="size-3 stroke-[3]" />
+                      </button>
+                      <span className="text-xs font-black">{item.qty}</span>
+                      <button
+                        onClick={() => setQty(dish.id, item.qty + 1)}
+                        className="p-1 hover:bg-emerald-200/60 rounded cursor-pointer"
+                      >
+                        <Plus className="size-3 stroke-[3]" />
+                      </button>
+                    </div>
+
+                    <span className="font-black text-sm text-[#0d261e] w-14 text-right">
+                      ₹{itemPrice}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-4">
+            <input
+              type="text"
+              value={cookingNote}
+              onChange={(e) => setCookingNote(e.target.value)}
+              placeholder="Add cooking instructions (e.g. less spicy, extra green chutney)..."
+              className="w-full h-10 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] placeholder:text-[#52635c] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
+            />
+          </div>
+        </section>
+
+        {/* Delivery Instructions Chips */}
+        <section className="bg-white rounded-3xl p-4 sm:p-5 border border-[#e6e2d8] shadow-2xs space-y-3">
+          <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
+            Delivery Instructions
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "Avoid calling",
+              "Leave at door",
+              "Don't ring bell",
+              "Directions to reach",
+              "Leave with guard",
+            ].map((instruction) => (
+              <button
+                key={instruction}
+                onClick={() =>
+                  setDeliveryInstruction((prev) => (prev === instruction ? null : instruction))
+                }
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                  deliveryInstruction === instruction
+                    ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b]"
+                    : "bg-[#fbf9f4] text-[#52635c] border-[#e6e2d8] hover:border-[#d4af37]"
+                }`}
+              >
+                {instruction}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Tip Delivery Partner Section */}
+        <section className="bg-white rounded-3xl p-4 sm:p-5 border border-[#e6e2d8] shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider flex items-center gap-1.5">
+              <Heart className="size-3.5 text-[#d4af37] fill-[#d4af37]" />
+              Tip your delivery partner
+            </h3>
+            {selectedTip && (
+              <button
+                onClick={() => setSelectedTip(null)}
+                className="text-[11px] font-bold text-[#064e3b] hover:underline"
+              >
+                Remove tip
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {[20, 30, 50, 100].map((tip) => (
+              <button
+                key={tip}
+                onClick={() => setSelectedTip((prev) => (prev === tip ? null : tip))}
+                className={`py-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                  selectedTip === tip
+                    ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b]"
+                    : "bg-[#fbf9f4] text-[#0d261e] border-[#e6e2d8] hover:border-[#d4af37]"
+                }`}
+              >
+                ₹{tip}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Promo Coupons Card */}
+        <section className="bg-white rounded-3xl p-4 sm:p-5 border border-[#e6e2d8] shadow-2xs space-y-3">
+          <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider flex items-center gap-1.5">
+            <Ticket className="size-4 text-[#d4af37]" />
+            Apply Coupons & Discounts
+          </h3>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={couponInput}
+              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+              placeholder="Enter coupon code (e.g. ROYAL60)"
+              className="flex-1 h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs font-bold text-[#0d261e] placeholder:text-[#52635c] focus:outline-none focus:border-[#064e3b] uppercase"
+            />
+            <button
+              onClick={() => handleApplyCoupon()}
+              className="px-5 h-11 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition cursor-pointer border border-[#d4af37]/30"
+            >
+              Apply
+            </button>
+          </div>
+
+          <div
+            onClick={() => handleApplyCoupon("ROYAL60")}
+            className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 flex items-center justify-between cursor-pointer hover:bg-amber-100/70 transition"
+          >
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-black text-[10px]">
+                ROYAL60
+              </span>
+              <span className="text-xs font-bold text-amber-950">
+                Flat 60% OFF up to ₹120 on your order
+              </span>
+            </div>
+            <span className="text-xs font-black text-[#064e3b]">Apply</span>
+          </div>
+
+          {couponSuccess && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-bold flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-emerald-700 shrink-0" />
+              <span>{couponSuccess}</span>
             </div>
           )}
-        </div>
 
-        {items.length === 0 ? (
-          <div className="mt-16 text-center py-16 bg-white border border-ink/10 rounded-3xl">
-            <ShoppingBag className="size-12 text-olive/30 mx-auto mb-3" />
-            <div className="font-display text-3xl text-ink">nothing in your cart yet.</div>
-            <p className="mt-2 text-olive-dark text-sm">Browse our gourmet pure-veg menu and add your favorite dishes.</p>
-            <Link
-              href="/menu"
-              className="inline-flex mt-6 h-12 px-8 rounded-full bg-ink text-lime font-bold text-xs uppercase tracking-widest items-center hover:bg-emerald transition shadow-sm"
-            >
-              Browse Full Menu
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-8 grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
-              {items.map(({ dish, qty, dishId }) => {
-                if (!dish) return null;
-                return (
-                  <div
-                    key={dishId}
-                    className="bg-white rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center relative shadow-sm border border-ink/10"
-                  >
-                    <div className="flex gap-4 items-center flex-1">
-                      <img
-                        src={dish.image}
-                        alt={dish.name}
-                        className="size-16 sm:size-20 rounded-xl object-cover shrink-0 border border-ink/10"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-display text-base sm:text-lg font-bold text-ink truncate">
-                          {dish.name}
-                        </div>
-                        <div className="text-xs text-olive-dark font-mono mt-0.5">₹{dish.price} each</div>
-                      </div>
-                    </div>
+          {couponError && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 font-bold flex items-center gap-2">
+              <AlertCircle className="size-4 text-rose-700 shrink-0" />
+              <span>{couponError}</span>
+            </div>
+          )}
+        </section>
 
-                    {/* Delete button */}
-                    <button
-                      onClick={() => remove(dishId)}
-                      className="absolute sm:relative top-3 right-3 sm:top-auto sm:right-auto size-8 sm:size-9 grid place-items-center rounded-full hover:bg-red-50 text-olive-dark hover:text-red-600 transition-colors"
-                      title="Remove dish"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+        {/* Itemized Bill Details Card */}
+        <section className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-3">
+          <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
+            Bill Details
+          </h3>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-4 border-t border-ink/5 sm:border-none pt-3 sm:pt-0">
-                      <div className="flex items-center gap-1 bg-cream rounded-full p-1 border border-ink/10">
-                        <button
-                          onClick={() => setQty(dishId, qty - 1)}
-                          className="size-7 grid place-items-center rounded-full hover:bg-ink hover:text-cream transition"
-                        >
-                          <Minus className="size-3" />
-                        </button>
-                        <span className="text-xs font-mono font-bold w-6 text-center">{qty}</span>
-                        <button
-                          onClick={() => setQty(dishId, qty + 1)}
-                          className="size-7 grid place-items-center rounded-full hover:bg-ink hover:text-cream transition"
-                        >
-                          <Plus className="size-3" />
-                        </button>
-                      </div>
-                      <div className="font-display text-xl sm:w-24 text-right text-ink font-bold">
-                        ₹{dish.price * qty}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+          <div className="space-y-2 text-xs text-[#52635c] font-medium pt-1">
+            <div className="flex justify-between">
+              <span>Item Total</span>
+              <span className="text-[#0d261e] font-bold">₹{subtotal}</span>
             </div>
 
-            <aside className="bg-white rounded-3xl p-6 h-fit sticky top-24 border border-ink/10 shadow-sm space-y-5">
-              <div className="text-xs font-mono uppercase tracking-widest text-olive border-b border-ink/10 pb-3">
-                Order Summary
+            {discount > 0 && (
+              <div className="flex justify-between text-[#064e3b] font-bold">
+                <span>Coupon Discount</span>
+                <span>-₹{discount}</span>
               </div>
+            )}
 
-              <div className="space-y-2 text-xs font-mono text-olive-dark">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span className="text-ink font-bold">₹{subtotal}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-emerald font-bold">
-                    <span>Discount ({applied})</span>
-                    <span>−₹{discount}</span>
-                  </div>
+            <div className="flex justify-between">
+              <span>Delivery Partner Fee</span>
+              <span>
+                {delivery === 0 ? (
+                  <span className="text-[#064e3b] font-bold">FREE</span>
+                ) : (
+                  `₹${delivery}`
                 )}
-                <div className="flex justify-between">
-                  <span>Delivery Fee</span>
-                  <span>
-                    {delivery === 0 ? (
-                      <span className="text-emerald font-bold uppercase">Free Delivery</span>
-                    ) : (
-                      `₹${delivery}`
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>GST (5%)</span>
-                  <span className="text-ink">₹{gst}</span>
-                </div>
-              </div>
+              </span>
+            </div>
 
-              <div className="pt-3 border-t border-ink/10 flex justify-between items-baseline">
-                <span className="font-display text-xl text-ink">Total Due</span>
-                <span className="font-display text-3xl font-bold text-ink">
-                  <span className="text-lime">₹</span>
-                  {total}
-                </span>
-              </div>
+            <div className="flex justify-between">
+              <span>Taxes & Restaurant Charges (5% GST)</span>
+              <span>₹{gst}</span>
+            </div>
 
-              {/* Coupon input */}
-              <div className="pt-2">
-                <div className="text-[10px] font-mono text-olive uppercase tracking-widest mb-2 flex items-center gap-1">
-                  <Tag className="size-3 text-lime-deep" /> Coupon Promo Code
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    value={coupon}
-                    onChange={(e) => setCoupon(e.target.value)}
-                    placeholder="e.g. WELCOME20"
-                    className="flex-1 h-11 px-4 rounded-xl bg-cream/50 border border-ink/10 text-xs font-mono outline-none focus:border-ink uppercase"
-                  />
-                  <button
-                    onClick={applyCoupon}
-                    className="h-11 px-5 rounded-xl bg-ink text-lime text-xs font-mono font-bold uppercase tracking-wider hover:bg-emerald transition"
-                  >
-                    Apply
-                  </button>
-                </div>
-                {couponMessage && (
-                  <div className="mt-2 text-[10px] font-mono text-emerald">{couponMessage}</div>
-                )}
+            {selectedTip && (
+              <div className="flex justify-between text-[#064e3b] font-bold">
+                <span>Delivery Partner Tip</span>
+                <span>₹{selectedTip}</span>
               </div>
+            )}
 
-              {!profile ? (
-                <div className="pt-2 flex flex-col gap-2">
-                  <Link
-                    href="/register"
-                    className="h-12 w-full rounded-full bg-ink text-lime font-bold text-xs uppercase tracking-widest flex items-center justify-center hover:bg-emerald transition shadow-sm"
-                  >
-                    Register to Order
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="h-12 w-full rounded-full bg-cream border border-ink/10 text-ink font-bold text-xs uppercase tracking-widest flex items-center justify-center hover:bg-ink/5 transition"
-                  >
-                    Log In
-                  </Link>
-                </div>
-              ) : (
-                <Link
-                  href="/checkout"
-                  className="h-12 w-full rounded-full bg-lime text-ink font-bold text-xs uppercase tracking-widest flex items-center justify-center hover:bg-lime/90 transition shadow-sm"
-                >
-                  Proceed to Checkout
-                </Link>
-              )}
-            </aside>
+            <div className="border-t border-[#e6e2d8] pt-3 flex justify-between items-center text-sm font-black text-[#0d261e]">
+              <span>To Pay</span>
+              <span className="text-base text-[#064e3b]">₹{grandTotal}</span>
+            </div>
           </div>
-        )}
-      </section>
-      <Footer />
+        </section>
+      </main>
+
+      {/* Fixed Checkout Action Bar at Bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e6e2d8] p-4 shadow-xl">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <span className="text-xs font-bold text-[#52635c] block leading-none">TOTAL</span>
+            <span className="text-xl font-black text-[#0d261e]">₹{grandTotal}</span>
+          </div>
+
+          <Link
+            href="/checkout"
+            className="px-8 py-3.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-md flex items-center gap-2 border border-[#d4af37]/30"
+          >
+            <span>Proceed to Checkout</span>
+            <ChevronRight className="size-4" />
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
-
-export default Cart;

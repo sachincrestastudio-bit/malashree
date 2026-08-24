@@ -279,8 +279,187 @@ export const BRANCHES: Branch[] = [
   },
 ];
 
+export const FOOD_CATEGORIES = [
+  {
+    id: "healthy",
+    name: "Healthy",
+    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=300&q=80",
+    desc: "Salads & bowls",
+  },
+  {
+    id: "homestyle",
+    name: "Home Style",
+    image: "https://images.unsplash.com/photo-1626777553635-c95b16635c0e?auto=format&fit=crop&w=300&q=80",
+    desc: "Thalis & curries",
+  },
+  {
+    id: "pizza",
+    name: "Pizza",
+    image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=300&q=80",
+    desc: "Cheesy slices",
+  },
+  {
+    id: "chicken",
+    name: "Chicken",
+    image: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=300&q=80",
+    desc: "Tandoori & roasts",
+  },
+  {
+    id: "burger",
+    name: "Burger",
+    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80",
+    desc: "Juicy burgers",
+  },
+  {
+    id: "paneer",
+    name: "Paneer",
+    image: "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=300&q=80",
+    desc: "Rich gravies",
+  },
+  {
+    id: "rolls",
+    name: "Rolls",
+    image: "https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?auto=format&fit=crop&w=300&q=80",
+    desc: "Kathi & frankies",
+  },
+  {
+    id: "momos",
+    name: "Momos",
+    image: "https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?auto=format&fit=crop&w=300&q=80",
+    desc: "Steamed & fried",
+  },
+];
+
+export const ALL_CATEGORY_DISHES: Dish[] = [
+  // Healthy
+  {
+    id: "cat-h1",
+    name: "Greek Feta & Avocado Salad",
+    desc: "Crisp greens, kalamata olives, diced avocado, cherry tomatoes, herbs.",
+    price: 240,
+    image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.8,
+    category: "Healthy",
+    tag: "PRO Pick",
+  },
+  {
+    id: "cat-h2",
+    name: "Sprouted Moong Protein Bowl",
+    desc: "High protein sprout mix with lemon zest, pomegranate, and chaat spices.",
+    price: 190,
+    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.7,
+    category: "Healthy",
+  },
+  // Home Style
+  {
+    id: "cat-hs1",
+    name: "Royal Malashree Thali",
+    desc: "Paneer butter masala, yellow dal tadka, 3 butter phulkas, jeera rice, gulab jamun.",
+    price: 260,
+    image: "https://images.unsplash.com/photo-1626777553635-c95b16635c0e?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.9,
+    category: "Home Style",
+    tag: "Bestseller",
+  },
+  // Pizza
+  {
+    id: "cat-pz1",
+    name: "Paneer Makhani Cheese Pizza",
+    desc: "Wood-fired crust with tandoori paneer, capsicum, red onions, mozzarella.",
+    price: 299,
+    image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.8,
+    category: "Pizza",
+    tag: "Trending",
+  },
+  // Chicken
+  {
+    id: "cat-ck1",
+    name: "Afghani Tandoori Chicken",
+    desc: "Charcoal roasted chicken infused with rich cashew-cream marinade and mint dip.",
+    price: 340,
+    image: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=600&q=80",
+    veg: false,
+    rating: 4.9,
+    category: "Chicken",
+    tag: "Bestseller",
+  },
+  // Burger
+  {
+    id: "cat-bg1",
+    name: "Crispy Double Cheese Burger",
+    desc: "Golden crisp patty, double melted cheddar, pickled gherkins, smoky mayo.",
+    price: 129,
+    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.7,
+    category: "Burger",
+    tag: "Deal of Day",
+  },
+  // Paneer
+  {
+    id: "cat-pn1",
+    name: "Paneer Butter Masala Handi",
+    desc: "Velvety butter gravy with cottage cheese cubes, kasuri methi, and cream.",
+    price: 290,
+    image: "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.9,
+    category: "Paneer",
+    tag: "Chef Special",
+  },
+  // Rolls
+  {
+    id: "cat-rl1",
+    name: "Paneer Tikka Kathi Roll",
+    desc: "Flaky paratha layered with spicy grilled paneer tikka, crunchy onions, and green chutney.",
+    price: 160,
+    image: "https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.7,
+    category: "Rolls",
+  },
+  // Momos
+  {
+    id: "cat-mm1",
+    name: "Steamed Himalayan Veg Momos",
+    desc: "Soft steamed dumplings stuffed with finely minced vegetables and fiery red garlic dip.",
+    price: 150,
+    image: "https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.8,
+    category: "Momos",
+    tag: "Popular",
+  },
+  // Biryani
+  {
+    id: "cat-by1",
+    name: "Bikkgane Hyderabadi Dum Biryani",
+    desc: "Slow dum-cooked long basmati rice with aromatic spices, served with salan and raita.",
+    price: 169,
+    image: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80",
+    veg: true,
+    rating: 4.8,
+    category: "Biryani",
+    tag: "Deal of Day",
+  },
+];
+
 export const CATEGORIES = [
   "All",
+  "Healthy",
+  "Home Style",
+  "Pizza",
+  "Chicken",
+  "Burger",
+  "Paneer",
+  "Rolls",
+  "Momos",
   "Bestseller",
   "Mains",
   "Starters",
@@ -294,11 +473,23 @@ export const CATEGORIES = [
   "Desserts",
 ];
 
-export const getBranch = (id: string) => BRANCHES.find((b) => b.id === id) ?? BRANCHES[0];
-export const findDish = (id: string) => {
+export const getBranch = (id?: string): Branch => {
+  if (!id) return BRANCHES[0];
+  const b = BRANCHES.find((b) => b.id === id || b.area?.toLowerCase() === id?.toLowerCase());
+  const selected = b || BRANCHES[0];
+  return {
+    ...selected,
+    menu: Array.isArray(selected.menu) ? selected.menu : pimpleMenu,
+  };
+};
+
+export const findDish = (id?: string) => {
+  if (!id) return undefined;
+  const allDishes = [...ALL_CATEGORY_DISHES];
   for (const b of BRANCHES) {
-    const d = b.menu.find((m) => m.id === id);
-    if (d) return d;
+    if (Array.isArray(b.menu)) {
+      allDishes.push(...b.menu);
+    }
   }
-  return undefined;
+  return allDishes.find((m) => m && m.id === id);
 };

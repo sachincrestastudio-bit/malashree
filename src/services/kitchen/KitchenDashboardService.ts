@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 
 export class KitchenDashboardService {
   /**
-   * Retrieves high-level metrics strictly for a specific kitchen.
+   * Retrieves high-level metrics and active tickets strictly for a specific kitchen.
    */
   static async getDashboardMetrics(kitchenId: string) {
     await connectToDatabase();
@@ -17,8 +17,10 @@ export class KitchenDashboardService {
     todayEnd.setHours(23, 59, 59, 999);
 
     const isObjectId = mongoose.Types.ObjectId.isValid(kitchenId);
-    const kitchen = isObjectId ? await Kitchen.findById(kitchenId).lean() : await Kitchen.findOne({ code: kitchenId }).lean();
-    
+    const kitchen = isObjectId
+      ? await Kitchen.findById(kitchenId).lean()
+      : await Kitchen.findOne({ code: kitchenId }).lean();
+
     const targetKitchenId = kitchen ? (kitchen as any)._id : kitchenId;
 
     const kitchenMatch = {
@@ -35,23 +37,47 @@ export class KitchenDashboardService {
       orderStatus: { $ne: "cancelled" },
     }).lean();
 
-    const todaysRevenue = todaysOrders.reduce((sum: number, order: any) => sum + (order.grandTotal || 0), 0);
+    const todaysRevenue = todaysOrders.reduce(
+      (sum: number, order: any) => sum + (order.grandTotal || 0),
+      0
+    );
     const completedOrders = todaysOrders.filter(
-      (o: any) => o.orderStatus === "delivered" || o.orderStatus === "ready",
+      (o: any) => o.orderStatus === "delivered" || o.orderStatus === "ready"
     ).length;
 
-    const pendingOrders = await Order.countDocuments({ ...kitchenMatch, orderStatus: "placed" });
-    const preparingOrders = await Order.countDocuments({ ...kitchenMatch, orderStatus: "preparing" });
-    const readyOrders = await Order.countDocuments({ ...kitchenMatch, orderStatus: "ready" });
+    const pendingOrders = await Order.countDocuments({
+      ...kitchenMatch,
+      orderStatus: { $in: ["placed", "accepted"] },
+    });
+    const preparingOrders = await Order.countDocuments({
+      ...kitchenMatch,
+      orderStatus: "preparing",
+    });
+    const readyOrders = await Order.countDocuments({
+      ...kitchenMatch,
+      orderStatus: "ready",
+    });
 
-    // Compute average prep time if completed orders exist
-    let avgPrepMinutes = 15;
+    // Recent active tickets for this specific branch
+    const activeTickets = await Order.find({
+      ...kitchenMatch,
+      orderStatus: { $in: ["placed", "accepted", "preparing", "ready"] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .populate("customer", "name phone")
+      .lean();
+
+    // Compute average prep time
+    let avgPrepMinutes = 20;
     if (completedOrders > 0) {
       let totalMins = 0;
       let count = 0;
       todaysOrders.forEach((o: any) => {
         if (o.actualReadyTime && o.createdAt) {
-          const diffMins = Math.round((new Date(o.actualReadyTime).getTime() - new Date(o.createdAt).getTime()) / 60000);
+          const diffMins = Math.round(
+            (new Date(o.actualReadyTime).getTime() - new Date(o.createdAt).getTime()) / 60000
+          );
           if (diffMins > 0 && diffMins < 180) {
             totalMins += diffMins;
             count++;
@@ -64,8 +90,12 @@ export class KitchenDashboardService {
     }
 
     return {
+      kitchenId: targetKitchenId?.toString(),
       kitchenName: kitchen ? (kitchen as any).name : "Kitchen Branch",
-      kitchenStatus: (kitchen as any)?.isActive !== false ? "Open" : "Closed",
+      kitchenArea: (kitchen as any)?.area || (kitchen as any)?.address || "Pune",
+      kitchenStatus: (kitchen as any)?.isActive !== false && (kitchen as any)?.status !== "inactive" ? "Open" : "Closed",
+      preparationTime: (kitchen as any)?.preparationTime || 25,
+      deliveryRadius: (kitchen as any)?.deliveryRadius || 5000,
       todaysRevenue,
       todaysOrders: todaysOrders.length,
       completedOrders,
@@ -73,6 +103,20 @@ export class KitchenDashboardService {
       preparingOrders,
       readyOrders,
       avgPrepTime: `${avgPrepMinutes} mins`,
+      activeTickets: activeTickets.map((t: any) => ({
+        id: t._id.toString(),
+        orderNumber: t.orderNumber,
+        orderStatus: t.orderStatus,
+        customerName: t.customer?.name || "Customer",
+        customerPhone: t.customer?.phone || "",
+        grandTotal: t.grandTotal,
+        items: (t.items || []).map((i: any) => ({
+          name: i.name || i.dish?.name || "Dish Item",
+          quantity: i.quantity || 1,
+          price: i.price,
+        })),
+        createdAt: t.createdAt ? new Date(t.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "-",
+      })),
     };
   }
 }
