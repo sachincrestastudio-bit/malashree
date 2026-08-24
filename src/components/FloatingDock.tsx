@@ -16,12 +16,16 @@ export function FloatingDock() {
     setIsMounted(true);
   }, []);
 
-  // Do not render dock on internal portal pages
+  // Do not render dock on internal portal pages, cart, checkout, or order tracking pages
   if (
+    !isMounted ||
     path?.startsWith("/admin") ||
     path?.startsWith("/kitchen") ||
     path?.startsWith("/delivery") ||
-    path?.startsWith("/api")
+    path?.startsWith("/api") ||
+    path === "/cart" ||
+    path === "/checkout" ||
+    path?.startsWith("/orders")
   ) {
     return null;
   }
@@ -36,7 +40,7 @@ export function FloatingDock() {
   return (
     <nav
       aria-label="Bottom Navigation"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] pointer-events-auto"
+      className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-auto"
     >
       <div className="bg-[#064e3b]/95 backdrop-blur-xl border border-[#d4af37]/30 rounded-full px-3 py-1.5 shadow-[0_12px_36px_rgba(6,78,59,0.35)] flex items-center gap-1 text-white/80">
         {mobileNavItems.map((item) => {
