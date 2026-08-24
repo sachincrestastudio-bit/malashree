@@ -121,22 +121,51 @@ export default function MenuPage() {
   // Categories list
   const categories = useMemo(() => {
     const set = new Set<string>();
-    dishes.forEach((d) => set.add(d.category));
+    dishes.forEach((d) => {
+      if (d.category) set.add(d.category);
+    });
     return ["All", ...Array.from(set)];
   }, [dishes]);
 
   // Filtered dishes
   const filteredDishes = useMemo(() => {
     return dishes.filter((d) => {
-      const matchCat = selectedCategory === "All" || d.category.toLowerCase() === selectedCategory.toLowerCase();
+      const matchCat =
+        selectedCategory === "All" ||
+        d.category.toLowerCase().trim() === selectedCategory.toLowerCase().trim();
       const matchSearch =
         !search.trim() ||
         d.name.toLowerCase().includes(search.toLowerCase()) ||
-        d.desc.toLowerCase().includes(search.toLowerCase());
+        d.desc.toLowerCase().includes(search.toLowerCase()) ||
+        d.category.toLowerCase().includes(search.toLowerCase());
       const matchVeg = !vegOnly || d.veg;
       return matchCat && matchSearch && matchVeg;
     });
   }, [dishes, selectedCategory, search, vegOnly]);
+
+  // Group dishes by category if "All" is selected
+  const groupedDishes = useMemo(() => {
+    if (selectedCategory !== "All") {
+      return [{ categoryName: selectedCategory, items: filteredDishes }];
+    }
+
+    const groups: { categoryName: string; items: Dish[] }[] = [];
+    const categoryMap = new Map<string, Dish[]>();
+
+    for (const d of filteredDishes) {
+      const cat = d.category || "Main Course";
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, []);
+      }
+      categoryMap.get(cat)!.push(d);
+    }
+
+    for (const [categoryName, items] of categoryMap.entries()) {
+      groups.push({ categoryName, items });
+    }
+
+    return groups;
+  }, [filteredDishes, selectedCategory]);
 
   const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
   const cartTotal = cart.reduce((sum, i) => {
@@ -191,7 +220,7 @@ export default function MenuPage() {
               </div>
             </div>
 
-            {/* Veg Switch & Search Bar */}
+            {/* Veg Switch */}
             <div className="flex items-center gap-3 self-start md:self-center">
               <div className="flex items-center gap-2 bg-[#fbf9f4] px-4 py-2 rounded-2xl border border-[#e6e2d8]">
                 <span className="text-xs font-bold text-[#0d261e]">Pure Veg</span>
@@ -219,7 +248,7 @@ export default function MenuPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search within Malashree menu (e.g. paneer, dal makhani, naan, thali)..."
+                placeholder="Search within Malashree menu (e.g. thali, biryani, paneer, naan, noodles)..."
                 className="w-full h-11 pl-11 pr-4 bg-[#fbf9f4] rounded-xl border border-[#e6e2d8] text-xs text-[#0d261e] placeholder:text-[#52635c] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
               />
               {search && (
@@ -238,7 +267,7 @@ export default function MenuPage() {
               const count =
                 cat === "All"
                   ? dishes.length
-                  : dishes.filter((d) => d.category.toLowerCase() === cat.toLowerCase()).length;
+                  : dishes.filter((d) => d.category.toLowerCase().trim() === cat.toLowerCase().trim()).length;
               const isSelected = selectedCategory === cat;
 
               return (
@@ -280,7 +309,7 @@ export default function MenuPage() {
                   const count =
                     cat === "All"
                       ? dishes.length
-                      : dishes.filter((d) => d.category.toLowerCase() === cat.toLowerCase()).length;
+                      : dishes.filter((d) => d.category.toLowerCase().trim() === cat.toLowerCase().trim()).length;
                   const isSelected = selectedCategory === cat;
 
                   return (
@@ -325,95 +354,106 @@ export default function MenuPage() {
           </aside>
 
           {/* Right Main Column: Dish Cards Feed */}
-          <section className="lg:col-span-9 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base sm:text-lg font-black text-[#0d261e] tracking-tight">
-                {selectedCategory} ({filteredDishes.length} Items)
-              </h3>
-            </div>
+          <section className="lg:col-span-9 space-y-8">
+            {groupedDishes.map((group) => (
+              <div key={group.categoryName} className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-[#e6e2d8]">
+                  <h3 className="text-base sm:text-lg font-black text-[#0d261e] tracking-tight flex items-center gap-2">
+                    <span>{group.categoryName}</span>
+                    <span className="text-xs font-bold text-[#52635c] bg-gray-100 px-2 py-0.5 rounded-full">
+                      {group.items.length}
+                    </span>
+                  </h3>
+                </div>
 
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredDishes.map((dish) => {
-                const inCart = cart.find((c) => c.dishId === dish.id);
-                const qty = inCart?.qty || 0;
+                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {group.items.map((dish) => {
+                    const inCart = cart.find((c) => c.dishId === dish.id);
+                    const qty = inCart?.qty || 0;
 
-                return (
-                  <div
-                    key={dish.id}
-                    className="bg-white rounded-3xl p-4.5 border border-[#e6e2d8] shadow-2xs flex justify-between gap-4 hover:border-[#d4af37] transition group flex-col sm:flex-row"
-                  >
-                    {/* Details */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className="size-3.5 rounded-sm border border-[#064e3b] grid place-items-center shrink-0">
-                            <div className="size-1.5 rounded-full bg-[#064e3b]" />
+                    return (
+                      <div
+                        key={dish.id}
+                        className="bg-white rounded-3xl p-4.5 border border-[#e6e2d8] shadow-2xs flex justify-between gap-4 hover:border-[#d4af37] transition group flex-col sm:flex-row"
+                      >
+                        {/* Details */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <div className="size-3.5 rounded-sm border border-[#064e3b] grid place-items-center shrink-0">
+                                <div className="size-1.5 rounded-full bg-[#064e3b]" />
+                              </div>
+                              {dish.tag && (
+                                <span className="text-[10px] font-black uppercase text-[#064e3b] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                  {dish.tag}
+                                </span>
+                              )}
+                            </div>
+
+                            <h4 className="font-extrabold text-sm sm:text-base text-[#0d261e] leading-snug group-hover:text-[#064e3b] transition">
+                              {dish.name}
+                            </h4>
+                            <p className="font-black text-sm text-[#064e3b] mt-1">₹{dish.price}</p>
+                            {dish.desc && (
+                              <p className="text-xs text-[#52635c] mt-1 line-clamp-2 leading-relaxed font-normal">
+                                {dish.desc}
+                              </p>
+                            )}
                           </div>
-                          {dish.tag && (
-                            <span className="text-[10px] font-black uppercase text-[#064e3b] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                              {dish.tag}
+
+                          <div className="flex items-center gap-2 text-xs text-[#52635c] mt-3">
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-[#064e3b] font-extrabold text-[10px] flex items-center gap-1 border border-emerald-200">
+                              {dish.rating || 4.8} <Star className="size-2.5 fill-[#d4af37] text-[#d4af37]" />
                             </span>
-                          )}
+                            <span>•</span>
+                            <span>{dish.time || "25 mins"}</span>
+                          </div>
                         </div>
 
-                        <h4 className="font-extrabold text-sm sm:text-base text-[#0d261e] leading-snug group-hover:text-[#064e3b] transition">
-                          {dish.name}
-                        </h4>
-                        <p className="font-black text-sm text-[#064e3b] mt-1">₹{dish.price}</p>
-                        {dish.desc && (
-                          <p className="text-xs text-[#52635c] mt-1 line-clamp-2 leading-relaxed font-normal">
-                            {dish.desc}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 text-xs text-[#52635c] mt-3">
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-[#064e3b] font-extrabold text-[10px] flex items-center gap-1 border border-emerald-200">
-                          {dish.rating || 4.8} <Star className="size-2.5 fill-[#d4af37] text-[#d4af37]" />
-                        </span>
-                        <span>•</span>
-                        <span>{dish.time || "25 mins"}</span>
-                      </div>
-                    </div>
-
-                    {/* Photo & Overlapping ADD button */}
-                    <div className="relative shrink-0 flex flex-col items-center self-center sm:self-start">
-                      <div className="size-28 sm:size-32 rounded-2xl overflow-hidden bg-gray-100 shadow-2xs">
-                        <img src={dish.image} alt={dish.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                      </div>
-
-                      <div className="absolute -bottom-2 w-22">
-                        {qty === 0 ? (
-                          <button
-                            onClick={() => addToCart(dish.id)}
-                            className="w-full h-8.5 bg-white border border-[#064e3b] text-[#064e3b] rounded-xl text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#064e3b] hover:text-[#d4af37] transition flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <span>ADD</span>
-                            <Plus className="size-3 stroke-[3]" />
-                          </button>
-                        ) : (
-                          <div className="w-full h-8.5 bg-[#064e3b] text-[#d4af37] rounded-xl flex items-center justify-between px-2 shadow-md">
-                            <button
-                              onClick={() => removeFromCart(dish.id)}
-                              className="p-1 hover:bg-black/20 rounded cursor-pointer"
-                            >
-                              <Minus className="size-3 stroke-[3]" />
-                            </button>
-                            <span className="text-xs font-black text-white">{qty}</span>
-                            <button
-                              onClick={() => setQty(dish.id, qty + 1)}
-                              className="p-1 hover:bg-black/20 rounded cursor-pointer"
-                            >
-                              <Plus className="size-3 stroke-[3]" />
-                            </button>
+                        {/* Photo & Overlapping ADD button */}
+                        <div className="relative shrink-0 flex flex-col items-center self-center sm:self-start">
+                          <div className="size-28 sm:size-32 rounded-2xl overflow-hidden bg-gray-100 shadow-2xs">
+                            <img
+                              src={dish.image}
+                              alt={dish.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            />
                           </div>
-                        )}
+
+                          <div className="absolute -bottom-2 w-22">
+                            {qty === 0 ? (
+                              <button
+                                onClick={() => addToCart(dish.id)}
+                                className="w-full h-8.5 bg-white border border-[#064e3b] text-[#064e3b] rounded-xl text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#064e3b] hover:text-[#d4af37] transition flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <span>ADD</span>
+                                <Plus className="size-3 stroke-[3]" />
+                              </button>
+                            ) : (
+                              <div className="w-full h-8.5 bg-[#064e3b] text-[#d4af37] rounded-xl flex items-center justify-between px-2 shadow-md">
+                                <button
+                                  onClick={() => removeFromCart(dish.id)}
+                                  className="p-1 hover:bg-black/20 rounded cursor-pointer"
+                                >
+                                  <Minus className="size-3 stroke-[3]" />
+                                </button>
+                                <span className="text-xs font-black text-white">{qty}</span>
+                                <button
+                                  onClick={() => setQty(dish.id, qty + 1)}
+                                  className="p-1 hover:bg-black/20 rounded cursor-pointer"
+                                >
+                                  <Plus className="size-3 stroke-[3]" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </section>
         </div>
       </main>
@@ -429,7 +469,7 @@ export default function MenuPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-[#d4af37]">
                 {cartCount} item{cartCount > 1 ? "s" : ""} added
               </span>
-              <span className="text-base font-black">₹{cartTotal} plus taxes</span>
+              <span className="text-base font-black">₹{cartTotal.toFixed(2)} plus taxes</span>
             </div>
             <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-[#d4af37]">
               <span>View Cart</span>

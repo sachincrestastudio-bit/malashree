@@ -43,24 +43,27 @@ const getKitchenContext = async (requestedBranchCode?: string) => {
     }
   }
 
-  if (!kitchenId) {
-    throw new Error("No active kitchen branch found.");
-  }
-
-  return kitchenId;
+  return kitchenId || requestedBranchCode || "";
 };
 
-// Map MongoDB documents to the expected frontend type
+// Map MongoDB documents or MenuService objects to the expected frontend type
 const mapMenuItem = (d: any) => ({
-  id: d._id.toString(),
+  id: (d._id || d.id || "").toString(),
   name: d.name,
-  desc: d.description,
-  price: d.price,
-  image: d.images?.[0] || "",
-  veg: d.isVeg ?? true,
+  desc: d.description || d.desc || "",
+  price: Number(d.price) || 0,
+  image:
+    (d.images && d.images[0]) ||
+    d.image ||
+    "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
+  veg: d.isVeg !== undefined ? d.isVeg : (d.veg !== undefined ? d.veg : true),
   rating: d.rating || 4.8,
-  category: d.category?.name || "Uncategorized",
-  tag: d.tags?.[0] || undefined,
+  category:
+    typeof d.category === "object"
+      ? d.category?.name || "Main Course"
+      : d.category || "Main Course",
+  tag: (d.tags && d.tags[0]) || d.tag || undefined,
+  time: d.time || "25 mins",
 });
 
 export const getKitchenMenu = async (requestedBranchCode?: string) => {
