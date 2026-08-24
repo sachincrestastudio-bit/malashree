@@ -1,26 +1,47 @@
 import { connectToDatabase } from "../database/mongoose";
 import { MenuItem } from "../models/MenuItem";
 import { Kitchen } from "../models/Kitchen";
+import { Category } from "../models/Category";
 import mongoose from "mongoose";
 
 export class MenuService {
-  static async getMenuByKitchen(kitchenIdentifier: string) {
+  static async getMenuByKitchen(kitchenIdentifier?: string) {
     await connectToDatabase();
 
-    if (!kitchenIdentifier) return [];
+    // Ensure models are registered for populate
+    Category.modelName;
+    Kitchen.modelName;
+    MenuItem.modelName;
 
-    const isObjectId = mongoose.Types.ObjectId.isValid(kitchenIdentifier);
+    let kitchenIdStr: string | null = null;
 
-    // Resolve kitchen document
-    const kitchen = (await Kitchen.findOne({
-      $or: [
-        ...(isObjectId ? [{ _id: kitchenIdentifier }] : []),
-        { code: new RegExp(`^${kitchenIdentifier}$`, "i") },
-      ],
-      deletedAt: null,
-    }).lean()) as any;
+    if (kitchenIdentifier) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(kitchenIdentifier);
+      const kitchen = (await Kitchen.findOne({
+        $or: [
+          ...(isObjectId ? [{ _id: kitchenIdentifier }] : []),
+          { code: new RegExp(`^${kitchenIdentifier}$`, "i") },
+        ],
+        deletedAt: null,
+      }).lean()) as any;
 
-    const kitchenIdStr = kitchen ? kitchen._id.toString() : (isObjectId ? kitchenIdentifier : null);
+      if (kitchen) {
+        kitchenIdStr = kitchen._id.toString();
+      } else if (isObjectId) {
+        kitchenIdStr = kitchenIdentifier;
+      }
+    }
+
+    // If no kitchen specified or found, get the first active kitchen
+    if (!kitchenIdStr) {
+      const defaultKitchen = (await Kitchen.findOne({
+        status: "active",
+        deletedAt: null,
+      }).lean()) as any;
+      if (defaultKitchen) {
+        kitchenIdStr = defaultKitchen._id.toString();
+      }
+    }
 
     const rawItems = await MenuItem.find({
       $or: [
@@ -30,7 +51,7 @@ export class MenuService {
       ],
       deletedAt: null,
     })
-      .populate("category")
+      .populate({ path: "category", model: Category })
       .lean();
 
     return rawItems
@@ -59,19 +80,25 @@ export class MenuService {
         // If dish is disabled for this branch, don't show on menu
         if (!isEnabled || !isAvailable) return null;
 
+        const catName =
+          (typeof item.category === "object" && item.category?.name) ||
+          (typeof item.category === "string" ? item.category : "Main Course");
+
         return {
           id: item._id.toString(),
           name: item.name,
           desc: item.description || "",
           price: finalPrice,
-          category: item.category?.name || "Main Course",
+          category: catName,
           tag: item.tags?.[0],
           rating: item.rating || 4.8,
           reviews: 120,
           veg: item.isVeg !== undefined ? item.isVeg : true,
           spice: 1,
           time: "25 mins",
-          image: item.images?.[0] || "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
+          image:
+            item.images?.[0] ||
+            "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
           isAvailable,
         };
       })

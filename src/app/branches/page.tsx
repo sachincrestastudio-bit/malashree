@@ -12,26 +12,20 @@ import {
   Star,
   RefreshCw,
   Navigation,
-  AlertTriangle,
   LocateFixed,
+  Sparkles,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { useStore } from "@/lib/store";
-import { setAssignedKitchen, getActiveKitchens, findNearestKitchenAndAssign } from "@/actions/kitchen";
-import { requestGPSLocation } from "@/services/client/LocationService";
+import { getActiveKitchens } from "@/actions/kitchen";
+import { LocationModal } from "@/components/LocationModal";
 
 export default function BranchesPage() {
-  const currentBranchId = useStore((s) => s.branchId);
-  const setBranch = useStore((s) => s.setBranch);
-  const resolveLocation = useStore((s) => s.resolveLocation);
   const userLocation = useStore((s) => s.userLocation);
-  const setUserLocation = useStore((s) => s.setUserLocation);
 
   const [activeKitchens, setActiveKitchens] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [switching, setSwitching] = useState<string | null>(null);
-  const [detecting, setDetecting] = useState(false);
-  const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
   useEffect(() => {
     getActiveKitchens().then((kitchens) => {
@@ -42,56 +36,6 @@ export default function BranchesPage() {
     });
   }, []);
 
-  const handleSelectKitchen = async (branchId: string) => {
-    setSwitching(branchId);
-    await setAssignedKitchen(branchId);
-    setBranch(branchId);
-    resolveLocation(branchId);
-    setSwitching(null);
-  };
-
-  const handleDetectGPS = async () => {
-    setDetecting(true);
-    setStatusMsg(null);
-
-    try {
-      const coords = await requestGPSLocation();
-      const res = await findNearestKitchenAndAssign(coords.latitude, coords.longitude);
-
-      if (res.success && res.nearestKitchen) {
-        setBranch(res.nearestKitchen.id);
-        resolveLocation(res.nearestKitchen.id);
-        setUserLocation({
-          lat: coords.latitude,
-          lng: coords.longitude,
-          distanceKm: res.nearestKitchen.distanceKm,
-          etaMin: res.nearestKitchen.etaMin,
-          kitchenName: res.nearestKitchen.name,
-          label: `Near ${res.nearestKitchen.area}`,
-        });
-
-        if (res.allKitchens) {
-          setActiveKitchens(res.allKitchens);
-        }
-
-        setStatusMsg({
-          type: "success",
-          text: `Located! Connected to nearest branch: ${res.nearestKitchen.name} (${res.nearestKitchen.distanceKm} km away).`,
-        });
-      } else {
-        setStatusMsg({ type: "error", text: res.error || "Failed to locate nearest kitchen." });
-      }
-    } catch (err: any) {
-      console.error("GPS Detection error:", err);
-      setStatusMsg({
-        type: "error",
-        text: err.message || "GPS location permission denied or unavailable.",
-      });
-    } finally {
-      setDetecting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-32">
       <Header />
@@ -100,55 +44,55 @@ export default function BranchesPage() {
         {/* Masthead Header */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e6e2d8] shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#52635c]">
-              MALASHREE CLOUD KITCHEN NETWORK
-            </span>
+            <div className="flex items-center gap-2 text-xs font-mono tracking-widest text-[#064e3b] uppercase font-bold">
+              <Sparkles className="size-4 text-[#d4af37]" />
+              <span>HYPERLOCAL CLOUD KITCHEN NETWORK</span>
+            </div>
             <h1 className="text-2xl sm:text-4xl font-black text-[#0d261e] tracking-tight mt-1">
-              Select Delivery Kitchen in Pune
+              Malashree Kitchen Network
             </h1>
             <p className="text-xs sm:text-sm text-[#52635c] mt-1.5 max-w-xl">
-              Freshly cooked in 100% pure vegetarian kitchens and dispatched in 20-25 minutes. Choose your closest branch or use GPS auto-detect.
+              We operate 6 cloud kitchens across Pune. Every order is automatically routed to your closest branch to ensure hot, 20-minute delivery.
             </p>
           </div>
 
           <button
-            onClick={handleDetectGPS}
-            disabled={detecting}
+            onClick={() => setShowLocationModal(true)}
             className="px-6 py-3.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-md flex items-center gap-2 border border-[#d4af37]/30 cursor-pointer self-start md:self-center shrink-0"
           >
-            {detecting ? (
-              <>
-                <RefreshCw className="size-4 animate-spin text-[#d4af37]" />
-                <span>Locating Nearest Branch...</span>
-              </>
-            ) : (
-              <>
-                <LocateFixed className="size-4 text-[#d4af37]" />
-                <span>Auto-Detect Nearest Kitchen</span>
-              </>
-            )}
+            <LocateFixed className="size-4 text-[#d4af37]" />
+            <span>Update My Delivery Location</span>
           </button>
         </div>
 
-        {/* Status Message */}
-        {statusMsg && (
-          <div
-            className={`p-4.5 rounded-2xl border text-xs font-bold flex items-center gap-3 shadow-2xs ${
-              statusMsg.type === "success"
-                ? "bg-emerald-50 text-emerald-900 border-emerald-300"
-                : "bg-rose-50 text-rose-900 border-rose-300"
-            }`}
-          >
-            {statusMsg.type === "success" ? (
-              <CheckCircle2 className="size-5 text-emerald-700 shrink-0" />
-            ) : (
-              <AlertTriangle className="size-5 text-rose-700 shrink-0" />
-            )}
-            <span>{statusMsg.text}</span>
+        {/* Auto Dispatch Guarantee Card */}
+        <div className="p-5 rounded-3xl bg-emerald-50/80 border border-emerald-300 flex items-center justify-between gap-4 shadow-2xs">
+          <div className="flex items-center gap-3.5">
+            <div className="size-11 rounded-2xl bg-[#064e3b] text-[#d4af37] grid place-items-center shrink-0">
+              <ShieldCheck className="size-6" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-[#064e3b]">
+                Smart Distance Auto-Routing Active
+              </h3>
+              <p className="text-xs text-[#52635c] mt-0.5">
+                Currently fulfilling your orders from:{" "}
+                <b className="text-[#0d261e]">{userLocation?.kitchenName || "Nearest Malashree Branch"}</b>{" "}
+                ({userLocation?.distanceKm ? `${userLocation.distanceKm} km away` : "Pune"})
+              </p>
+            </div>
           </div>
-        )}
 
-        {/* Branches Grid (Responsive on Mobile, Tablets, Laptops & Desktops) */}
+          <Link
+            href="/menu"
+            className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#064e3b] text-[#d4af37] text-xs font-black uppercase tracking-wider hover:bg-[#0a5c46] transition shrink-0"
+          >
+            <span>Order Food</span>
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+
+        {/* Branches Grid (Read-only Informational) */}
         {loading ? (
           <div className="bg-white rounded-3xl p-16 text-center border border-[#e6e2d8] shadow-2xs space-y-3">
             <RefreshCw className="size-8 animate-spin mx-auto text-[#064e3b]" />
@@ -157,16 +101,17 @@ export default function BranchesPage() {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeKitchens.map((b: any) => {
-              const isSelected =
-                currentBranchId === b.id || currentBranchId === b.code || currentBranchId === b._id;
+              const isAssigned =
+                userLocation?.kitchenName === b.name ||
+                userLocation?.label?.includes(b.area);
 
               return (
                 <div
                   key={b.id || b._id}
-                  className={`bg-white rounded-3xl p-6 border transition shadow-2xs flex flex-col justify-between space-y-5 hover:shadow-md ${
-                    isSelected
+                  className={`bg-white rounded-3xl p-6 border transition shadow-2xs flex flex-col justify-between space-y-5 ${
+                    isAssigned
                       ? "border-[#064e3b] ring-2 ring-[#064e3b]/20"
-                      : "border-[#e6e2d8] hover:border-[#d4af37]"
+                      : "border-[#e6e2d8]"
                   }`}
                 >
                   <div className="flex items-start gap-4">
@@ -183,9 +128,9 @@ export default function BranchesPage() {
                           {b.name}
                         </h3>
                       </div>
-                      {isSelected && (
+                      {isAssigned && (
                         <span className="inline-block mt-1 px-2.5 py-0.5 rounded-md bg-emerald-50 text-[#064e3b] border border-emerald-300 font-extrabold text-[10px]">
-                          CONNECTED BRANCH
+                          FULFILLING YOUR ORDERS
                         </span>
                       )}
                       <p className="text-xs text-[#52635c] mt-1.5 flex items-center gap-1">
@@ -200,47 +145,17 @@ export default function BranchesPage() {
                         <span>•</span>
                         <span className="flex items-center gap-1 text-[#064e3b] font-bold">
                           <Clock className="size-3 text-[#064e3b]" />
-                          {b.etaMin || 25} mins
+                          {b.etaMin || 22} mins ETA
                         </span>
-                        {b.distanceKm !== undefined && (
-                          <>
-                            <span>•</span>
-                            <span className="font-bold text-[#0d261e]">{b.distanceKm} km</span>
-                          </>
-                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-xs text-[#52635c] font-semibold">
+                  <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-[#52635c]">
+                    <span className="font-semibold">
                       Service Radius: {((b.deliveryRadius || 10000) / 1000).toFixed(0)} km
                     </span>
-
-                    {isSelected ? (
-                      <div className="flex items-center gap-1.5 text-xs font-black text-[#064e3b]">
-                        <CheckCircle2 className="size-4 text-[#064e3b]" />
-                        <span>Active Kitchen</span>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleSelectKitchen(b.id || b._id || b.code)}
-                        disabled={switching === (b.id || b._id)}
-                        className="px-4 py-2.5 rounded-xl bg-[#fbf9f4] hover:bg-[#064e3b] hover:text-[#d4af37] transition text-xs font-bold text-[#0d261e] flex items-center gap-1.5 cursor-pointer shadow-2xs border border-[#e6e2d8]"
-                      >
-                        {switching === (b.id || b._id) ? (
-                          <>
-                            <RefreshCw className="size-3.5 animate-spin" />
-                            <span>Connecting...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Connect Kitchen</span>
-                            <ArrowRight className="size-3.5" />
-                          </>
-                        )}
-                      </button>
-                    )}
+                    <span className="font-bold text-[#064e3b]">100% Pure Veg</span>
                   </div>
                 </div>
               );
@@ -248,6 +163,11 @@ export default function BranchesPage() {
           </div>
         )}
       </main>
+
+      <LocationModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+      />
     </div>
   );
 }
