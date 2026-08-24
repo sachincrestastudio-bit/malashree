@@ -24,6 +24,7 @@ import { useStore } from "@/lib/store";
 import { getAssignedKitchenDetails } from "@/actions/kitchen";
 import { getKitchenMenu } from "@/actions/menu";
 import { placeOrder } from "@/actions/checkout";
+import { getSystemSettings } from "@/actions/adminSetting";
 
 export default function CheckoutPage() {
   const cart = useStore((s) => s.cart);
@@ -41,11 +42,23 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [showBillDrawer, setShowBillDrawer] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
   const [deliveryAddress, setDeliveryAddress] = useState(
     profile?.address || "Flat 402, Green Acres, Pimple Saudagar, Pune"
   );
 
   const nav = useRouter();
+
+  // Load system settings (GST %, packaging, delivery threshold)
+  useEffect(() => {
+    let mounted = true;
+    getSystemSettings().then((s) => {
+      if (mounted && s) setSettings(s);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     getAssignedKitchenDetails().then((details) => {
@@ -80,14 +93,17 @@ export default function CheckoutPage() {
     return items.reduce((sum, i) => sum + (i.dish?.price || 0) * i.qty, 0);
   }, [items]);
 
+  const taxRate = settings?.taxPercentage ?? 5;
+  const packaging = settings?.packagingCharge ?? 15;
+  const platformFee = settings?.platformFee ?? 5.0;
+  const defaultDelivery = settings?.defaultDeliveryFee ?? 34;
+  const freeThreshold = settings?.freeDeliveryThreshold ?? 500;
+
   const subtotal = cartTotals?.subtotal ?? localSubtotal;
   const discount = cartTotals?.discount ?? 0;
-  const delivery = cartTotals?.deliveryFee ?? (localSubtotal > 500 || localSubtotal === 0 ? 0 : 34);
-  const gst = cartTotals?.tax ?? Math.round(localSubtotal * 0.05);
-  const packaging = 15;
-  const platformFee = 5.0;
-  const donation = 3.0;
-  const total = Math.max(0, subtotal + packaging + delivery + platformFee + donation + gst - discount);
+  const delivery = cartTotals?.deliveryFee ?? (localSubtotal >= freeThreshold || localSubtotal === 0 ? 0 : defaultDelivery);
+  const gst = cartTotals?.tax ?? parseFloat(((localSubtotal * taxRate) / 100).toFixed(2));
+  const total = Math.max(0, subtotal + packaging + delivery + platformFee + gst - discount);
   const coupon = cartTotals?.couponCode || null;
 
   const handlePlaceOrder = async () => {
@@ -313,8 +329,8 @@ export default function CheckoutPage() {
         deliveryFee={delivery}
         distanceKm={userLocation?.distanceKm || 2.1}
         platformFee={platformFee}
-        donation={donation}
         gst={gst}
+        gstPercentage={taxRate}
         discount={discount}
         couponCode={coupon}
         grandTotal={total}

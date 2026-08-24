@@ -15,7 +15,9 @@ export const getSystemSettings = async () => {
         supportEmail: "support@malashree.in",
         supportPhone: "+91 99999 88888",
         taxPercentage: 5,
-        defaultDeliveryFee: 40,
+        packagingCharge: 15,
+        platformFee: 5,
+        defaultDeliveryFee: 34,
         freeDeliveryThreshold: 500,
         maxDeliveryRadiusKm: 10,
         autoAssignDrivers: true,
@@ -39,6 +41,8 @@ export const updateSystemSettings = async (data: {
   supportEmail?: string;
   supportPhone?: string;
   taxPercentage?: number;
+  packagingCharge?: number;
+  platformFee?: number;
   defaultDeliveryFee?: number;
   freeDeliveryThreshold?: number;
   maxDeliveryRadiusKm?: number;
@@ -63,6 +67,8 @@ export const updateSystemSettings = async (data: {
 
     try {
       revalidatePath("/admin/settings");
+      revalidatePath("/cart");
+      revalidatePath("/checkout");
       revalidatePath("/");
     } catch (e) {}
 

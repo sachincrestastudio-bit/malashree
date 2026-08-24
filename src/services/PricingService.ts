@@ -1,30 +1,40 @@
 export class PricingService {
   /**
-   * Calculates all cart totals based on item prices and an optional discount amount.
+   * Calculates all cart totals based on item prices, discount, and admin dynamic GST rate.
    */
   static calculateTotals(
     items: { price: number; quantity: number }[],
     discountPercentage: number = 0,
+    taxPercentage: number = 5,
+    packagingCharge: number = 15,
+    platformFee: number = 5,
+    defaultDeliveryFee: number = 34,
+    freeDeliveryThreshold: number = 500,
   ) {
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // Apply discount (e.g., 0.1 for 10% off)
     const discount = Math.round(subtotal * discountPercentage);
+    const subtotalAfterDiscount = Math.max(0, subtotal - discount);
 
-    const subtotalAfterDiscount = subtotal - discount;
+    // GST calculated dynamically from admin settings
+    const tax = subtotal > 0 ? parseFloat(((subtotalAfterDiscount * taxPercentage) / 100).toFixed(2)) : 0;
 
-    // GST 5%
-    const tax = Math.round(subtotalAfterDiscount * 0.05);
+    // Delivery fee
+    const deliveryFee = subtotal > 0 ? (subtotal >= freeDeliveryThreshold ? 0 : defaultDeliveryFee) : 0;
+    const packaging = subtotal > 0 ? packagingCharge : 0;
+    const platform = subtotal > 0 ? platformFee : 0;
 
-    // Delivery fee: Free if subtotal > 499, otherwise 39
-    const deliveryFee = subtotal > 0 ? (subtotal > 499 ? 0 : 39) : 0;
-
-    const grandTotal = subtotalAfterDiscount + tax + deliveryFee;
+    const grandTotal = subtotal > 0
+      ? parseFloat((subtotalAfterDiscount + packaging + platform + deliveryFee + tax).toFixed(2))
+      : 0;
 
     return {
       subtotal,
       discount,
       tax,
+      taxPercentage,
+      packagingCharge: packaging,
+      platformFee: platform,
       deliveryFee,
       grandTotal,
     };

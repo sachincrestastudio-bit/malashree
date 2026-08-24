@@ -24,6 +24,7 @@ import { BillSummaryDrawer } from "@/components/BillSummaryDrawer";
 import { useStore } from "@/lib/store";
 import { getBranch, findDish, ALL_CATEGORY_DISHES, Dish } from "@/lib/data";
 import { syncCartWithServer, applyCouponCode } from "@/actions/cart";
+import { getSystemSettings } from "@/actions/adminSetting";
 
 export default function CartPage() {
   const branchId = useStore((s) => s.branchId);
@@ -46,6 +47,18 @@ export default function CartPage() {
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [deliveryInstruction, setDeliveryInstruction] = useState<string | null>(null);
   const [showBillDrawer, setShowBillDrawer] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+
+  // Load system settings (dynamic GST percentage, packaging, fees)
+  useEffect(() => {
+    let mounted = true;
+    getSystemSettings().then((s) => {
+      if (mounted && s) setSettings(s);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Sync cart totals with server
   useEffect(() => {
@@ -107,15 +120,18 @@ export default function CartPage() {
     return items.reduce((sum, i) => sum + (i.dish?.price || 0) * i.qty, 0);
   }, [items]);
 
+  const taxRate = settings?.taxPercentage ?? 5;
+  const packaging = settings?.packagingCharge ?? 15;
+  const platformFee = settings?.platformFee ?? 5.0;
+  const defaultDelivery = settings?.defaultDeliveryFee ?? 34;
+  const freeThreshold = settings?.freeDeliveryThreshold ?? 500;
+
   const subtotal = cartTotals?.subtotal ?? localSubtotal;
   const discount = cartTotals?.discount ?? 0;
-  const delivery = cartTotals?.deliveryFee ?? (localSubtotal > 500 || localSubtotal === 0 ? 0 : 34);
-  const gst = cartTotals?.tax ?? Math.round(localSubtotal * 0.05);
-  const packaging = 15;
-  const platformFee = 5.0;
-  const donation = 3.0;
+  const delivery = cartTotals?.deliveryFee ?? (localSubtotal >= freeThreshold || localSubtotal === 0 ? 0 : defaultDelivery);
+  const gst = cartTotals?.tax ?? parseFloat(((localSubtotal * taxRate) / 100).toFixed(2));
   const tipAmount = selectedTip || 0;
-  const grandTotal = Math.max(0, subtotal + packaging + delivery + platformFee + donation + gst + tipAmount - discount);
+  const grandTotal = Math.max(0, subtotal + packaging + delivery + platformFee + gst + tipAmount - discount);
 
   const handleApplyCoupon = async (codeToApply?: string) => {
     const code = (codeToApply || couponInput).trim();
@@ -363,8 +379,8 @@ export default function CartPage() {
         deliveryFee={delivery}
         distanceKm={userLocation?.distanceKm || 2.1}
         platformFee={platformFee}
-        donation={donation}
         gst={gst}
+        gstPercentage={taxRate}
         discount={discount}
         couponCode={cartTotals?.couponCode}
         tipAmount={tipAmount}

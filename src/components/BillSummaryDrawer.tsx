@@ -23,8 +23,8 @@ interface BillSummaryDrawerProps {
   deliveryFee: number;
   distanceKm?: number;
   platformFee?: number;
-  donation?: number;
   gst: number;
+  gstPercentage?: number;
   discount?: number;
   couponCode?: string | null;
   tipAmount?: number;
@@ -41,8 +41,8 @@ export function BillSummaryDrawer({
   deliveryFee,
   distanceKm = 2.1,
   platformFee = 5.0,
-  donation = 3.0,
   gst,
+  gstPercentage = 5,
   discount = 0,
   couponCode,
   tipAmount = 0,
@@ -50,14 +50,12 @@ export function BillSummaryDrawer({
   selectedTip,
   onSelectTip,
 }: BillSummaryDrawerProps) {
-  const [includeDonation, setIncludeDonation] = useState(true);
   const [hasGold, setHasGold] = useState(false);
 
   const effectiveDelivery = hasGold ? 0 : deliveryFee;
-  const effectiveDonation = includeDonation ? donation : 0;
   const effectiveTotal = Math.max(
     0,
-    subtotal + packagingCharge + effectiveDelivery + platformFee + effectiveDonation + gst + tipAmount - discount
+    subtotal + packagingCharge + effectiveDelivery + platformFee + gst + tipAmount - discount
   );
 
   return (
@@ -73,7 +71,7 @@ export function BillSummaryDrawer({
             className="fixed inset-0 bg-black/60 backdrop-blur-xs"
           />
 
-          {/* Close button floating above card (matching Zomato design) */}
+          {/* Close button floating above card */}
           <motion.button
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -177,31 +175,15 @@ export function BillSummaryDrawer({
                   <span className="text-[#0d261e] font-bold">₹{platformFee.toFixed(2)}</span>
                 </div>
 
-                {/* 6. Feeding India Donation */}
-                <div className="flex justify-between items-center">
-                  <span>Feeding India donation</span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setIncludeDonation(!includeDonation)}
-                      className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
-                    >
-                      {includeDonation ? "Edit" : "Add"}
-                    </button>
-                    <span className="text-[#0d261e] font-bold">
-                      {includeDonation ? `₹${donation}` : "₹0"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 7. GST (govt. taxes) */}
+                {/* 6. GST (govt. taxes) - Dynamic percentage configured from Admin */}
                 <div className="flex justify-between items-center">
                   <span className="underline decoration-dotted decoration-gray-400">
-                    GST (govt. taxes)
+                    GST ({gstPercentage}% govt. taxes)
                   </span>
                   <span className="text-[#0d261e] font-bold">₹{gst.toFixed(2)}</span>
                 </div>
 
-                {/* 8. Coupon Discount (if active) */}
+                {/* 7. Coupon Discount (if active) */}
                 {discount > 0 && (
                   <div className="flex justify-between items-center text-[#064e3b] font-bold bg-emerald-50/70 p-2 rounded-xl border border-emerald-200">
                     <div className="flex items-center gap-1.5">
@@ -212,7 +194,7 @@ export function BillSummaryDrawer({
                   </div>
                 )}
 
-                {/* 9. Tip Amount (if added) */}
+                {/* 8. Tip Amount (if added) */}
                 {tipAmount > 0 && (
                   <div className="flex justify-between items-center text-[#064e3b] font-bold">
                     <span>Delivery Partner Tip</span>

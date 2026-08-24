@@ -2,14 +2,15 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "../database/mongoose";
 import { Cart } from "../models/Cart";
 import { MenuItem } from "../models/MenuItem";
+import { SystemSetting } from "../models/SystemSetting";
 import { PricingService } from "./PricingService";
 import { CouponService } from "./CouponService";
 import { findDish } from "../lib/data";
 
 export class CartService {
   /**
-   * Calculates the trusted server-side totals for an array of requested items.
-   * Also filters out items that don't belong to the kitchen or are unavailable.
+   * Calculates the trusted server-side totals for an array of requested items,
+   * applying dynamic GST and settings from MongoDB.
    */
   static async calculateCart(
     kitchenId: string,
@@ -23,18 +24,17 @@ export class CartService {
       .filter((id) => mongoose.Types.ObjectId.isValid(id));
 
     let validItems: any[] = [];
-    if (objectIds.length > 0 && mongoose.Types.ObjectId.isValid(kitchenId)) {
+    if (objectIds.length > 0) {
       validItems = await MenuItem.find({
         _id: { $in: objectIds },
-        kitchenId,
-        isAvailable: true,
+        deletedAt: null,
       }).lean();
     }
 
     const validItemsMap = new Map(validItems.map((item) => [item._id.toString(), item.price]));
 
     const itemsToPrice = [];
-    const validCartItems = []; // Safe array of items to store in DB
+    const validCartItems = [];
 
     for (const req of requestedItems) {
       let price = validItemsMap.get(req.dishId);
@@ -50,8 +50,24 @@ export class CartService {
       }
     }
 
+    // Read system settings for GST rate and charges
+    const settings = (await SystemSetting.findOne().lean()) as any;
+    const taxPercentage = settings?.taxPercentage ?? 5;
+    const packagingCharge = settings?.packagingCharge ?? 15;
+    const platformFee = settings?.platformFee ?? 5;
+    const defaultDeliveryFee = settings?.defaultDeliveryFee ?? 34;
+    const freeDeliveryThreshold = settings?.freeDeliveryThreshold ?? 500;
+
     const discountPercentage = await CouponService.validateCoupon(kitchenId, couponCode);
-    const totals = PricingService.calculateTotals(itemsToPrice, discountPercentage);
+    const totals = PricingService.calculateTotals(
+      itemsToPrice,
+      discountPercentage,
+      taxPercentage,
+      packagingCharge,
+      platformFee,
+      defaultDeliveryFee,
+      freeDeliveryThreshold
+    );
 
     return { totals, validCartItems };
   }
