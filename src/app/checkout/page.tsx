@@ -108,8 +108,8 @@ export default function CheckoutPage() {
     return cart.map((c) => {
       const dish = map.get(c.dishId) || {
         id: c.dishId,
-        name: "Selected Dish",
-        price: 0,
+        name: c.name || "Selected Dish",
+        price: c.price || 0,
       };
       return { ...c, dish };
     });

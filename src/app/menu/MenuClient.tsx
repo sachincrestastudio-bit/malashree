@@ -408,7 +408,14 @@ export default function MenuClient({
                           <div className="absolute -bottom-2 w-22">
                             {qty === 0 ? (
                               <button
-                                onClick={() => addToCart(dish.id)}
+                                onClick={() =>
+                                  addToCart(dish.id, {
+                                    name: dish.name,
+                                    price: dish.price,
+                                    image: dish.image,
+                                    veg: dish.veg,
+                                  })
+                                }
                                 className="w-full h-8.5 bg-white border border-[#064e3b] text-[#064e3b] rounded-xl text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#064e3b] hover:text-[#d4af37] transition flex items-center justify-center gap-1 cursor-pointer"
                               >
                                 <span>ADD</span>

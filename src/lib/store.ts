@@ -3,7 +3,15 @@ import { persist } from "zustand/middleware";
 import { BRANCHES, Dish } from "./data";
 import { setAssignedKitchen } from "@/actions/kitchen";
 
-export type CartItem = { dishId: string; qty: number };
+export type CartItem = {
+  dishId: string;
+  qty: number;
+  name?: string;
+  price?: number;
+  image?: string;
+  veg?: boolean;
+};
+
 export type Profile = {
   name: string;
   phone: string;
@@ -39,7 +47,10 @@ type State = {
     couponCode: string | null;
   } | null;
   setCartTotals: (totals: any) => void;
-  addToCart: (dishId: string) => void;
+  addToCart: (
+    dishId: string,
+    dishDetails?: { name?: string; price?: number; image?: string; veg?: boolean }
+  ) => void;
   removeFromCart: (dishId: string) => void;
   setQty: (dishId: string, qty: number) => void;
   clearCart: () => void;
@@ -59,7 +70,7 @@ export const useStore = create<State>()(
     (set, get) => ({
       branchId: "pimple-saudagar",
       setBranch: (id) => {
-        set({ branchId: id, kitchenMenu: [], cartTotals: null, locationResolved: true });
+        set({ branchId: id, locationResolved: true });
         setAssignedKitchen(id).catch(console.error);
       },
       kitchenMenu: [],
@@ -68,13 +79,38 @@ export const useStore = create<State>()(
       setCart: (cart) => set({ cart: Array.isArray(cart) ? cart : [] }),
       cartTotals: null,
       setCartTotals: (totals) => set({ cartTotals: totals }),
-      addToCart: (dishId) => {
+      addToCart: (dishId, dishDetails) => {
         const existing = get().cart.find((c) => c.dishId === dishId);
-        if (existing)
+        if (existing) {
           set({
-            cart: get().cart.map((c) => (c.dishId === dishId ? { ...c, qty: c.qty + 1 } : c)),
+            cart: get().cart.map((c) =>
+              c.dishId === dishId
+                ? {
+                    ...c,
+                    qty: c.qty + 1,
+                    name: dishDetails?.name || c.name,
+                    price: dishDetails?.price !== undefined ? dishDetails.price : c.price,
+                    image: dishDetails?.image || c.image,
+                    veg: dishDetails?.veg !== undefined ? dishDetails.veg : c.veg,
+                  }
+                : c
+            ),
           });
-        else set({ cart: [...get().cart, { dishId, qty: 1 }] });
+        } else {
+          set({
+            cart: [
+              ...get().cart,
+              {
+                dishId,
+                qty: 1,
+                name: dishDetails?.name,
+                price: dishDetails?.price,
+                image: dishDetails?.image,
+                veg: dishDetails?.veg,
+              },
+            ],
+          });
+        }
       },
       removeFromCart: (dishId) => set({ cart: get().cart.filter((c) => c.dishId !== dishId) }),
       setQty: (dishId, qty) =>
@@ -97,10 +133,6 @@ export const useStore = create<State>()(
       orders: [],
       locationResolved: false,
       resolveLocation: (branchId) => {
-        const currentBranch = get().branchId;
-        if (currentBranch && currentBranch !== branchId) {
-          // Keep items or refresh
-        }
         set({ branchId, locationResolved: true });
         setAssignedKitchen(branchId).catch(console.error);
       },

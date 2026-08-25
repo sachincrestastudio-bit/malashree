@@ -11,20 +11,16 @@ import {
   Ticket,
   CheckCircle2,
   AlertCircle,
-  MapPin,
-  Clock,
   ChevronRight,
   ShieldCheck,
   Receipt,
-  Info,
   Sparkles,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BillSummaryDrawer } from "@/components/BillSummaryDrawer";
 import { useStore } from "@/lib/store";
-import { getBranch, findDish, ALL_CATEGORY_DISHES, Dish } from "@/lib/data";
-import { syncCartWithServer, applyCouponCode, getCartDishDetails } from "@/actions/cart";
-import { getKitchenMenu } from "@/actions/menu";
+import { getBranch } from "@/lib/data";
+import { syncCartWithServer, applyCouponCode } from "@/actions/cart";
 import { getSystemSettings } from "@/actions/adminSetting";
 
 export default function CartPage() {
@@ -36,22 +32,24 @@ export default function CartPage() {
   const clearCart = useStore((s) => s.clearCart);
   const cartTotals = useStore((s) => s.cartTotals);
   const setCartTotals = useStore((s) => s.setCartTotals);
-  const kitchenMenu = useStore((s) => s.kitchenMenu) || [];
-  const setKitchenMenu = useStore((s) => s.setKitchenMenu);
-  const profile = useStore((s) => s.profile);
   const userLocation = useStore((s) => s.userLocation);
   const branch = getBranch(branchId);
 
-  const [dbDishes, setDbDishes] = useState<any[]>([]);
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
   const [cookingNote, setCookingNote] = useState("");
   const [deliveryInstruction, setDeliveryInstruction] = useState<string | null>(null);
   const [showBillDrawer, setShowBillDrawer] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<any>({
+    taxPercentage: 5,
+    packagingCharge: 15,
+    platformFee: 5.0,
+    defaultDeliveryFee: 34,
+    freeDeliveryThreshold: 500,
+  });
 
-  // Load system settings (dynamic GST percentage, packaging, fees)
+  // Load system settings asynchronously in background
   useEffect(() => {
     let mounted = true;
     getSystemSettings().then((s) => {
@@ -62,90 +60,46 @@ export default function CartPage() {
     };
   }, []);
 
-  // Fetch full kitchen dishes from MongoDB on mount
-  useEffect(() => {
-    let mounted = true;
-    getKitchenMenu(branchId).then((data) => {
-      if (mounted && data && data.length > 0) {
-        setDbDishes(data);
-        setKitchenMenu(data);
-      }
-    });
-    return () => {
-      mounted = false;
-    };
-  }, [branchId, setKitchenMenu]);
-
-  // Fetch specific cart dish details directly from server if any are missing
+  // Background sync for trusted server coupon validation
   useEffect(() => {
     let mounted = true;
     if (cart.length > 0) {
-      const ids = cart.map((c) => c.dishId);
-      getCartDishDetails(ids).then((details) => {
-        if (mounted && details && details.length > 0) {
-          setDbDishes((prev) => {
-            const map = new Map(prev.map((d) => [d.id, d]));
-            details.forEach((d: any) => map.set(d.id, d));
-            return Array.from(map.values());
-          });
-        }
-      });
-    }
-    return () => {
-      mounted = false;
-    };
-  }, [cart]);
-
-  // Sync cart totals with server
-  useEffect(() => {
-    let mounted = true;
-    const updateTotals = async () => {
-      if (cart.length > 0) {
+      const timer = setTimeout(async () => {
         try {
           const res = await syncCartWithServer(cart);
-          if (mounted && res && res.totals) {
+          if (mounted && res?.totals) {
             setCartTotals(res.totals);
           }
         } catch (e) {
           console.error("Cart sync notice:", e);
         }
-      }
-    };
-    const timer = setTimeout(updateTotals, 200);
-    return () => {
-      mounted = false;
-      clearTimeout(timer);
-    };
+      }, 400);
+      return () => {
+        mounted = false;
+        clearTimeout(timer);
+      };
+    }
   }, [cart, setCartTotals]);
 
-  // Combined dish map with full fallback support
-  const dishMap = useMemo(() => {
-    const map = new Map<string, any>();
-    for (const d of branch.menu) map.set(d.id, d);
-    for (const d of ALL_CATEGORY_DISHES) if (!map.has(d.id)) map.set(d.id, d);
-    for (const k of kitchenMenu) map.set(k.id, k);
-    for (const d of dbDishes) map.set(d.id, d);
-    return map;
-  }, [branch.menu, kitchenMenu, dbDishes]);
-
-  // Cart item objects
+  // Instant items resolution using persisted dish snapshot in store
   const items = useMemo(() => {
-    return cart.map((c) => {
-      const dish = dishMap.get(c.dishId) || findDish(c.dishId) || {
+    return cart.map((c) => ({
+      ...c,
+      dish: {
         id: c.dishId,
-        name: "Selected Dish",
-        price: 0,
-        image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
-      };
-      return {
-        ...c,
-        dish,
-      };
-    });
-  }, [cart, dishMap]);
+        name: c.name || "Selected Dish",
+        price: c.price || 0,
+        image:
+          c.image ||
+          "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
+        veg: c.veg !== undefined ? c.veg : true,
+      },
+    }));
+  }, [cart]);
 
+  // Instant local calculations (0ms lag)
   const localSubtotal = useMemo(() => {
-    return items.reduce((sum, i) => sum + (i.dish?.price || 0) * i.qty, 0);
+    return items.reduce((sum, i) => sum + (i.dish.price || 0) * i.qty, 0);
   }, [items]);
 
   const taxRate = settings?.taxPercentage ?? 5;
@@ -156,7 +110,9 @@ export default function CartPage() {
 
   const subtotal = cartTotals?.subtotal ?? localSubtotal;
   const discount = cartTotals?.discount ?? 0;
-  const delivery = cartTotals?.deliveryFee ?? (localSubtotal >= freeThreshold || localSubtotal === 0 ? 0 : defaultDelivery);
+  const delivery =
+    cartTotals?.deliveryFee ??
+    (localSubtotal >= freeThreshold || localSubtotal === 0 ? 0 : defaultDelivery);
   const gst = cartTotals?.tax ?? parseFloat(((localSubtotal * taxRate) / 100).toFixed(2));
   const grandTotal = Math.max(0, subtotal + packaging + delivery + platformFee + gst - discount);
 
@@ -184,7 +140,9 @@ export default function CartPage() {
           <div className="size-28 rounded-full bg-white border border-[#e6e2d8] shadow-xs mx-auto grid place-items-center">
             <ShoppingBag className="size-12 text-[#d4af37]" />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#0d261e] tracking-tight">Your cart is empty</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-[#0d261e] tracking-tight">
+            Your cart is empty
+          </h2>
           <p className="text-xs sm:text-sm text-[#52635c] max-w-sm mx-auto">
             You have no dishes in your cart yet. Explore Malashree's pure veg menu to start ordering!
           </p>
@@ -213,7 +171,8 @@ export default function CartPage() {
             </h1>
             <p className="text-xs text-[#52635c] mt-0.5">
               Preparing order from{" "}
-              <b className="text-[#0d261e]">{userLocation?.kitchenName || branch.name}</b> · {userLocation?.label || branch.area}
+              <b className="text-[#0d261e]">{userLocation?.kitchenName || branch.name}</b> ·{" "}
+              {userLocation?.label || branch.area}
             </p>
           </div>
 
@@ -226,7 +185,7 @@ export default function CartPage() {
           </button>
         </div>
 
-        {/* 2-Column Responsive Layout (Laptop/Desktop side-by-side) */}
+        {/* 2-Column Responsive Layout */}
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
           {/* Left Column: Cart Items List & Instructions */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-6">
@@ -238,7 +197,7 @@ export default function CartPage() {
 
               <div className="divide-y divide-gray-100">
                 {items.map(({ dish, qty, dishId }) => {
-                  const itemPrice = dish?.price || 0;
+                  const itemPrice = dish.price || 0;
                   const itemTotalPrice = itemPrice * qty;
 
                   return (
@@ -403,7 +362,7 @@ export default function CartPage() {
 
           {/* Right Column (Sticky Sidebar on Desktop & Laptop) */}
           <div className="lg:col-span-5 xl:col-span-4 mt-6 lg:mt-0 lg:sticky lg:top-24 space-y-4">
-            {/* Compact Total Bill Row with Arrow (Zomato-style) */}
+            {/* Compact Total Bill Row with Arrow */}
             <section
               onClick={() => setShowBillDrawer(true)}
               className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between cursor-pointer hover:border-[#064e3b] transition group"
@@ -441,7 +400,7 @@ export default function CartPage() {
               </Link>
             </div>
 
-            {/* Quality & Hygiene Guarantee Card */}
+            {/* Quality Guarantee Card */}
             <div className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs space-y-3">
               <div className="flex items-center gap-2.5">
                 <ShieldCheck className="size-5 text-[#064e3b]" />
@@ -484,7 +443,7 @@ export default function CartPage() {
         grandTotal={grandTotal}
       />
 
-      {/* Mobile Fixed Action Bar (Hidden on Desktop) */}
+      {/* Mobile Fixed Action Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e6e2d8] p-4 shadow-xl">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <div
