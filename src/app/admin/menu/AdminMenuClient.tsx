@@ -839,15 +839,24 @@ export default function AdminMenuClient({ items: initialItems, kitchens, categor
                             </button>
                           </td>
 
-                          {/* 7. Edit Master Details */}
+                          {/* 7. Edit & Delete Actions */}
                           <td className="px-5 py-3.5 text-right">
-                            <button
-                              onClick={() => handleOpenEdit(dish)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-[#064e3b] hover:bg-emerald-50 transition cursor-pointer"
-                              title="Edit Master Dish Details"
-                            >
-                              <Edit className="size-4" />
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenEdit(dish)}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-[#064e3b] hover:bg-emerald-50 transition cursor-pointer"
+                                title="Edit Master Dish Details"
+                              >
+                                <Edit className="size-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMasterDish(dish)}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                title="Delete Dish from Master Catalog"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
