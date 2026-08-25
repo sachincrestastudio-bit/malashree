@@ -3,6 +3,7 @@
 import { getCurrentUser } from "../user";
 import { connectToDatabase } from "@/database/mongoose";
 import { Kitchen } from "@/models/Kitchen";
+import { redirect } from "next/navigation";
 
 /**
  * Ensures the current user has kitchen access (admin or kitchen_manager).
@@ -13,7 +14,7 @@ export async function requireKitchenAccess(requestedKitchenId?: string) {
   const user = await getCurrentUser();
 
   if (!user || (user.role !== "kitchen_manager" && user.role !== "admin")) {
-    throw new Error("Unauthorized: Kitchen access required");
+    redirect("/login?redirect=/kitchen/menu");
   }
 
   let kitchenId = requestedKitchenId || user.assignedKitchen?.toString();
@@ -29,7 +30,7 @@ export async function requireKitchenAccess(requestedKitchenId?: string) {
   }
 
   if (!kitchenId) {
-    throw new Error("Forbidden: No kitchen available in the system");
+    redirect("/login?error=no_kitchen_assigned");
   }
 
   return {
