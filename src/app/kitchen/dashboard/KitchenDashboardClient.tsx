@@ -1,23 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ChefHat,
   TrendingUp,
   Clock,
-  AlertCircle,
   Package,
   CheckCircle2,
-  RefreshCw,
   Store,
   ArrowRight,
   Flame,
-  Bike,
-  Sparkles,
   UtensilsCrossed,
   Phone,
+  Loader2,
 } from "lucide-react";
 import { updateKitchenOrderStatus } from "@/actions/kitchen/orders";
 
@@ -62,12 +59,45 @@ interface Props {
 export default function KitchenDashboardClient({ data }: Props) {
   const router = useRouter();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [tickets, setTickets] = useState<Ticket[]>(data.activeTickets || []);
+  const [pendingCount, setPendingCount] = useState(data.pendingOrders);
+  const [preparingCount, setPreparingCount] = useState(data.preparingOrders);
+  const [readyCount, setReadyCount] = useState(data.readyOrders);
+
+  useEffect(() => {
+    setTickets(data.activeTickets || []);
+    setPendingCount(data.pendingOrders);
+    setPreparingCount(data.preparingOrders);
+    setReadyCount(data.readyOrders);
+  }, [data]);
 
   const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
     setUpdatingId(orderId);
-    await updateKitchenOrderStatus(orderId, nextStatus);
+
+    // Optimistic UI update
+    setTickets((prev) =>
+      prev.map((t) => (t.id === orderId ? { ...t, orderStatus: nextStatus } : t))
+    );
+
+    if (nextStatus === "preparing") {
+      setPendingCount((c) => Math.max(0, c - 1));
+      setPreparingCount((c) => c + 1);
+    } else if (nextStatus === "ready") {
+      setPreparingCount((c) => Math.max(0, c - 1));
+      setReadyCount((c) => c + 1);
+    } else if (nextStatus === "out_for_delivery") {
+      setReadyCount((c) => Math.max(0, c - 1));
+    }
+
+    const res = await updateKitchenOrderStatus(orderId, nextStatus);
     setUpdatingId(null);
-    router.refresh();
+
+    if (res?.error) {
+      alert(`Status update error: ${res.error}`);
+      router.refresh();
+    } else {
+      router.refresh();
+    }
   };
 
   return (
@@ -122,7 +152,7 @@ export default function KitchenDashboardClient({ data }: Props) {
             <Package className="size-3.5 text-amber-600" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-[#0d261e]">
-            {data.pendingOrders}
+            {pendingCount}
           </div>
           <p className="text-[10px] text-amber-700 font-bold">Awaiting prep</p>
         </div>
@@ -134,7 +164,7 @@ export default function KitchenDashboardClient({ data }: Props) {
             <Flame className="size-3.5 text-orange-600 animate-pulse" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-[#064e3b]">
-            {data.preparingOrders}
+            {preparingCount}
           </div>
           <p className="text-[10px] text-orange-700 font-bold">Cooking live</p>
         </div>
@@ -146,7 +176,7 @@ export default function KitchenDashboardClient({ data }: Props) {
             <CheckCircle2 className="size-3.5 text-[#064e3b]" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-[#0d261e]">
-            {data.readyOrders}
+            {readyCount}
           </div>
           <p className="text-[10px] text-[#064e3b] font-bold">Packed & hot</p>
         </div>
@@ -194,7 +224,7 @@ export default function KitchenDashboardClient({ data }: Props) {
           <div>
             <h3 className="font-black text-sm text-[#0d261e] uppercase tracking-wider flex items-center gap-2">
               <Package className="size-4 text-[#064e3b]" />
-              Live Kitchen Prep Queue ({data.activeTickets.length} Active Tickets)
+              Live Kitchen Prep Queue ({tickets.length} Active Tickets)
             </h3>
             <p className="text-xs text-[#52635c] mt-0.5">
               Instant action buttons to move tickets through preparation and rider handover.
@@ -224,14 +254,14 @@ export default function KitchenDashboardClient({ data }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e6e2d8]/60">
-              {data.activeTickets.length === 0 ? (
+              {tickets.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-xs text-[#52635c] font-bold">
                     No active tickets right now for this kitchen. Ready for incoming orders!
                   </td>
                 </tr>
               ) : (
-                data.activeTickets.map((ticket) => (
+                tickets.map((ticket) => (
                   <tr key={ticket.id} className="hover:bg-[#fbf9f4]/50 transition">
                     {/* Order Number */}
                     <td className="px-5 py-3.5 font-mono font-black text-sm text-[#0d261e]">
@@ -294,25 +324,34 @@ export default function KitchenDashboardClient({ data }: Props) {
                         <button
                           onClick={() => handleUpdateStatus(ticket.id, "preparing")}
                           disabled={updatingId === ticket.id}
-                          className="px-3.5 py-1.5 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition shadow-2xs border border-[#d4af37]/30 cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition shadow-2xs border border-[#d4af37]/30 cursor-pointer inline-flex items-center gap-1.5"
                         >
-                          Start Cooking
+                          {updatingId === ticket.id ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : null}
+                          <span>Start Cooking</span>
                         </button>
                       ) : ticket.orderStatus === "preparing" ? (
                         <button
                           onClick={() => handleUpdateStatus(ticket.id, "ready")}
                           disabled={updatingId === ticket.id}
-                          className="px-3.5 py-1.5 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 transition shadow-2xs cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 transition shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
                         >
-                          Mark Ready
+                          {updatingId === ticket.id ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : null}
+                          <span>Mark Ready</span>
                         </button>
                       ) : ticket.orderStatus === "ready" ? (
                         <button
                           onClick={() => handleUpdateStatus(ticket.id, "out_for_delivery")}
                           disabled={updatingId === ticket.id}
-                          className="px-3.5 py-1.5 rounded-xl bg-purple-700 text-white font-bold text-xs hover:bg-purple-800 transition shadow-2xs cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl bg-purple-700 text-white font-bold text-xs hover:bg-purple-800 transition shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
                         >
-                          Hand to Rider
+                          {updatingId === ticket.id ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : null}
+                          <span>Hand to Rider</span>
                         </button>
                       ) : null}
                     </td>

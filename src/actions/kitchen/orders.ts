@@ -11,17 +11,18 @@ export async function updateKitchenOrderStatus(orderId: string, newStatus: strin
     const user = await requireKitchenAccess();
     await connectToDatabase();
 
-    const kitchenQuery = {
-      $or: [{ kitchen: user.kitchenId }, { kitchenId: user.kitchenId }],
-    };
-
-    const order = await Order.findOne({
-      _id: orderId,
-      ...kitchenQuery,
-    });
-
+    const order = await Order.findById(orderId);
     if (!order) {
-      return { error: "Order not found or unauthorized for this kitchen." };
+      return { error: "Order not found." };
+    }
+
+    // Role check: kitchen_manager can only update orders for their assigned kitchen
+    if (
+      user.role === "kitchen_manager" &&
+      user.assignedKitchen &&
+      order.kitchen?.toString() !== user.assignedKitchen.toString()
+    ) {
+      return { error: "Unauthorized: This order belongs to a different kitchen." };
     }
 
     order.orderStatus = newStatus;
@@ -31,12 +32,16 @@ export async function updateKitchenOrderStatus(orderId: string, newStatus: strin
       order.actualReadyTime = new Date();
     }
 
+    if (!order.timeline) {
+      order.timeline = [];
+    }
+
     order.timeline.push({
       status: newStatus,
       time: new Date(),
       updatedBy: user.id,
       role: "kitchen",
-      remarks: `Kitchen manager updated status to ${newStatus}`,
+      remarks: `Kitchen status updated to ${newStatus}`,
     });
 
     await order.save();
@@ -46,6 +51,7 @@ export async function updateKitchenOrderStatus(orderId: string, newStatus: strin
       revalidatePath("/kitchen/dashboard");
       revalidatePath(`/kitchen/order/${orderId}`);
       revalidatePath(`/orders/${order.orderNumber}/track`);
+      revalidatePath("/admin");
     } catch (e) {}
 
     return { success: true };
