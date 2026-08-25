@@ -4,16 +4,9 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Receipt,
-  Crown,
   Heart,
-  Info,
-  Check,
   Sparkles,
-  ShoppingBag,
-  ShieldCheck,
-  ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
 
 interface BillSummaryDrawerProps {
   isOpen: boolean;
@@ -50,12 +43,9 @@ export function BillSummaryDrawer({
   selectedTip,
   onSelectTip,
 }: BillSummaryDrawerProps) {
-  const [hasGold, setHasGold] = useState(false);
-
-  const effectiveDelivery = hasGold ? 0 : deliveryFee;
   const effectiveTotal = Math.max(
     0,
-    subtotal + packagingCharge + effectiveDelivery + platformFee + gst + tipAmount - discount
+    subtotal + packagingCharge + deliveryFee + platformFee + gst + tipAmount - discount
   );
 
   return (
@@ -123,64 +113,36 @@ export function BillSummaryDrawer({
                     <span className="text-[#0d261e] font-bold">₹{packagingCharge.toFixed(2)}</span>
                   </div>
                   <p className="text-[10px] text-[#52635c]">
-                    This is decided & charged by the restaurant
+                    Hygienic tamper-proof food packaging
                   </p>
                 </div>
 
-                {/* 3. Delivery Partner Fee */}
+                {/* 3. Delivery Fee */}
                 <div className="space-y-0.5">
                   <div className="flex justify-between items-center">
                     <span className="underline decoration-dotted decoration-gray-400 font-semibold text-[#0d261e]">
-                      Delivery partner fee for {distanceKm} km
+                      Delivery fee ({distanceKm} km)
                     </span>
                     <span className="text-[#0d261e] font-bold">
-                      {effectiveDelivery === 0 ? (
+                      {deliveryFee === 0 ? (
                         <span className="text-[#064e3b] font-black">FREE</span>
                       ) : (
-                        `₹${effectiveDelivery.toFixed(2)}`
+                        `₹${deliveryFee.toFixed(2)}`
                       )}
                     </span>
                   </div>
                   <p className="text-[10px] text-[#52635c]">
-                    Goes to them for their time and effort
+                    Express hot delivery from nearest branch
                   </p>
                 </div>
 
-                {/* 4. Malashree Gold Free Delivery Banner */}
-                <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="size-7 rounded-full bg-[#d4af37]/20 text-[#064e3b] grid place-items-center shrink-0">
-                      <Crown className="size-4 fill-[#d4af37] text-[#064e3b]" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-bold text-amber-950 text-xs block truncate">
-                        {hasGold ? "Free delivery active with Gold" : `Save ₹${deliveryFee} with free delivery`}
-                      </span>
-                      <span className="text-[10px] text-amber-800 block truncate">
-                        {hasGold ? "Malashree Gold Member" : "Malashree Gold at ₹30 for 3 months"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setHasGold(!hasGold)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 border ${
-                      hasGold
-                        ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b]"
-                        : "bg-white text-rose-900 border-rose-300 hover:bg-rose-50"
-                    }`}
-                  >
-                    {hasGold ? "Active ✓" : "Add Gold"}
-                  </button>
-                </div>
-
-                {/* 5. Platform Fee */}
+                {/* 4. Platform Fee */}
                 <div className="flex justify-between items-center">
                   <span>Platform fee</span>
                   <span className="text-[#0d261e] font-bold">₹{platformFee.toFixed(2)}</span>
                 </div>
 
-                {/* 6. GST (govt. taxes) - Dynamic percentage configured from Admin */}
+                {/* 5. GST (govt. taxes) - Dynamic percentage configured from Admin */}
                 <div className="flex justify-between items-center">
                   <span className="underline decoration-dotted decoration-gray-400">
                     GST ({gstPercentage}% govt. taxes)
@@ -188,7 +150,7 @@ export function BillSummaryDrawer({
                   <span className="text-[#0d261e] font-bold">₹{gst.toFixed(2)}</span>
                 </div>
 
-                {/* 7. Coupon Discount (if active) */}
+                {/* 6. Coupon Discount (if active) */}
                 {discount > 0 && (
                   <div className="flex justify-between items-center text-[#064e3b] font-bold bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200">
                     <div className="flex items-center gap-1.5">
@@ -199,10 +161,10 @@ export function BillSummaryDrawer({
                   </div>
                 )}
 
-                {/* 8. Tip Amount (if added) */}
+                {/* 7. Tip Amount (if added) */}
                 {tipAmount > 0 && (
                   <div className="flex justify-between items-center text-[#064e3b] font-bold">
-                    <span>Delivery Partner Tip</span>
+                    <span>Rider Tip</span>
                     <span>₹{tipAmount.toFixed(2)}</span>
                   </div>
                 )}
@@ -216,7 +178,7 @@ export function BillSummaryDrawer({
                 </span>
               </div>
 
-              {/* Gratitude Corner: Tip your delivery partner */}
+              {/* Gratitude Corner: Tip */}
               <div className="pt-4 border-t border-gray-100 space-y-3">
                 <div className="text-center">
                   <span className="text-[10px] font-black uppercase tracking-widest text-[#52635c]">
@@ -228,10 +190,10 @@ export function BillSummaryDrawer({
                   <div className="space-y-1 min-w-0">
                     <h4 className="font-bold text-xs text-[#0d261e] flex items-center gap-1.5">
                       <Heart className="size-3.5 text-[#d4af37] fill-[#d4af37]" />
-                      Tip your delivery partner
+                      Tip your delivery rider
                     </h4>
                     <p className="text-[10px] text-[#52635c]">
-                      They'll get notified instantly. The full tip is sent after delivery.
+                      100% of the tip goes directly to your rider after delivery.
                     </p>
 
                     {/* Tip Selection Pills */}
