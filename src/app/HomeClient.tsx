@@ -419,7 +419,7 @@ export default function HomeClient({
             </h3>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             {filteredDishes.map((dish) => {
               const inCart = cart.find((c) => c.dishId === dish.id);
               const qty = inCart?.qty || 0;
@@ -427,55 +427,34 @@ export default function HomeClient({
               return (
                 <div
                   key={dish.id}
-                  className="bg-white rounded-3xl p-4 border border-[#e6e2d8] shadow-2xs flex justify-between gap-4 hover:border-[#d4af37] transition"
+                  className="bg-white rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 border border-[#e6e2d8] shadow-2xs flex flex-col justify-between hover:border-[#d4af37] transition group hover:shadow-sm"
                 >
-                  {/* Left Details */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-between">
-                    <div>
-                      {/* Veg indicator & tag */}
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className="size-3.5 rounded-sm border border-[#064e3b] grid place-items-center shrink-0">
-                          <div className="size-1.5 rounded-full bg-[#064e3b]" />
-                        </div>
-                        {dish.tag && (
-                          <span className="text-[10px] font-black uppercase text-[#064e3b] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                            {dish.tag}
-                          </span>
-                        )}
+                  {/* Photo Container */}
+                  <div className="relative w-full aspect-4/3 rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 mb-2 sm:mb-3">
+                    <img
+                      src={dish.image}
+                      alt={dish.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      loading="lazy"
+                    />
+
+                    {/* Pure Veg Badge Overlay */}
+                    <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-xs p-1 rounded-md shadow-xs flex items-center justify-center">
+                      <div className="size-3 rounded-xs border border-[#064e3b] grid place-items-center">
+                        <div className="size-1.5 rounded-full bg-[#064e3b]" />
                       </div>
-
-                      <h4 className="font-extrabold text-sm sm:text-base text-[#0d261e] leading-snug">
-                        {dish.name}
-                      </h4>
-                      <p className="font-black text-sm text-[#064e3b] mt-1">₹{dish.price}</p>
-                      {dish.desc && (
-                        <p className="text-xs text-[#52635c] mt-1 line-clamp-2 leading-relaxed font-normal">
-                          {dish.desc}
-                        </p>
-                      )}
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-[#52635c] mt-3">
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-[#064e3b] font-extrabold text-[10px] flex items-center gap-1 border border-emerald-200">
-                        {dish.rating || 4.8} <Star className="size-2.5 fill-[#d4af37] text-[#d4af37]" />
+                    {/* Rating Badge Overlay */}
+                    <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-xs px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
+                      <span className="text-[10px] sm:text-xs font-black text-[#0d261e]">
+                        {dish.rating || 4.8}
                       </span>
-                      <span>•</span>
-                      <span>{dish.time || "25 mins"}</span>
-                    </div>
-                  </div>
-
-                  {/* Right: Dish Photo & Overlapping ADD button */}
-                  <div className="relative shrink-0 flex flex-col items-center">
-                    <div className="size-28 sm:size-32 rounded-2xl overflow-hidden bg-gray-100 shadow-2xs">
-                      <img
-                        src={dish.image}
-                        alt={dish.name}
-                        className="w-full h-full object-cover"
-                      />
+                      <Star className="size-2.5 sm:size-3 fill-[#d4af37] text-[#d4af37]" />
                     </div>
 
-                    {/* Overlapping ADD counter button */}
-                    <div className="absolute -bottom-2 w-20">
+                    {/* Overlapping ADD / Counter Button */}
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[86%] max-w-28 sm:max-w-32 z-10">
                       {qty === 0 ? (
                         <button
                           onClick={() =>
@@ -486,28 +465,51 @@ export default function HomeClient({
                               veg: dish.veg,
                             })
                           }
-                          className="w-full h-8 bg-white border border-[#064e3b] text-[#064e3b] rounded-xl text-xs font-black uppercase tracking-wider shadow-xs hover:bg-[#064e3b] hover:text-[#d4af37] transition flex items-center justify-center gap-1 cursor-pointer"
+                          className="w-full h-7 sm:h-8.5 bg-white border border-[#064e3b] text-[#064e3b] rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-md hover:bg-[#064e3b] hover:text-[#d4af37] transition flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <span>ADD</span>
                           <Plus className="size-3 stroke-[3]" />
                         </button>
                       ) : (
-                        <div className="w-full h-8 bg-[#064e3b] text-[#d4af37] rounded-xl flex items-center justify-between px-2 shadow-md">
+                        <div className="w-full h-7 sm:h-8.5 bg-[#064e3b] text-[#d4af37] rounded-xl flex items-center justify-between px-2 shadow-md">
                           <button
                             onClick={() => removeFromCart(dish.id)}
-                            className="p-1 hover:bg-black/20 rounded cursor-pointer"
+                            className="p-1 hover:bg-black/20 rounded cursor-pointer text-[#d4af37]"
                           >
                             <Minus className="size-3 stroke-[3]" />
                           </button>
                           <span className="text-xs font-black text-white">{qty}</span>
                           <button
                             onClick={() => setQty(dish.id, qty + 1)}
-                            className="p-1 hover:bg-black/20 rounded cursor-pointer"
+                            className="p-1 hover:bg-black/20 rounded cursor-pointer text-[#d4af37]"
                           >
                             <Plus className="size-3 stroke-[3]" />
                           </button>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Content Under Photo */}
+                  <div className="flex-1 flex flex-col justify-between pt-1 sm:pt-2">
+                    <div>
+                      <h4 className="font-extrabold text-xs sm:text-sm text-[#0d261e] leading-snug line-clamp-2 group-hover:text-[#064e3b] transition min-h-[2rem]">
+                        {dish.name}
+                      </h4>
+                      {dish.desc && (
+                        <p className="hidden sm:block text-[11px] text-[#52635c] mt-1 line-clamp-1 leading-relaxed font-normal">
+                          {dish.desc}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 pt-1">
+                      <span className="font-black text-xs sm:text-sm text-[#064e3b]">
+                        ₹{dish.price}
+                      </span>
+                      <span className="text-[10px] font-semibold text-[#52635c]">
+                        {dish.time || "25m"}
+                      </span>
                     </div>
                   </div>
                 </div>
