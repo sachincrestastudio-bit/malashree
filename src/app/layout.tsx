@@ -5,9 +5,9 @@ import { FloatingDock } from "@/components/FloatingDock";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Malashree — Order Direct",
+  title: "Malashree — Pure Veg Indian Kitchen",
   description:
-    "Malashree's direct food ordering platform. Fresh, fast, premium Indian food from your nearest branch.",
+    "Malashree's direct food ordering platform. Fresh, fast, premium pure veg Indian food from your nearest cloud kitchen branch in Pune.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,9 +16,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
+        {/* Google Fonts: Inter */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Fira+Sans:wght@300;400;500;600;700;800&family=Fira+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        />
+        {/* Fontshare: Satoshi Premium Display & Body Typography */}
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,800,900&display=swap"
         />
       </head>
       <body>
