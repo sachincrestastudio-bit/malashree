@@ -23,6 +23,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  UserCheck,
 } from "lucide-react";
 
 interface AdminLayoutClientProps {
@@ -35,6 +36,7 @@ const navigation = [
   { name: "Homepage", href: "/admin/homepage", icon: Sparkles },
   { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { name: "Kitchens", href: "/admin/kitchens", icon: Store },
+  { name: "Branch Heads", href: "/admin/managers", icon: UserCheck },
   { name: "Menu", href: "/admin/menu", icon: UtensilsCrossed },
   { name: "Categories", href: "/admin/categories", icon: Tags },
   { name: "Complaints", href: "/admin/complaints", icon: MessageSquareWarning },

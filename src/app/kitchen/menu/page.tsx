@@ -2,8 +2,13 @@ import { requireKitchenAccess } from "@/actions/kitchen/auth";
 import { KitchenAvailabilityService } from "@/services/kitchen/KitchenAvailabilityService";
 import { KitchenMenuClient } from "./KitchenMenuClient";
 
-export default async function KitchenMenuPage() {
-  const user = await requireKitchenAccess();
+export default async function KitchenMenuPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ kitchenId?: string }>;
+}) {
+  const params = await searchParams;
+  const user = await requireKitchenAccess(params?.kitchenId);
   const rawItems = await KitchenAvailabilityService.getKitchenMenu(user.kitchenId);
 
   const items = rawItems.map((item: any) => ({

@@ -6,10 +6,10 @@ import Link from "next/link";
 export default async function KitchenHistoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; kitchenId?: string }>;
 }) {
-  const user = await requireKitchenAccess();
   const resolvedParams = await searchParams;
+  const user = await requireKitchenAccess(resolvedParams?.kitchenId);
   const page = parseInt(resolvedParams.page || "1", 10);
   const data = await KitchenQueueService.getHistory(user.kitchenId, page);
 
