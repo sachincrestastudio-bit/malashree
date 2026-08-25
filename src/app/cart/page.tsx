@@ -13,7 +13,6 @@ import {
   AlertCircle,
   MapPin,
   Clock,
-  Heart,
   ChevronRight,
   ShieldCheck,
   Receipt,
@@ -45,7 +44,6 @@ export default function CartPage() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
   const [cookingNote, setCookingNote] = useState("");
-  const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [deliveryInstruction, setDeliveryInstruction] = useState<string | null>(null);
   const [showBillDrawer, setShowBillDrawer] = useState(false);
   const [settings, setSettings] = useState<any>(null);
@@ -131,8 +129,7 @@ export default function CartPage() {
   const discount = cartTotals?.discount ?? 0;
   const delivery = cartTotals?.deliveryFee ?? (localSubtotal >= freeThreshold || localSubtotal === 0 ? 0 : defaultDelivery);
   const gst = cartTotals?.tax ?? parseFloat(((localSubtotal * taxRate) / 100).toFixed(2));
-  const tipAmount = selectedTip || 0;
-  const grandTotal = Math.max(0, subtotal + packaging + delivery + platformFee + gst + tipAmount - discount);
+  const grandTotal = Math.max(0, subtotal + packaging + delivery + platformFee + gst - discount);
 
   const handleApplyCoupon = async (codeToApply?: string) => {
     const code = (codeToApply || couponInput).trim();
@@ -179,72 +176,83 @@ export default function CartPage() {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        {/* Page Heading */}
+        <div className="flex items-center justify-between pb-6 border-b border-[#e6e2d8] mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-[#0d261e] tracking-tight">
+              Review Your Cart
+            </h1>
+            <p className="text-xs text-[#52635c] mt-0.5">
+              Preparing order from{" "}
+              <b className="text-[#0d261e]">{userLocation?.kitchenName || branch.name}</b> · {userLocation?.label || branch.area}
+            </p>
+          </div>
+
+          <button
+            onClick={clearCart}
+            className="text-xs font-bold text-rose-700 hover:text-rose-900 transition flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-rose-50 cursor-pointer"
+          >
+            <Trash2 className="size-3.5" />
+            <span>Empty Cart</span>
+          </button>
+        </div>
+
+        {/* 2-Column Responsive Layout (Laptop/Desktop side-by-side) */}
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
-          {/* Left Column: Cart items & customizations */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-            {/* Restaurant Header */}
-            <section className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="size-14 rounded-2xl bg-gray-100 overflow-hidden shrink-0 shadow-2xs">
-                  <img src={branch.hero} alt={branch.name} className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <h2 className="font-extrabold text-base sm:text-lg text-[#0d261e] leading-tight">
-                    Malashree Pure Veg
-                  </h2>
-                  <p className="text-xs text-[#52635c] mt-0.5">
-                    {branch.area}, Pune · <span className="text-[#064e3b] font-bold">{branch.etaMin} mins delivery</span>
-                  </p>
-                </div>
-              </div>
+          {/* Left Column: Cart Items List & Instructions */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+            {/* Cart Items List */}
+            <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-4">
+              <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
+                Order Items ({items.reduce((n, i) => n + i.qty, 0)})
+              </h3>
 
-              <button
-                onClick={clearCart}
-                className="text-xs font-bold text-[#52635c] hover:text-[#b91c1c] transition flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-xl hover:bg-rose-50"
-              >
-                <Trash2 className="size-3.5 text-rose-600" />
-                <span>Clear Cart</span>
-              </button>
-            </section>
-
-            {/* Selected Items List Card */}
-            <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs space-y-4 divide-y divide-gray-100">
-              <div className="space-y-4">
-                {items.map((item) => {
-                  const dish = item.dish!;
-                  const itemPrice = dish.price * item.qty;
+              <div className="divide-y divide-gray-100">
+                {items.map(({ dish, qty, dishId }) => {
+                  if (!dish) return null;
+                  const itemTotalPrice = (dish.price || 0) * qty;
 
                   return (
-                    <div key={item.dishId} className="flex items-center justify-between gap-3 pt-3 first:pt-0">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="size-3.5 rounded-sm border border-[#064e3b] grid place-items-center shrink-0">
+                    <div
+                      key={dishId}
+                      className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="size-3 rounded-sm border border-[#064e3b] grid place-items-center shrink-0">
                           <div className="size-1.5 rounded-full bg-[#064e3b]" />
                         </div>
                         <div className="min-w-0">
-                          <h4 className="font-bold text-sm sm:text-base text-[#0d261e] truncate">{dish.name}</h4>
-                          <p className="text-xs text-[#52635c] font-medium">₹{dish.price} each</p>
+                          <h4 className="font-bold text-sm text-[#0d261e] leading-snug truncate">
+                            {dish.name}
+                          </h4>
+                          <span className="text-xs font-black text-[#064e3b]">
+                            ₹{dish.price}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 shrink-0">
-                        <div className="h-8.5 bg-emerald-50 border border-emerald-300 text-[#064e3b] rounded-xl flex items-center justify-between px-2 shadow-2xs w-22">
+                      <div className="flex items-center gap-3 shrink-0">
+                        {/* Quantity Counter */}
+                        <div className="h-8 bg-[#fbf9f4] border border-[#e6e2d8] rounded-xl flex items-center gap-2 px-2 shadow-2xs">
                           <button
-                            onClick={() => removeFromCart(dish.id)}
-                            className="p-1 hover:bg-emerald-200/60 rounded cursor-pointer"
+                            onClick={() => removeFromCart(dishId)}
+                            className="p-1 hover:bg-gray-200 rounded cursor-pointer text-[#064e3b]"
                           >
                             <Minus className="size-3 stroke-[3]" />
                           </button>
-                          <span className="text-xs font-black">{item.qty}</span>
+                          <span className="text-xs font-black text-[#0d261e] min-w-3 text-center">
+                            {qty}
+                          </span>
                           <button
-                            onClick={() => setQty(dish.id, item.qty + 1)}
-                            className="p-1 hover:bg-emerald-200/60 rounded cursor-pointer"
+                            onClick={() => setQty(dishId, qty + 1)}
+                            className="p-1 hover:bg-gray-200 rounded cursor-pointer text-[#064e3b]"
                           >
                             <Plus className="size-3 stroke-[3]" />
                           </button>
                         </div>
 
-                        <span className="font-black text-sm sm:text-base text-[#0d261e] w-16 text-right">
-                          ₹{itemPrice}
+                        <span className="text-xs font-extrabold text-[#0d261e] w-14 text-right">
+                          ₹{itemTotalPrice.toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -252,15 +260,32 @@ export default function CartPage() {
                 })}
               </div>
 
-              <div className="pt-4">
-                <input
-                  type="text"
-                  value={cookingNote}
-                  onChange={(e) => setCookingNote(e.target.value)}
-                  placeholder="Add cooking instructions (e.g. less spicy, extra green chutney)..."
-                  className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] placeholder:text-[#52635c] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
-                />
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                <Link
+                  href="/menu"
+                  className="text-xs font-bold text-[#064e3b] hover:text-[#0a5c46] flex items-center gap-1"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Add more items</span>
+                </Link>
+                <span className="text-xs font-extrabold text-[#0d261e]">
+                  Subtotal: ₹{subtotal.toFixed(2)}
+                </span>
               </div>
+            </section>
+
+            {/* Cooking Notes Section */}
+            <section className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs space-y-2">
+              <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
+                Cooking & Special Instructions
+              </h3>
+              <input
+                type="text"
+                value={cookingNote}
+                onChange={(e) => setCookingNote(e.target.value)}
+                placeholder="e.g. Make it less spicy, extra green chutney, no onion in salad"
+                className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] placeholder:text-[#52635c] focus:outline-none focus:border-[#064e3b]"
+              />
             </section>
 
             {/* Delivery Instructions Chips */}
@@ -427,10 +452,7 @@ export default function CartPage() {
         gstPercentage={taxRate}
         discount={discount}
         couponCode={cartTotals?.couponCode}
-        tipAmount={tipAmount}
         grandTotal={grandTotal}
-        selectedTip={selectedTip}
-        onSelectTip={setSelectedTip}
       />
 
       {/* Mobile Fixed Action Bar (Hidden on Desktop) */}
@@ -451,7 +473,7 @@ export default function CartPage() {
 
           <Link
             href="/checkout"
-            className="px-8 py-3.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-md flex items-center gap-2 border border-[#d4af37]/30"
+            className="px-8 py-3.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-md flex items-center gap-2 border border-[#d4af37]/30 text-center"
           >
             <span>Proceed to Checkout</span>
             <ChevronRight className="size-4" />

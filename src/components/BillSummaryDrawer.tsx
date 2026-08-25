@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Receipt,
-  Heart,
   Sparkles,
 } from "lucide-react";
 
@@ -20,10 +19,7 @@ interface BillSummaryDrawerProps {
   gstPercentage?: number;
   discount?: number;
   couponCode?: string | null;
-  tipAmount?: number;
   grandTotal: number;
-  selectedTip?: number | null;
-  onSelectTip?: (tip: number | null) => void;
 }
 
 export function BillSummaryDrawer({
@@ -38,14 +34,11 @@ export function BillSummaryDrawer({
   gstPercentage = 5,
   discount = 0,
   couponCode,
-  tipAmount = 0,
   grandTotal,
-  selectedTip,
-  onSelectTip,
 }: BillSummaryDrawerProps) {
   const effectiveTotal = Math.max(
     0,
-    subtotal + packagingCharge + deliveryFee + platformFee + gst + tipAmount - discount
+    subtotal + packagingCharge + deliveryFee + platformFee + gst - discount
   );
 
   return (
@@ -160,14 +153,6 @@ export function BillSummaryDrawer({
                     <span>-₹{discount.toFixed(2)}</span>
                   </div>
                 )}
-
-                {/* 7. Tip Amount (if added) */}
-                {tipAmount > 0 && (
-                  <div className="flex justify-between items-center text-[#064e3b] font-bold">
-                    <span>Rider Tip</span>
-                    <span>₹{tipAmount.toFixed(2)}</span>
-                  </div>
-                )}
               </div>
 
               {/* Total To Pay Row */}
@@ -176,48 +161,6 @@ export function BillSummaryDrawer({
                 <span className="font-black text-xl text-[#0d261e]">
                   ₹{effectiveTotal.toFixed(2)}
                 </span>
-              </div>
-
-              {/* Gratitude Corner: Tip */}
-              <div className="pt-4 border-t border-gray-100 space-y-3">
-                <div className="text-center">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#52635c]">
-                    GRATITUDE CORNER
-                  </span>
-                </div>
-
-                <div className="bg-[#fbf9f4] rounded-2xl p-4 border border-[#e6e2d8] flex items-center justify-between gap-3">
-                  <div className="space-y-1 min-w-0">
-                    <h4 className="font-bold text-xs text-[#0d261e] flex items-center gap-1.5">
-                      <Heart className="size-3.5 text-[#d4af37] fill-[#d4af37]" />
-                      Tip your delivery rider
-                    </h4>
-                    <p className="text-[10px] text-[#52635c]">
-                      100% of the tip goes directly to your rider after delivery.
-                    </p>
-
-                    {/* Tip Selection Pills */}
-                    <div className="flex gap-2 pt-2">
-                      {[20, 30, 50].map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => onSelectTip?.(selectedTip === t ? null : t)}
-                          className={`px-3 py-1 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                            selectedTip === t
-                              ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b]"
-                              : "bg-white text-[#0d261e] border-[#e6e2d8] hover:border-[#d4af37]"
-                          }`}
-                        >
-                          ₹{t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="size-14 rounded-full bg-emerald-50 border border-emerald-200 grid place-items-center shrink-0">
-                    <span className="text-2xl">🙏</span>
-                  </div>
-                </div>
               </div>
             </div>
 
