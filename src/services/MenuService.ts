@@ -43,21 +43,18 @@ export class MenuService {
       }
     }
 
+    // Fetch ALL dishes from the universal database
     const rawItems = await MenuItem.find({
-      $or: [
-        { isGlobalMaster: true },
-        ...(kitchenIdStr ? [{ kitchenId: kitchenIdStr }] : []),
-        { kitchenId: null },
-      ],
       deletedAt: null,
     })
       .populate({ path: "category", model: Category })
+      .sort({ name: 1 })
       .lean();
 
     return rawItems
       .map((item: any) => {
-        let finalPrice = item.price;
-        let isAvailable = item.isAvailable ?? true;
+        let finalPrice = Number(item.price) || 0;
+        let isAvailable = item.isAvailable !== undefined ? item.isAvailable : true;
         let isEnabled = true;
 
         if (kitchenIdStr && item.branchPricing && Array.isArray(item.branchPricing)) {
@@ -66,7 +63,7 @@ export class MenuService {
           );
           if (override) {
             if (override.price !== undefined && override.price !== null) {
-              finalPrice = override.price;
+              finalPrice = Number(override.price) || finalPrice;
             }
             if (override.isAvailable !== undefined) {
               isAvailable = override.isAvailable;
@@ -77,12 +74,12 @@ export class MenuService {
           }
         }
 
-        // If dish is disabled for this branch, don't show on menu
+        // If dish is explicitly disabled for this branch, don't show on menu
         if (!isEnabled || !isAvailable) return null;
 
         const catName =
           (typeof item.category === "object" && item.category?.name) ||
-          (typeof item.category === "string" ? item.category : "Main Course");
+          (typeof item.category === "string" && item.category.trim() ? item.category.trim() : "Main Course");
 
         return {
           id: item._id.toString(),
