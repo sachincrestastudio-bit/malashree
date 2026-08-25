@@ -2,7 +2,7 @@
 
 import { MenuService } from "../services/MenuService";
 import { CategoryService } from "../services/CategoryService";
-import { getAssignedKitchenId, setAssignedKitchen } from "./kitchen";
+import { getAssignedKitchenId } from "./kitchen";
 import { Kitchen } from "../models/Kitchen";
 import { connectToDatabase } from "../database/mongoose";
 import mongoose from "mongoose";
@@ -27,8 +27,13 @@ const getKitchenContext = async (requestedBranchCode?: string) => {
     }
   }
 
-  // Check stored cookie / user assigned kitchen
-  let kitchenId = await getAssignedKitchenId();
+  // Check stored cookie / user assigned kitchen (Read-only, no cookie set during RSC)
+  let kitchenId: string | null = null;
+  try {
+    kitchenId = await getAssignedKitchenId();
+  } catch {
+    // Ignore cookie read errors
+  }
 
   // Fallback to default active kitchen if no cookie is set
   if (!kitchenId) {
@@ -38,8 +43,6 @@ const getKitchenContext = async (requestedBranchCode?: string) => {
 
     if (defaultKitchen) {
       kitchenId = defaultKitchen._id.toString();
-      // Silently set cookie to default kitchen so user has an active session
-      await setAssignedKitchen(defaultKitchen.code);
     }
   }
 

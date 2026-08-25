@@ -59,7 +59,50 @@ export const addMasterDish = async (formData: {
 };
 
 /**
- * 2. Update Branch Specific Pricing & Availability for a Dish
+ * 2. Update Master Dish (Name, Description, Base Price, Category, Veg, Tags, Images)
+ */
+export const updateMasterDish = async (formData: {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  categoryId: string;
+  isVeg: boolean;
+  tags: string;
+  images: string;
+}) => {
+  try {
+    await connectToDatabase();
+
+    const dish = await MenuItem.findById(formData.id);
+    if (!dish) return { error: "Dish not found." };
+
+    dish.name = formData.name.trim();
+    dish.description = formData.description?.trim() || "";
+    dish.price = Number(formData.price);
+    if (formData.categoryId) dish.category = formData.categoryId;
+    dish.isVeg = formData.isVeg !== undefined ? formData.isVeg : true;
+    if (formData.tags !== undefined) {
+      dish.tags = formData.tags ? [formData.tags.trim()] : [];
+    }
+    if (formData.images) {
+      dish.images = [formData.images.trim()];
+    }
+
+    await dish.save();
+
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err: any) {
+    console.error("updateMasterDish error:", err);
+    return { error: err.message || "Failed to update master dish." };
+  }
+};
+
+/**
+ * 3. Update Branch Specific Pricing & Availability for a Dish
  */
 export const updateBranchDishOverride = async (payload: {
   dishId: string;
@@ -114,7 +157,7 @@ export const updateBranchDishOverride = async (payload: {
 };
 
 /**
- * 3. Bulk Enable All Master Dishes for a Branch
+ * 4. Bulk Enable All Master Dishes for a Branch
  */
 export const bulkEnableAllMasterDishesForBranch = async (kitchenId: string) => {
   try {
@@ -153,7 +196,7 @@ export const bulkEnableAllMasterDishesForBranch = async (kitchenId: string) => {
 };
 
 /**
- * 4. Bulk Disable All Master Dishes for a Branch
+ * 5. Bulk Disable All Master Dishes for a Branch
  */
 export const bulkDisableAllMasterDishesForBranch = async (kitchenId: string) => {
   try {
@@ -191,7 +234,7 @@ export const bulkDisableAllMasterDishesForBranch = async (kitchenId: string) => 
 };
 
 /**
- * 5. Bulk Reset Branch Prices to Master Catalog Base Prices
+ * 6. Bulk Reset Branch Prices to Master Catalog Base Prices
  */
 export const bulkResetBranchPricesToMaster = async (kitchenId: string) => {
   try {
@@ -222,14 +265,14 @@ export const bulkResetBranchPricesToMaster = async (kitchenId: string) => {
 };
 
 /**
- * 6. Sync / Copy all Chinchwad and Signature dishes into Universal Master Catalog
+ * 7. Sync / Copy all Chinchwad and Signature dishes into Universal Master Catalog
  */
 export const syncUniversalCatalog = async () => {
   return seedDatabase();
 };
 
 /**
- * 7. Legacy single-item addition
+ * 8. Legacy single-item addition
  */
 export const addMenuItem = async (formData: {
   name: string;
@@ -253,7 +296,7 @@ export const addMenuItem = async (formData: {
 };
 
 /**
- * 8. Update Master Dish General Availability
+ * 9. Update Master Dish General Availability
  */
 export const updateMenuItemAvailability = async (id: string, isAvailable: boolean) => {
   try {
@@ -269,7 +312,7 @@ export const updateMenuItemAvailability = async (id: string, isAvailable: boolea
 };
 
 /**
- * 9. Delete a Dish
+ * 10. Delete a Dish
  */
 export const deleteMenuItem = async (id: string) => {
   try {
@@ -285,7 +328,7 @@ export const deleteMenuItem = async (id: string) => {
 };
 
 /**
- * 10. Get form data (kitchens & categories)
+ * 11. Get form data (kitchens & categories)
  */
 export const getMenuFormData = async () => {
   await connectToDatabase();

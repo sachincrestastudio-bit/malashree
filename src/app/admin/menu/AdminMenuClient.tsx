@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import {
   addMasterDish,
+  updateMasterDish,
   deleteMenuItem,
   updateMenuItemAvailability,
   updateBranchDishOverride,
@@ -79,6 +80,7 @@ interface Props {
 }
 
 const EMPTY_FORM = {
+  id: "",
   name: "",
   description: "",
   price: "",
@@ -88,16 +90,20 @@ const EMPTY_FORM = {
   images: "",
 };
 
-export default function AdminMenuClient({ items, kitchens, categories }: Props) {
+export default function AdminMenuClient({ items: initialItems, kitchens, categories }: Props) {
   const router = useRouter();
 
+  // Local mutable state for instant responsive UI updates
+  const [localItems, setLocalItems] = useState<MenuItem[]>(initialItems);
+
   // Views
-  const [activeTab, setActiveTab] = useState<"master" | "branches">("branches");
+  const [activeTab, setActiveTab] = useState<"branches" | "master">("branches");
   const [selectedKitchenId, setSelectedKitchenId] = useState<string>(kitchens[0]?.id || "");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("All");
 
   // Modals & States
-  const [showForm, setShowForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingDish, setEditingDish] = useState<MenuItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -126,15 +132,15 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
   // Unique categories list
   const categoryNames = useMemo(() => {
     const set = new Set<string>();
-    items.forEach((i) => {
+    localItems.forEach((i) => {
       if (i.categoryName) set.add(i.categoryName);
     });
     return ["All", ...Array.from(set)];
-  }, [items]);
+  }, [localItems]);
 
   // Filter items for search and category
   const filteredDishes = useMemo(() => {
-    return items.filter((item) => {
+    return localItems.filter((item) => {
       const matchCat =
         selectedCategoryFilter === "All" ||
         item.categoryName.toLowerCase() === selectedCategoryFilter.toLowerCase();
@@ -145,24 +151,24 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
         item.description.toLowerCase().includes(search.toLowerCase());
       return matchCat && matchSearch;
     });
-  }, [items, search, selectedCategoryFilter]);
+  }, [localItems, search, selectedCategoryFilter]);
 
   // Branch statistics
   const branchStats = useMemo(() => {
-    if (!selectedKitchenId) return { totalMaster: items.length, activeCount: 0, customCount: 0 };
+    if (!selectedKitchenId) return { totalMaster: localItems.length, activeCount: 0, customCount: 0 };
 
     let activeCount = 0;
     let customCount = 0;
 
-    for (const dish of items) {
+    for (const dish of localItems) {
       const override = (dish.branchPricing || []).find((bp) => bp.kitchenId === selectedKitchenId);
       const isEnabled = override?.isEnabled !== undefined ? override.isEnabled : true;
       if (isEnabled) activeCount++;
       if (override?.price !== undefined && override.price !== dish.price) customCount++;
     }
 
-    return { totalMaster: items.length, activeCount, customCount };
-  }, [items, selectedKitchenId]);
+    return { totalMaster: localItems.length, activeCount, customCount };
+  }, [localItems, selectedKitchenId]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -171,8 +177,36 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
     setImagePreview(URL.createObjectURL(file));
   };
 
-  // Submit Master Dish Creation
-  const handleCreateMasterDish = async (e: React.FormEvent) => {
+  // Open Edit Modal for a Master Dish
+  const handleOpenEdit = (dish: MenuItem) => {
+    setEditingDish(dish);
+    setForm({
+      id: dish.id,
+      name: dish.name,
+      description: dish.description || "",
+      price: String(dish.price),
+      categoryId: dish.categoryId || categories[0]?.id || "",
+      isVeg: dish.isVeg,
+      tags: dish.tag || "",
+      images: dish.image || "",
+    });
+    setImagePreview(dish.image || null);
+    setImageFile(null);
+    setError(null);
+  };
+
+  // Open Add Modal
+  const handleOpenAdd = () => {
+    setEditingDish(null);
+    setForm(EMPTY_FORM);
+    setImagePreview(null);
+    setImageFile(null);
+    setError(null);
+    setShowAddModal(true);
+  };
+
+  // Submit Master Dish Creation or Edit
+  const handleSaveMasterDish = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -193,6 +227,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
     }
 
     const payload = {
+      id: form.id,
       name: form.name.trim(),
       description: form.description.trim(),
       price: parseFloat(form.price),
@@ -202,17 +237,50 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
       images: imageUrl || "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
     };
 
-    const res = await addMasterDish(payload);
+    let res;
+    if (editingDish) {
+      res = await updateMasterDish(payload);
+    } else {
+      res = await addMasterDish(payload);
+    }
+
     setLoading(false);
 
     if (res.error) {
       setError(res.error);
     } else {
-      setShowForm(false);
+      const selectedCat = categories.find((c) => c.id === payload.categoryId);
+      const catName = selectedCat?.name || "Main Course";
+
+      if (editingDish) {
+        // Optimistic update
+        setLocalItems((prev) =>
+          prev.map((item) =>
+            item.id === payload.id
+              ? {
+                  ...item,
+                  name: payload.name,
+                  description: payload.description,
+                  price: payload.price,
+                  categoryId: payload.categoryId,
+                  categoryName: catName,
+                  isVeg: payload.isVeg,
+                  tag: payload.tags,
+                  image: payload.images,
+                }
+              : item
+          )
+        );
+        showToast("success", `Dish "${payload.name}" updated successfully!`);
+        setEditingDish(null);
+      } else {
+        showToast("success", `Master dish "${payload.name}" added to universal catalog!`);
+        setShowAddModal(false);
+      }
+
       setForm(EMPTY_FORM);
       setImageFile(null);
       setImagePreview(null);
-      showToast("success", `Master dish "${payload.name}" added to universal catalog!`);
       router.refresh();
     }
   };
@@ -220,19 +288,36 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
   // Toggle Branch Dish Enablement (Served at this branch?)
   const handleToggleBranchEnabled = async (dish: MenuItem, currentEnabled: boolean) => {
     setSavingDishId(dish.id);
+    const newEnabled = !currentEnabled;
+
+    // Optimistic update
+    setLocalItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== dish.id) return item;
+        const bp = [...(item.branchPricing || [])];
+        const idx = bp.findIndex((p) => p.kitchenId === selectedKitchenId);
+        if (idx >= 0) {
+          bp[idx] = { ...bp[idx], isEnabled: newEnabled };
+        } else {
+          bp.push({ kitchenId: selectedKitchenId, isEnabled: newEnabled, isAvailable: true, price: item.price });
+        }
+        return { ...item, branchPricing: bp };
+      })
+    );
+
     const res = await updateBranchDishOverride({
       dishId: dish.id,
       kitchenId: selectedKitchenId,
-      isEnabled: !currentEnabled,
+      isEnabled: newEnabled,
     });
     setSavingDishId(null);
 
     if (res.success) {
       showToast(
         "success",
-        !currentEnabled
-          ? `Added "${dish.name}" to ${selectedKitchen?.name} menu card!`
-          : `Removed "${dish.name}" from ${selectedKitchen?.name} menu card!`
+        newEnabled
+          ? `Added "${dish.name}" to ${selectedKitchen?.name} menu!`
+          : `Removed "${dish.name}" from ${selectedKitchen?.name} menu!`
       );
       router.refresh();
     } else {
@@ -243,10 +328,27 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
   // Toggle Branch Dish In-Stock Availability
   const handleToggleBranchStock = async (dish: MenuItem, currentStock: boolean) => {
     setSavingDishId(dish.id);
+    const newStock = !currentStock;
+
+    // Optimistic update
+    setLocalItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== dish.id) return item;
+        const bp = [...(item.branchPricing || [])];
+        const idx = bp.findIndex((p) => p.kitchenId === selectedKitchenId);
+        if (idx >= 0) {
+          bp[idx] = { ...bp[idx], isAvailable: newStock };
+        } else {
+          bp.push({ kitchenId: selectedKitchenId, isAvailable: newStock, isEnabled: true, price: item.price });
+        }
+        return { ...item, branchPricing: bp };
+      })
+    );
+
     const res = await updateBranchDishOverride({
       dishId: dish.id,
       kitchenId: selectedKitchenId,
-      isAvailable: !currentStock,
+      isAvailable: newStock,
     });
     setSavingDishId(null);
 
@@ -263,18 +365,35 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
     const enteredPrice = branchPriceEdits[dish.id];
     if (!enteredPrice || isNaN(Number(enteredPrice))) return;
 
+    const numPrice = Number(enteredPrice);
     setSavingDishId(dish.id);
+
+    // Optimistic update
+    setLocalItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== dish.id) return item;
+        const bp = [...(item.branchPricing || [])];
+        const idx = bp.findIndex((p) => p.kitchenId === selectedKitchenId);
+        if (idx >= 0) {
+          bp[idx] = { ...bp[idx], price: numPrice };
+        } else {
+          bp.push({ kitchenId: selectedKitchenId, price: numPrice, isEnabled: true, isAvailable: true });
+        }
+        return { ...item, branchPricing: bp };
+      })
+    );
+
     const res = await updateBranchDishOverride({
       dishId: dish.id,
       kitchenId: selectedKitchenId,
-      price: Number(enteredPrice),
+      price: numPrice,
     });
     setSavingDishId(null);
 
     if (res.success) {
       showToast(
         "success",
-        `Custom price ₹${enteredPrice} saved for ${dish.name} at ${selectedKitchen?.name}!`
+        `Price ₹${numPrice} saved for "${dish.name}" at ${selectedKitchen?.name}!`
       );
       setBranchPriceEdits((prev) => {
         const next = { ...prev };
@@ -354,6 +473,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
     if (!confirm(`Are you sure you want to delete "${dish.name}" from the master catalog?`)) return;
     const res = await deleteMenuItem(dish.id);
     if (res.success) {
+      setLocalItems((prev) => prev.filter((i) => i.id !== dish.id));
       showToast("success", `Dish "${dish.name}" removed from master catalog.`);
       router.refresh();
     } else {
@@ -374,7 +494,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
             Universal Menu & Branch Customizer
           </h1>
           <p className="text-xs sm:text-sm text-[#52635c] mt-1 max-w-2xl">
-            All products reside in the Universal Master Catalog. Select any branch below to include/exclude products and set customized pricing per branch.
+            All dishes live in the Universal Master Catalog. Select any branch below to include/exclude products and set customized pricing per branch.
           </p>
         </div>
 
@@ -390,7 +510,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
           </button>
 
           <button
-            onClick={() => setShowForm(true)}
+            onClick={handleOpenAdd}
             className="px-5 py-2.5 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xs uppercase tracking-wider hover:bg-[#0a5c46] transition shadow-xs flex items-center gap-2 border border-[#d4af37]/30 cursor-pointer"
           >
             <Plus className="size-4" />
@@ -440,12 +560,12 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
           }`}
         >
           <UtensilsCrossed className="size-4" />
-          <span>Universal Master Catalog ({items.length})</span>
+          <span>Universal Master Catalog ({localItems.length})</span>
         </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: BRANCH MENU CARDS & PRICING MANAGER (MAIN FEATURE) */}
+      {/* TAB 1: BRANCH MENU CARDS & PRICING MANAGER */}
       {/* ========================================================================= */}
       {activeTab === "branches" && (
         <div className="space-y-6">
@@ -572,12 +692,13 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                     <th className="px-5 py-3.5">Master Price</th>
                     <th className="px-5 py-3.5">Branch Custom Price (₹)</th>
                     <th className="px-5 py-3.5 text-center">In-Stock Today</th>
+                    <th className="px-5 py-3.5 text-right">Edit Master</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e6e2d8]/60">
                   {filteredDishes.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-xs text-[#52635c] font-bold">
+                      <td colSpan={7} className="py-12 text-center text-xs text-[#52635c] font-bold">
                         No dishes found matching your search.
                       </td>
                     </tr>
@@ -653,7 +774,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                             ₹{dish.price}
                           </td>
 
-                          {/* 5. Branch Custom Price Field */}
+                          {/* 5. Branch Custom Price Field with instant save */}
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-2">
                               <div className="relative w-28">
@@ -673,6 +794,11 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                                       [dish.id]: e.target.value,
                                     })
                                   }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      handleSaveBranchPrice(dish);
+                                    }
+                                  }}
                                   className="w-full h-9 pl-6 pr-2 rounded-xl bg-white border border-[#e6e2d8] text-xs font-black text-[#064e3b] focus:outline-none focus:border-[#064e3b] shadow-2xs"
                                 />
                               </div>
@@ -712,6 +838,17 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                               {isAvailable ? "In Stock" : "Sold Out"}
                             </button>
                           </td>
+
+                          {/* 7. Edit Master Details */}
+                          <td className="px-5 py-3.5 text-right">
+                            <button
+                              onClick={() => handleOpenEdit(dish)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-[#064e3b] hover:bg-emerald-50 transition cursor-pointer"
+                              title="Edit Master Dish Details"
+                            >
+                              <Edit className="size-4" />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })
@@ -734,7 +871,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                 Universal Master Dishes ({filteredDishes.length})
               </h3>
               <p className="text-xs text-[#52635c] mt-0.5">
-                Every dish added here is globally available for all 6 branches to activate and price.
+                Click the edit button (pencil) on any dish to edit its name, description, master base price, category, veg status, or image.
               </p>
             </div>
           </div>
@@ -748,7 +885,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                   <th className="px-5 py-3.5">Universal Base Price</th>
                   <th className="px-5 py-3.5">Dietary</th>
                   <th className="px-5 py-3.5">Branch Overrides</th>
-                  <th className="px-5 py-3.5 text-right">Delete</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e6e2d8]/60">
@@ -815,13 +952,22 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                       </td>
 
                       <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => handleDeleteMasterDish(dish)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-                          title="Delete from Master Catalog"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(dish)}
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-[#064e3b] hover:bg-emerald-50 transition cursor-pointer"
+                            title="Edit Master Dish"
+                          >
+                            <Edit className="size-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMasterDish(dish)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                            title="Delete from Master Catalog"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -833,20 +979,27 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD MASTER DISH */}
+      {/* MODAL: ADD / EDIT MASTER DISH */}
       {/* ========================================================================= */}
-      {showForm && (
+      {(showAddModal || editingDish) && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#e6e2d8] space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#e6e2d8]">
               <div>
-                <h3 className="font-black text-lg text-[#0d261e]">Add New Master Dish</h3>
+                <h3 className="font-black text-lg text-[#0d261e]">
+                  {editingDish ? `Edit Master Dish: ${editingDish.name}` : "Add New Master Dish"}
+                </h3>
                 <p className="text-xs text-[#52635c]">
-                  This dish will be available across all branches in Malashree.
+                  {editingDish
+                    ? "Update master details, category, or base pricing."
+                    : "This dish will be available across all branches in Malashree."}
                 </p>
               </div>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingDish(null);
+                }}
                 className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
               >
                 <X className="size-5" />
@@ -860,7 +1013,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
               </div>
             )}
 
-            <form onSubmit={handleCreateMasterDish} className="space-y-4">
+            <form onSubmit={handleSaveMasterDish} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[#0d261e] mb-1">
                   Dish Name *
@@ -891,7 +1044,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-[#0d261e] mb-1">
-                    Base Price (₹) *
+                    Master Base Price (₹) *
                   </label>
                   <input
                     type="number"
@@ -968,7 +1121,7 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                     type="text"
                     value={form.images}
                     onChange={(e) => setForm({ ...form, images: e.target.value })}
-                    placeholder="Or paste Unsplash image URL..."
+                    placeholder="Or paste image URL..."
                     className="w-full h-9 px-3.5 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:outline-none focus:border-[#064e3b]"
                   />
                   {imagePreview && (
@@ -984,7 +1137,10 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingDish(null);
+                  }}
                   className="px-4 py-2 text-xs font-bold text-[#52635c] hover:text-[#0d261e] cursor-pointer"
                 >
                   Cancel
@@ -997,10 +1153,10 @@ export default function AdminMenuClient({ items, kitchens, categories }: Props) 
                   {loading || uploading ? (
                     <>
                       <Loader2 className="size-3.5 animate-spin" />
-                      <span>{uploading ? "Uploading..." : "Saving Dish..."}</span>
+                      <span>{uploading ? "Uploading..." : "Saving..."}</span>
                     </>
                   ) : (
-                    <span>Add to Master Catalog</span>
+                    <span>{editingDish ? "Update Dish" : "Add to Master Catalog"}</span>
                   )}
                 </button>
               </div>
