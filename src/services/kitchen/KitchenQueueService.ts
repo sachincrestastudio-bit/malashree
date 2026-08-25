@@ -1,5 +1,6 @@
 import { connectToDatabase } from "../../database/mongoose";
 import { Order } from "../../models/Order";
+import { Kitchen } from "../../models/Kitchen";
 import mongoose from "mongoose";
 
 export class KitchenQueueService {
@@ -10,12 +11,17 @@ export class KitchenQueueService {
     await connectToDatabase();
 
     const isObjectId = mongoose.Types.ObjectId.isValid(kitchenId);
-    const targetId = isObjectId ? new mongoose.Types.ObjectId(kitchenId) : kitchenId;
+    const kitchen = isObjectId
+      ? await Kitchen.findById(kitchenId).lean()
+      : await Kitchen.findOne({ code: kitchenId }).lean();
+
+    const targetKitchenId = kitchen ? (kitchen as any)._id : (isObjectId ? new mongoose.Types.ObjectId(kitchenId) : kitchenId);
 
     const kitchenMatch = {
       $or: [
-        { kitchen: targetId },
-        { kitchenId: targetId },
+        { kitchen: targetKitchenId },
+        { kitchenId: targetKitchenId },
+        { kitchenName: kitchen ? (kitchen as any).name : kitchenId },
       ],
     };
 
@@ -28,7 +34,13 @@ export class KitchenQueueService {
       .populate("customer", "name phone")
       .lean();
 
-    return JSON.parse(JSON.stringify(orders));
+    return JSON.parse(JSON.stringify(orders)).map((t: any) => ({
+      ...t,
+      items: (t.items || []).map((i: any) => ({
+        ...i,
+        name: i.dishName || i.name || i.dish?.name || "Dish Item",
+      })),
+    }));
   }
 
   /**
@@ -39,12 +51,17 @@ export class KitchenQueueService {
 
     const skip = (page - 1) * limit;
     const isObjectId = mongoose.Types.ObjectId.isValid(kitchenId);
-    const targetId = isObjectId ? new mongoose.Types.ObjectId(kitchenId) : kitchenId;
+    const kitchen = isObjectId
+      ? await Kitchen.findById(kitchenId).lean()
+      : await Kitchen.findOne({ code: kitchenId }).lean();
+
+    const targetKitchenId = kitchen ? (kitchen as any)._id : (isObjectId ? new mongoose.Types.ObjectId(kitchenId) : kitchenId);
 
     const kitchenMatch = {
       $or: [
-        { kitchen: targetId },
-        { kitchenId: targetId },
+        { kitchen: targetKitchenId },
+        { kitchenId: targetKitchenId },
+        { kitchenName: kitchen ? (kitchen as any).name : kitchenId },
       ],
     };
 
@@ -55,7 +72,7 @@ export class KitchenQueueService {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("customer", "name")
+      .populate("customer", "name phone")
       .lean();
 
     const total = await Order.countDocuments({

@@ -111,7 +111,7 @@ export class KitchenDashboardService {
         customerPhone: t.customer?.phone || "",
         grandTotal: t.grandTotal,
         items: (t.items || []).map((i: any) => ({
-          name: i.name || i.dish?.name || "Dish Item",
+          name: i.dishName || i.name || i.dish?.name || "Dish Item",
           quantity: i.quantity || 1,
           price: i.price,
         })),
