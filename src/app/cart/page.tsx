@@ -23,7 +23,8 @@ import { Header } from "@/components/Header";
 import { BillSummaryDrawer } from "@/components/BillSummaryDrawer";
 import { useStore } from "@/lib/store";
 import { getBranch, findDish, ALL_CATEGORY_DISHES, Dish } from "@/lib/data";
-import { syncCartWithServer, applyCouponCode } from "@/actions/cart";
+import { syncCartWithServer, applyCouponCode, getCartDishDetails } from "@/actions/cart";
+import { getKitchenMenu } from "@/actions/menu";
 import { getSystemSettings } from "@/actions/adminSetting";
 
 export default function CartPage() {
@@ -36,10 +37,12 @@ export default function CartPage() {
   const cartTotals = useStore((s) => s.cartTotals);
   const setCartTotals = useStore((s) => s.setCartTotals);
   const kitchenMenu = useStore((s) => s.kitchenMenu) || [];
+  const setKitchenMenu = useStore((s) => s.setKitchenMenu);
   const profile = useStore((s) => s.profile);
   const userLocation = useStore((s) => s.userLocation);
   const branch = getBranch(branchId);
 
+  const [dbDishes, setDbDishes] = useState<any[]>([]);
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
@@ -59,6 +62,40 @@ export default function CartPage() {
     };
   }, []);
 
+  // Fetch full kitchen dishes from MongoDB on mount
+  useEffect(() => {
+    let mounted = true;
+    getKitchenMenu(branchId).then((data) => {
+      if (mounted && data && data.length > 0) {
+        setDbDishes(data);
+        setKitchenMenu(data);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [branchId, setKitchenMenu]);
+
+  // Fetch specific cart dish details directly from server if any are missing
+  useEffect(() => {
+    let mounted = true;
+    if (cart.length > 0) {
+      const ids = cart.map((c) => c.dishId);
+      getCartDishDetails(ids).then((details) => {
+        if (mounted && details && details.length > 0) {
+          setDbDishes((prev) => {
+            const map = new Map(prev.map((d) => [d.id, d]));
+            details.forEach((d: any) => map.set(d.id, d));
+            return Array.from(map.values());
+          });
+        }
+      });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [cart]);
+
   // Sync cart totals with server
   useEffect(() => {
     let mounted = true;
@@ -74,45 +111,37 @@ export default function CartPage() {
         }
       }
     };
-    const timer = setTimeout(updateTotals, 300);
+    const timer = setTimeout(updateTotals, 200);
     return () => {
       mounted = false;
       clearTimeout(timer);
     };
   }, [cart, setCartTotals]);
 
-  // Combined dish map
+  // Combined dish map with full fallback support
   const dishMap = useMemo(() => {
-    const map = new Map<string, Dish>();
+    const map = new Map<string, any>();
     for (const d of branch.menu) map.set(d.id, d);
     for (const d of ALL_CATEGORY_DISHES) if (!map.has(d.id)) map.set(d.id, d);
-    for (const k of kitchenMenu) {
-      map.set(k.id, {
-        id: k.id,
-        name: k.name,
-        desc: k.desc || "",
-        price: k.price,
-        category: k.category,
-        tag: k.tag,
-        rating: k.rating || 4.8,
-        reviews: k.reviews || 120,
-        veg: k.veg !== undefined ? k.veg : true,
-        spice: k.spice || 1,
-        time: k.time || "25 mins",
-        image: k.image || "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
-      });
-    }
+    for (const k of kitchenMenu) map.set(k.id, k);
+    for (const d of dbDishes) map.set(d.id, d);
     return map;
-  }, [branch.menu, kitchenMenu]);
+  }, [branch.menu, kitchenMenu, dbDishes]);
 
   // Cart item objects
   const items = useMemo(() => {
-    return cart
-      .map((c) => ({
+    return cart.map((c) => {
+      const dish = dishMap.get(c.dishId) || findDish(c.dishId) || {
+        id: c.dishId,
+        name: "Selected Dish",
+        price: 0,
+        image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
+      };
+      return {
         ...c,
-        dish: dishMap.get(c.dishId) || findDish(c.dishId),
-      }))
-      .filter((i) => i.dish);
+        dish,
+      };
+    });
   }, [cart, dishMap]);
 
   const localSubtotal = useMemo(() => {
@@ -147,7 +176,7 @@ export default function CartPage() {
     }
   };
 
-  if (items.length === 0) {
+  if (cart.length === 0) {
     return (
       <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-28">
         <Header />
@@ -209,8 +238,8 @@ export default function CartPage() {
 
               <div className="divide-y divide-gray-100">
                 {items.map(({ dish, qty, dishId }) => {
-                  if (!dish) return null;
-                  const itemTotalPrice = (dish.price || 0) * qty;
+                  const itemPrice = dish?.price || 0;
+                  const itemTotalPrice = itemPrice * qty;
 
                   return (
                     <div
@@ -226,7 +255,7 @@ export default function CartPage() {
                             {dish.name}
                           </h4>
                           <span className="text-xs font-black text-[#064e3b]">
-                            ₹{dish.price}
+                            ₹{itemPrice}
                           </span>
                         </div>
                       </div>

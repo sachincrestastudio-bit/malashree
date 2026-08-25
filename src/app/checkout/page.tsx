@@ -24,6 +24,7 @@ import { BillSummaryDrawer } from "@/components/BillSummaryDrawer";
 import { useStore } from "@/lib/store";
 import { getAssignedKitchenDetails } from "@/actions/kitchen";
 import { getKitchenMenu } from "@/actions/menu";
+import { syncCartWithServer, getCartDishDetails } from "@/actions/cart";
 import { placeOrder } from "@/actions/checkout";
 import { getSystemSettings } from "@/actions/adminSetting";
 
@@ -37,6 +38,7 @@ export default function CheckoutPage() {
   const setKitchenMenu = useStore((s) => s.setKitchenMenu);
   const userLocation = useStore((s) => s.userLocation);
 
+  const [dbDishes, setDbDishes] = useState<any[]>([]);
   const [kitchenDetails, setKitchenDetails] = useState<any>(null);
   const [pay, setPay] = useState<string>("upi");
   const [loading, setLoading] = useState(false);
@@ -69,26 +71,49 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     let mounted = true;
-    if (!kitchenMenu || kitchenMenu.length === 0) {
-      getKitchenMenu(branchId).then((menu) => {
-        if (mounted && menu && menu.length > 0) {
-          setKitchenMenu(menu);
+    getKitchenMenu(branchId).then((menu) => {
+      if (mounted && menu && menu.length > 0) {
+        setDbDishes(menu);
+        setKitchenMenu(menu);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [branchId, setKitchenMenu]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (cart.length > 0) {
+      getCartDishDetails(cart.map((c) => c.dishId)).then((details) => {
+        if (mounted && details && details.length > 0) {
+          setDbDishes((prev) => {
+            const map = new Map(prev.map((d) => [d.id, d]));
+            details.forEach((d: any) => map.set(d.id, d));
+            return Array.from(map.values());
+          });
         }
       });
     }
     return () => {
       mounted = false;
     };
-  }, [branchId, kitchenMenu, setKitchenMenu]);
+  }, [cart]);
 
   const items = useMemo(() => {
-    return cart
-      .map((c) => {
-        const dish = (kitchenMenu || []).find((d) => d.id === c.dishId);
-        return { ...c, dish };
-      })
-      .filter((i) => i.dish);
-  }, [cart, kitchenMenu]);
+    const map = new Map<string, any>();
+    (kitchenMenu || []).forEach((k) => map.set(k.id, k));
+    dbDishes.forEach((d) => map.set(d.id, d));
+
+    return cart.map((c) => {
+      const dish = map.get(c.dishId) || {
+        id: c.dishId,
+        name: "Selected Dish",
+        price: 0,
+      };
+      return { ...c, dish };
+    });
+  }, [cart, kitchenMenu, dbDishes]);
 
   const localSubtotal = useMemo(() => {
     return items.reduce((sum, i) => sum + (i.dish?.price || 0) * i.qty, 0);

@@ -1,8 +1,10 @@
 "use server";
 
 import { CartService } from "../services/CartService";
+import { MenuService } from "../services/MenuService";
 import { getAssignedKitchenId } from "./kitchen";
 import { getCurrentUser } from "./user";
+import { findDish } from "../lib/data";
 
 /**
  * Syncs the local guest cart with the server to get trusted pricing and validation.
@@ -144,5 +146,23 @@ export const applyCouponCode = async (couponCode: string) => {
     return { success: true, totals };
   } catch (err: any) {
     return { success: false, error: err.message || "Failed to apply coupon" };
+  }
+};
+
+/**
+ * Fetches dish details for requested cart item IDs
+ */
+export const getCartDishDetails = async (dishIds: string[]) => {
+  try {
+    const kitchenId = await getAssignedKitchenId();
+    const menu = await MenuService.getMenuByKitchen(kitchenId || undefined);
+    const menuMap = new Map(menu.map((d: any) => [d.id, d]));
+
+    return dishIds
+      .map((id) => menuMap.get(id) || findDish(id))
+      .filter(Boolean);
+  } catch (err) {
+    console.error("getCartDishDetails error:", err);
+    return [];
   }
 };
