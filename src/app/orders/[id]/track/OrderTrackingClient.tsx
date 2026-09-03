@@ -12,11 +12,10 @@ import {
   Package,
   Bike,
   RefreshCw,
+  ExternalLink,
   ShieldCheck,
-  ChevronRight,
 } from "lucide-react";
 import { Header } from "@/components/Header";
-import { DeliveryMap } from "@/components/DeliveryMap";
 import { getOrderTrackingData } from "@/actions/delivery/orders";
 
 interface OrderTrackingClientProps {
@@ -36,10 +35,10 @@ export default function OrderTrackingClient({ initialData, orderId }: OrderTrack
   const [data, setData] = useState(initialData);
   const [refreshing, setRefreshing] = useState(false);
 
-  const order = data.order;
-  const driverProfile = data.driverProfile;
+  const order = data?.order || {};
+  const driverProfile = data?.driverProfile;
 
-  // Poll for live driver movement & order status updates
+  // Poll for live status updates from Pidge Webhooks & DB
   useEffect(() => {
     let mounted = true;
     const interval = setInterval(async () => {
@@ -57,17 +56,14 @@ export default function OrderTrackingClient({ initialData, orderId }: OrderTrack
     };
   }, [orderId]);
 
-  const kitchenLat = order.kitchen?.location?.coordinates?.[1] || 18.5987;
-  const kitchenLng = order.kitchen?.location?.coordinates?.[0] || 73.7978;
-  const driverLat = driverProfile?.location?.lat;
-  const driverLng = driverProfile?.location?.lng;
-  const customerLat = order.deliveryAddress?.latitude || kitchenLat + 0.015;
-  const customerLng = order.deliveryAddress?.longitude || kitchenLng + 0.015;
-
   const currentStepIndex = Math.max(
     0,
-    STATUS_STEPS.findIndex((s) => s.key === order.status)
+    STATUS_STEPS.findIndex((s) => s.key === (order.orderStatus || order.status))
   );
+
+  const pidgeRiderName = order.pidgeRiderName || driverProfile?.name || "Pidge Logistics Partner";
+  const pidgeRiderPhone = order.pidgeRiderPhone || driverProfile?.phone;
+  const pidgeTrackingUrl = order.pidgeTrackingUrl;
 
   return (
     <div className="min-h-screen bg-[#fbf9f4] text-[#0d261e] font-sans antialiased pb-32">
@@ -95,21 +91,26 @@ export default function OrderTrackingClient({ initialData, orderId }: OrderTrack
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <span className="text-xs font-extrabold text-[#064e3b] uppercase tracking-wider block">
-                {order.status === "delivered" ? "Order Delivered" : "Estimated Delivery Time"}
+                {order.orderStatus === "delivered" ? "Order Delivered" : "Estimated Delivery Time"}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-[#0d261e] tracking-tight mt-0.5">
-                {order.status === "delivered"
+                {order.orderStatus === "delivered"
                   ? "Arrived at Doorstep"
-                  : order.status === "out_for_delivery"
+                  : order.orderStatus === "out_for_delivery"
                   ? "Arriving in 15-20 mins"
                   : "Arriving in 25-30 mins"}
               </h2>
+              {order.kitchenName && (
+                <p className="text-xs text-[#52635c] mt-1 font-medium">
+                  Prepared at <span className="font-bold text-[#0d261e]">{order.kitchenName}</span>
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-center">
               <span className="px-3 py-1 rounded-full bg-emerald-50 text-[#064e3b] border border-emerald-300 font-extrabold text-xs flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-[#064e3b] animate-pulse" />
-                Live Dispatch
+                Pidge Dispatch Active
               </span>
             </div>
           </div>
@@ -149,57 +150,63 @@ export default function OrderTrackingClient({ initialData, orderId }: OrderTrack
           </div>
         </section>
 
-        {/* Live GPS Interactive Map */}
-        <section className="bg-white rounded-3xl p-3 border border-[#e6e2d8] shadow-2xs overflow-hidden">
-          <div className="w-full h-72 sm:h-96 rounded-2xl overflow-hidden relative border border-[#e6e2d8]">
-            <DeliveryMap
-              kitchenLocation={{ lat: kitchenLat, lng: kitchenLng }}
-              driverLocation={driverLat && driverLng ? { lat: driverLat, lng: driverLng } : undefined}
-              customerLocation={{ lat: customerLat, lng: customerLng }}
-              className="w-full h-full"
-            />
-          </div>
-        </section>
-
-        {/* Delivery Partner Card */}
-        {driverProfile && (
-          <section className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="size-14 rounded-2xl bg-gray-100 overflow-hidden shrink-0 border border-[#e6e2d8]">
-                <img
-                  src={driverProfile.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"}
-                  alt={driverProfile.name || "Delivery Partner"}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h4 className="font-extrabold text-sm text-[#0d261e]">
-                    {driverProfile.name || "Malashree Valet"}
-                  </h4>
-                  <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-[#064e3b] border border-emerald-300 text-[10px] font-bold">
-                    Vaccinated
-                  </span>
-                </div>
-                <p className="text-xs text-[#52635c] mt-0.5">
-                  {driverProfile.vehicle ? `${driverProfile.vehicle.model} · ${driverProfile.vehicle.number}` : "Two Wheeler"}
-                </p>
-              </div>
+        {/* Pidge Live Tracking Button */}
+        {pidgeTrackingUrl && (
+          <section className="bg-gradient-to-r from-[#0d261e] to-[#064e3b] rounded-3xl p-6 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="space-y-1 text-center sm:text-left">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#d4af37] font-bold">
+                Pidge Live GPS Tracking
+              </span>
+              <h3 className="text-xl font-bold">Track Rider on Pidge Map</h3>
+              <p className="text-xs text-white/80">
+                View real-time GPS location and delivery route on Pidge.
+              </p>
             </div>
-
-            {driverProfile.phone && (
-              <a
-                href={`tel:${driverProfile.phone}`}
-                className="size-11 rounded-2xl bg-[#064e3b] text-[#d4af37] grid place-items-center shadow-xs hover:bg-[#0a5c46] transition shrink-0 border border-[#d4af37]/30"
-                title="Call Valet"
-              >
-                <Phone className="size-5" />
-              </a>
-            )}
+            <a
+              href={pidgeTrackingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 bg-[#d4af37] text-[#0d261e] font-mono text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-yellow-400 transition flex items-center gap-2 shrink-0"
+            >
+              <span>Open Pidge Map</span>
+              <ExternalLink className="size-4" />
+            </a>
           </section>
         )}
 
-        {/* Order Details Drawer Card */}
+        {/* Pidge Delivery Partner Details Card */}
+        <section className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="size-12 rounded-2xl bg-emerald-50 border border-emerald-200 grid place-items-center shrink-0">
+              <Bike className="size-6 text-[#064e3b]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h4 className="font-extrabold text-sm text-[#0d261e]">
+                  {pidgeRiderName}
+                </h4>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-[#064e3b] border border-emerald-300 text-[10px] font-bold">
+                  Pidge Express
+                </span>
+              </div>
+              <p className="text-xs text-[#52635c] mt-0.5">
+                Assigned Logistics Partner · Malashree Delivery
+              </p>
+            </div>
+          </div>
+
+          {pidgeRiderPhone && (
+            <a
+              href={`tel:${pidgeRiderPhone}`}
+              className="size-11 rounded-2xl bg-[#064e3b] text-[#d4af37] grid place-items-center shadow-xs hover:bg-[#0a5c46] transition shrink-0 border border-[#d4af37]/30"
+              title="Call Rider"
+            >
+              <Phone className="size-5" />
+            </a>
+          )}
+        </section>
+
+        {/* Order Details Summary */}
         <section className="bg-white rounded-3xl p-5 border border-[#e6e2d8] shadow-2xs space-y-3">
           <h3 className="font-extrabold text-xs text-[#0d261e] uppercase tracking-wider">
             Order Summary
@@ -209,16 +216,16 @@ export default function OrderTrackingClient({ initialData, orderId }: OrderTrack
             {order.items?.map((item: any, i: number) => (
               <div key={i} className="flex justify-between items-center py-1 border-b border-gray-50">
                 <span>
-                  {item.quantity}x {item.name || item.dish?.name || "Dish Item"}
+                  {item.quantity}x {item.dishName || item.name || "Dish Item"}
                 </span>
-                <span className="font-bold text-[#0d261e]">₹{item.price * item.quantity}</span>
+                <span className="font-bold text-[#0d261e]">₹{(item.price || 0) * (item.quantity || 1)}</span>
               </div>
             ))}
           </div>
 
           <div className="pt-2 flex justify-between items-center text-xs font-bold text-[#0d261e]">
             <span>Total Paid ({order.paymentMethod?.toUpperCase() || "PAID"})</span>
-            <span className="text-sm text-[#064e3b] font-black">₹{order.totalAmount}</span>
+            <span className="text-sm text-[#064e3b] font-black">₹{order.grandTotal || order.totalAmount || 0}</span>
           </div>
         </section>
       </main>

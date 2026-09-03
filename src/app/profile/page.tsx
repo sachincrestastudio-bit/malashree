@@ -283,16 +283,16 @@ export default function ProfilePage() {
                 </Link>
               </div>
             ) : (
-              favDishes.map((dish) => (
+              favDishes.filter(Boolean).map((dish) => (
                 <div
-                  key={dish.id}
+                  key={dish?.id || Math.random().toString()}
                   className="bg-white rounded-3xl p-4 border border-[#e6e2d8] shadow-2xs flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3">
-                    <img src={dish.image} alt={dish.name} className="size-14 rounded-2xl object-cover" />
+                    <img src={dish?.image || ""} alt={dish?.name || "Dish"} className="size-14 rounded-2xl object-cover" />
                     <div>
-                      <h4 className="font-extrabold text-sm text-[#0d261e]">{dish.name}</h4>
-                      <p className="font-bold text-xs text-[#064e3b] mt-0.5">₹{dish.price}</p>
+                      <h4 className="font-extrabold text-sm text-[#0d261e]">{dish?.name}</h4>
+                      <p className="font-bold text-xs text-[#064e3b] mt-0.5">₹{dish?.price}</p>
                     </div>
                   </div>
 

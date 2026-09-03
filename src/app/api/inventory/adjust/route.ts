@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { InventoryService } from "@/services/inventory/InventoryService";
 import { getCurrentUser } from "@/actions/user";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
@@ -16,7 +18,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Only allow manual adjustments through this route
     if (["purchase", "consumption"].includes(type)) {
       return NextResponse.json(
         { error: "Cannot manually simulate purchase or consumption here." },

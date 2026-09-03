@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/actions/user";
 import { connectToDatabase } from "@/database/mongoose";
 import { PurchaseOrder } from "@/models/PurchaseOrder";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();

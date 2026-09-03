@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/database/mongoose";
 import { Ingredient } from "@/models/Ingredient";
 import { getCurrentUser } from "@/actions/user";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
     const user = await getCurrentUser();
@@ -19,7 +21,6 @@ export async function GET(req: Request) {
 
     await connectToDatabase();
 
-    // In production, we'd ensure kitchen managers can only see their own kitchen's inventory
     const inventory = await Ingredient.find({ kitchenId }).populate("supplierId", "name").lean();
 
     return NextResponse.json(inventory);

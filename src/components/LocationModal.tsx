@@ -18,11 +18,15 @@ import { requestGPSLocation } from "@/services/client/LocationService";
 import { findNearestKitchenAndAssign } from "@/actions/kitchen";
 
 interface LocationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function LocationModal({ isOpen, onClose }: LocationModalProps) {
+export function LocationModal({ isOpen: externalIsOpen, onClose: externalOnClose }: LocationModalProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const onClose = externalOnClose || (() => setInternalIsOpen(false));
+
   const setBranch = useStore((s) => s.setBranch);
   const resolveLocation = useStore((s) => s.resolveLocation);
   const userLocation = useStore((s) => s.userLocation);

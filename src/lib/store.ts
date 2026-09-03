@@ -56,6 +56,7 @@ type State = {
   clearCart: () => void;
   profile: Profile;
   setProfile: (p: Profile) => void;
+  updateProfile: (partial: Partial<NonNullable<Profile>>) => void;
   favorites: string[];
   toggleFav: (id: string) => void;
   orders: { id: string; date: string; branchId: string; items: CartItem[]; total: number }[];
@@ -123,6 +124,12 @@ export const useStore = create<State>()(
       clearCart: () => set({ cart: [] }),
       profile: null,
       setProfile: (p) => set({ profile: p }),
+      updateProfile: (partial) => {
+        const current = get().profile;
+        if (current) {
+          set({ profile: { ...current, ...partial } });
+        }
+      },
       favorites: [],
       toggleFav: (id) =>
         set({
