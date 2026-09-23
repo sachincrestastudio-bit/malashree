@@ -89,10 +89,13 @@ export default function LoginPage() {
         console.error("Cart merge notice:", cartErr);
       }
 
+      let userRole = res.role;
+
       // Fetch user profile
       try {
         const user = await getCurrentUser();
         if (user) {
+          if (!userRole) userRole = user.role;
           store.setProfile({
             name: user.name,
             phone: user.phone,
@@ -107,8 +110,15 @@ export default function LoginPage() {
         console.error("User profile fetch notice:", userErr);
       }
 
-      if (res.role === "admin") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectUrl = searchParams.get("redirect");
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else if (userRole === "admin") {
         window.location.href = "/admin/dashboard";
+      } else if (userRole === "kitchen_manager") {
+        window.location.href = "/kitchen/dashboard";
       } else {
         window.location.href = "/profile";
       }

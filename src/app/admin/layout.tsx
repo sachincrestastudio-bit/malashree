@@ -11,7 +11,12 @@ export const metadata = {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
 
-  // Strict Server-Side Authorization
+  // If a branch manager accesses the admin route, redirect to their dedicated branch dashboard
+  if (user?.role === "kitchen_manager") {
+    redirect("/kitchen/dashboard");
+  }
+
+  // Strict Server-Side Authorization: Super Admin only
   if (!user || user.role !== "admin") {
     redirect("/"); // Redirect unauthorized users to customer home
   }

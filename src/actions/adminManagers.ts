@@ -121,6 +121,7 @@ export async function updateBranchManager(
   id: string,
   formData: {
     name?: string;
+    email?: string;
     phone?: string;
     branchId?: string;
   }
@@ -132,6 +133,18 @@ export async function updateBranchManager(
     const manager = await User.findById(id);
     if (!manager || manager.role !== "kitchen_manager") {
       return { error: "Branch manager not found." };
+    }
+
+    if (formData.email?.trim()) {
+      const cleanEmail = formData.email.trim().toLowerCase();
+      if (!cleanEmail.includes("@")) {
+        return { error: "Please enter a valid email address." };
+      }
+      const existing = await User.findOne({ email: cleanEmail, _id: { $ne: manager._id } }).lean();
+      if (existing) {
+        return { error: `The email address '${cleanEmail}' is already registered to another account.` };
+      }
+      manager.email = cleanEmail;
     }
 
     if (formData.name?.trim()) manager.name = formData.name.trim();

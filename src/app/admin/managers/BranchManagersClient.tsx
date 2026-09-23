@@ -76,6 +76,7 @@ export default function BranchManagersClient({ initialManagers, branches }: Prop
   const [newPassword, setNewPassword] = useState("");
   const [editData, setEditData] = useState({
     name: "",
+    email: "",
     phone: "",
     branchId: "",
   });
@@ -379,6 +380,7 @@ export default function BranchManagersClient({ initialManagers, branches }: Prop
                             setSelectedManager(m);
                             setEditData({
                               name: m.name,
+                              email: m.email,
                               phone: m.phone === "-" ? "" : m.phone,
                               branchId: m.branchId,
                             });
@@ -658,6 +660,19 @@ export default function BranchManagersClient({ initialManagers, branches }: Prop
                   required
                   value={editData.name}
                   onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                  className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs font-semibold text-[#0d261e] focus:outline-none focus:border-[#064e3b]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#0d261e] mb-1">
+                  Login Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={editData.email}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                   className="w-full h-11 px-4 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs font-semibold text-[#0d261e] focus:outline-none focus:border-[#064e3b]"
                 />
               </div>

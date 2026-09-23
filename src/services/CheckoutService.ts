@@ -55,7 +55,18 @@ export class CheckoutService {
     const dishIds = validCartItems.map((i) => i.menuItemId);
     const menuItems = await MenuItem.find({ _id: { $in: dishIds } }).lean();
     const itemMap = new Map(
-      menuItems.map((m) => [m._id.toString(), { name: m.name, price: m.price }]),
+      menuItems.map((m: any) => {
+        let price = Number(m.price);
+        if (kitchenId && m.branchPricing && Array.isArray(m.branchPricing)) {
+          const override = m.branchPricing.find(
+            (bp: any) => bp.kitchenId?.toString() === kitchenId.toString()
+          );
+          if (override && override.price !== undefined && override.price !== null) {
+            price = Number(override.price) || price;
+          }
+        }
+        return [m._id.toString(), { name: m.name, price }];
+      }),
     );
 
     const orderItemsSnapshot = validCartItems.map((item) => {

@@ -3,6 +3,9 @@
 import { connectToDatabase } from "@/database/mongoose";
 import { Kitchen } from "@/models/Kitchen";
 import { MenuItem } from "@/models/MenuItem";
+import { User } from "@/models/User";
+import { getCurrentUser } from "./user";
+import { hashPassword } from "@/utils/password";
 import { revalidatePath } from "next/cache";
 
 export const createKitchen = async (data: {
@@ -149,5 +152,112 @@ export const deleteKitchen = async (id: string) => {
   } catch (err: any) {
     console.error("deleteKitchen error:", err);
     return { error: "Failed to delete kitchen." };
+  }
+};
+
+/**
+ * Sets or updates the login credentials (email and password) for a branch's dedicated dashboard.
+ */
+export const setBranchCredentials = async (
+  kitchenId: string,
+  data: {
+    email: string;
+    password?: string;
+    name?: string;
+    phone?: string;
+  }
+) => {
+  try {
+    const user = await getCurrentUser();
+    if (!user || user.role !== "admin") {
+      return { error: "Unauthorized: Super Admin access required." };
+    }
+
+    if (!kitchenId) {
+      return { error: "Kitchen ID is required." };
+    }
+
+    const cleanEmail = (data.email || "").trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      return { error: "Please provide a valid email address." };
+    }
+
+    await connectToDatabase();
+
+    const kitchen = await Kitchen.findById(kitchenId);
+    if (!kitchen) {
+      return { error: "Kitchen branch not found." };
+    }
+
+    // Find any existing manager assigned to this branch
+    let manager = await User.findOne({
+      $or: [
+        { _id: kitchen.manager },
+        { assignedKitchen: kitchen._id, role: "kitchen_manager" },
+      ],
+      deletedAt: null,
+    });
+
+    // Check if another account already has this email
+    const emailConflict = await User.findOne({
+      email: cleanEmail,
+      _id: { $ne: manager?._id },
+    }).lean();
+
+    if (emailConflict) {
+      return { error: `The email address '${cleanEmail}' is already registered to another account.` };
+    }
+
+    if (manager) {
+      // Update existing manager
+      manager.email = cleanEmail;
+      if (data.name?.trim()) manager.name = data.name.trim();
+      if (data.phone !== undefined) manager.phone = data.phone.trim();
+      if (data.password && data.password.trim()) {
+        if (data.password.length < 6) {
+          return { error: "Password must be at least 6 characters long." };
+        }
+        manager.passwordHash = await hashPassword(data.password.trim());
+      }
+      manager.assignedKitchen = kitchen._id;
+      manager.role = "kitchen_manager";
+      await manager.save();
+
+      kitchen.manager = manager._id;
+      await kitchen.save();
+    } else {
+      // Creating new manager credentials
+      if (!data.password || data.password.trim().length < 6) {
+        return { error: "Password is required and must be at least 6 characters long." };
+      }
+
+      const passwordHash = await hashPassword(data.password.trim());
+      const newManager = await User.create({
+        name: data.name?.trim() || `${kitchen.name} Manager`,
+        email: cleanEmail,
+        phone: data.phone?.trim() || "",
+        passwordHash,
+        role: "kitchen_manager",
+        assignedKitchen: kitchen._id,
+      });
+
+      kitchen.manager = newManager._id;
+      await kitchen.save();
+      manager = newManager;
+    }
+
+    revalidatePath("/admin/kitchens");
+    revalidatePath("/admin/managers");
+    revalidatePath("/kitchen/dashboard");
+
+    return {
+      success: true,
+      managerId: manager._id.toString(),
+      email: manager.email,
+      name: manager.name,
+    };
+  } catch (err: any) {
+    console.error("setBranchCredentials error:", err);
+    return { error: err.message || "Failed to set branch credentials." };
   }
 };

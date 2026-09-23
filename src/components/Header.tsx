@@ -183,6 +183,28 @@ export function Header() {
               <span>100% Pure Veg</span>
             </div>
 
+            {/* Branch Admin / Admin Link */}
+            {profile?.role === "kitchen_manager" && (
+              <Link
+                href="/kitchen/dashboard"
+                className="hidden md:flex items-center gap-1.5 px-3 h-10 rounded-xl bg-[#064e3b] text-[#d4af37] text-xs font-black uppercase tracking-wider border border-[#d4af37]/40 hover:bg-[#0a5c46] transition shadow-2xs"
+                title="Open Branch Admin Dashboard"
+              >
+                <Store className="size-3.5" />
+                <span>Branch Admin</span>
+              </Link>
+            )}
+            {profile?.role === "admin" && (
+              <Link
+                href="/admin/dashboard"
+                className="hidden md:flex items-center gap-1.5 px-3 h-10 rounded-xl bg-[#064e3b] text-[#d4af37] text-xs font-black uppercase tracking-wider border border-[#d4af37]/40 hover:bg-[#0a5c46] transition shadow-2xs"
+                title="Open Super Admin Portal"
+              >
+                <Sparkles className="size-3.5" />
+                <span>Admin</span>
+              </Link>
+            )}
+
             {/* Cart Button */}
             <Link
               href="/cart"

@@ -19,6 +19,8 @@ import {
   Mail,
   ChevronRight,
   FileText,
+  Store,
+  Sparkles,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { useStore } from "@/lib/store";
@@ -137,6 +139,66 @@ export default function ProfilePage() {
             )}
           </div>
         </section>
+
+        {/* Branch Head Admin Portal Quick Card */}
+        {profile?.role === "kitchen_manager" && (
+          <section className="bg-gradient-to-r from-[#064e3b] to-[#0a5c46] rounded-3xl p-5 text-white border border-[#d4af37]/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="size-11 rounded-2xl bg-[#d4af37] text-[#064e3b] grid place-items-center shrink-0">
+                <Store className="size-6 text-[#064e3b]" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono tracking-widest uppercase text-[#d4af37] font-bold block">
+                  Branch Head Account
+                </span>
+                <h3 className="text-base font-black text-white tracking-tight">
+                  Branch Admin Dashboard
+                </h3>
+                <p className="text-xs text-emerald-100/80">
+                  Manage your branch's live order queue, pricing, menu, and inventory.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/kitchen/dashboard"
+              className="px-5 py-2.5 rounded-2xl bg-[#d4af37] text-[#064e3b] font-black text-xs uppercase tracking-wider hover:bg-white transition flex items-center justify-center gap-2 shadow-xs shrink-0 self-start sm:self-auto"
+            >
+              <span>Open Branch Admin</span>
+              <ArrowRight className="size-4" />
+            </Link>
+          </section>
+        )}
+
+        {/* Super Admin Quick Card */}
+        {profile?.role === "admin" && (
+          <section className="bg-gradient-to-r from-[#064e3b] to-[#0a5c46] rounded-3xl p-5 text-white border border-[#d4af37]/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="size-11 rounded-2xl bg-[#d4af37] text-[#064e3b] grid place-items-center shrink-0">
+                <Sparkles className="size-6 text-[#064e3b]" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono tracking-widest uppercase text-[#d4af37] font-bold block">
+                  Super Admin Account
+                </span>
+                <h3 className="text-base font-black text-white tracking-tight">
+                  Super Admin Control Center
+                </h3>
+                <p className="text-xs text-emerald-100/80">
+                  Full control over network branches, master menu, analytics, and settings.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/admin/dashboard"
+              className="px-5 py-2.5 rounded-2xl bg-[#d4af37] text-[#064e3b] font-black text-xs uppercase tracking-wider hover:bg-white transition flex items-center justify-center gap-2 shadow-xs shrink-0 self-start sm:self-auto"
+            >
+              <span>Open Admin Center</span>
+              <ArrowRight className="size-4" />
+            </Link>
+          </section>
+        )}
 
         {/* Tab Navigation */}
         <nav className="flex items-center bg-white rounded-2xl p-1 border border-[#e6e2d8] shadow-2xs">

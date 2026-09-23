@@ -31,7 +31,20 @@ export class CartService {
       }).lean();
     }
 
-    const validItemsMap = new Map(validItems.map((item) => [item._id.toString(), item.price]));
+    const validItemsMap = new Map(
+      validItems.map((item: any) => {
+        let price = Number(item.price);
+        if (kitchenId && item.branchPricing && Array.isArray(item.branchPricing)) {
+          const override = item.branchPricing.find(
+            (bp: any) => bp.kitchenId?.toString() === kitchenId.toString()
+          );
+          if (override && override.price !== undefined && override.price !== null) {
+            price = Number(override.price) || price;
+          }
+        }
+        return [item._id.toString(), price];
+      })
+    );
 
     const itemsToPrice = [];
     const validCartItems = [];
