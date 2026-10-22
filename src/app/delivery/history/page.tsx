@@ -6,10 +6,11 @@ import Link from "next/link";
 export default async function DeliveryHistoryPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { driverId } = await requireDriverAccess();
-  const page = parseInt(searchParams.page || "1", 10);
+  const resolvedParams = await searchParams;
+  const page = parseInt(resolvedParams.page || "1", 10);
   const data = await EarningsService.getDeliveryHistory(driverId, page);
 
   return (

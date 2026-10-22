@@ -518,6 +518,46 @@ export default function HomeClient({
           </div>
         </section>
       </main>
+
+      {/* Legal Footer */}
+      <footer
+        className="mt-10 py-8 border-t"
+        style={{ borderColor: "#e6e2d8", backgroundColor: "#f3efe6" }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold"
+                style={{ backgroundColor: "#064e3b", color: "#d4af37" }}
+              >
+                M
+              </div>
+              <span className="text-xs font-semibold" style={{ color: "#52635c" }}>
+                © {new Date().getFullYear()} Malashree Cloud Kitchen. All rights reserved.
+              </span>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-xs">
+              {[
+                { label: "Terms & Conditions", href: "/terms" },
+                { label: "Privacy Policy", href: "/privacy" },
+                { label: "Refund Policy", href: "/refund-policy" },
+                { label: "Shipping & Delivery", href: "/shipping-policy" },
+                { label: "Contact Us", href: "/contact" },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="font-medium hover:underline transition-colors"
+                  style={{ color: "#0a5c46" }}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
