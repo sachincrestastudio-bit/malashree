@@ -23,6 +23,10 @@ export const getSystemSettings = async () => {
         maxDeliveryRadiusKm: 10,
         autoAssignDrivers: true,
         pidgeIntegrationActive: true,
+        pidgeUsername: "",
+        pidgePassword: "",
+        pidgeApiUrl: "https://store.dev.pidge.in",
+        pidgeBrandCode: "MALASHREE",
         imagekitPublicKey: "",
         imagekitUrlEndpoint: "",
         isStoreOnline: true,
@@ -50,6 +54,10 @@ export const updateSystemSettings = async (data: {
   autoAssignDrivers?: boolean;
   pidgeIntegrationActive?: boolean;
   pidgeApiKey?: string;
+  pidgeUsername?: string;
+  pidgePassword?: string;
+  pidgeApiUrl?: string;
+  pidgeBrandCode?: string;
   imagekitPublicKey?: string;
   imagekitUrlEndpoint?: string;
   isStoreOnline?: boolean;
