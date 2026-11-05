@@ -76,10 +76,15 @@ export function AdminLayoutClient({ user, children }: AdminLayoutClientProps) {
             {mobileMenuOpen ? <X className="size-5 text-[#d4af37]" /> : <Menu className="size-5" />}
           </button>
 
-          <Link href="/admin/dashboard" className="flex items-center gap-1.5">
-            <span className="font-black italic text-base sm:text-lg tracking-tight text-white">
-              malashree pure veg
-            </span>
+          <Link href="/admin/dashboard" className="flex items-center gap-2">
+            <div className="flex flex-col leading-none">
+              <span className="font-black italic text-lg tracking-tight text-white">
+                Malashree
+              </span>
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#d4af37]">
+                Pure Veg
+              </span>
+            </div>
             <span className="px-1.5 py-0.2 rounded bg-[#d4af37] text-[#064e3b] text-[9px] font-black uppercase">
               Admin
             </span>
@@ -137,9 +142,14 @@ export function AdminLayoutClient({ user, children }: AdminLayoutClientProps) {
             {/* Drawer Header */}
             <div className="p-4 border-b border-[#d4af37]/20 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-black italic text-lg sm:text-xl tracking-tight text-white">
-                  malashree pure veg
-                </span>
+                <div className="flex flex-col leading-none">
+                  <span className="font-black italic text-xl tracking-tight text-white">
+                    Malashree
+                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#d4af37]">
+                    Pure Veg
+                  </span>
+                </div>
                 <span className="px-2 py-0.5 rounded bg-[#d4af37] text-[#064e3b] text-[10px] font-black uppercase">
                   Control
                 </span>
@@ -209,10 +219,15 @@ export function AdminLayoutClient({ user, children }: AdminLayoutClientProps) {
       <aside className="hidden md:flex w-64 bg-[#064e3b] text-white flex-col shrink-0 border-r border-[#d4af37]/30 min-h-screen">
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-[#d4af37]/20">
-          <Link href="/admin/dashboard" className="flex items-center gap-2">
-            <span className="font-black italic text-xl tracking-tight text-white">
-              malashree pure veg
-            </span>
+          <Link href="/admin/dashboard" className="flex items-center gap-2.5">
+            <div className="flex flex-col leading-none">
+              <span className="font-black italic text-2xl tracking-tight text-white">
+                Malashree
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#d4af37]">
+                Pure Veg
+              </span>
+            </div>
             <span className="px-2 py-0.5 rounded-md bg-[#d4af37] text-[#064e3b] text-[10px] font-black uppercase">
               Admin
             </span>

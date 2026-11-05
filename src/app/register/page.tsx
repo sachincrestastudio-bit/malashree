@@ -82,10 +82,15 @@ export default function RegisterPage() {
       <main className="flex-1 max-w-lg w-full mx-auto px-4 py-12 flex flex-col justify-center">
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#e6e2d8] shadow-2xs space-y-6">
           <div className="text-center space-y-1">
-            <span className="text-2xl font-black italic tracking-tighter text-[#064e3b]">
-              malashree pure veg
-            </span>
-            <h1 className="text-xl sm:text-2xl font-black text-[#0d261e] tracking-tight mt-1">
+            <div className="flex flex-col items-center leading-none">
+              <span className="text-3xl font-black italic tracking-tighter text-[#064e3b]">
+                Malashree
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d4af37] mt-0.5">
+                Pure Veg
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-[#0d261e] tracking-tight mt-2">
               Create your account
             </h1>
             <p className="text-xs text-[#52635c] font-medium">

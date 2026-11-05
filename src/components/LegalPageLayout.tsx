@@ -27,19 +27,27 @@ export default function LegalPageLayout({
         }}
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-2.5 group">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-transform group-hover:scale-110"
               style={{ backgroundColor: "var(--gold)", color: "var(--emerald-dark)" }}
             >
               M
             </div>
-            <span
-              className="font-bold text-lg tracking-tight"
-              style={{ color: "var(--gold)" }}
-            >
-              Malashree Pure Veg
-            </span>
+            <div className="flex flex-col leading-none">
+              <span
+                className="font-bold text-lg tracking-tight"
+                style={{ color: "var(--gold)" }}
+              >
+                Malashree
+              </span>
+              <span
+                className="text-[9px] font-extrabold uppercase tracking-[0.2em]"
+                style={{ color: "var(--gold-light)" }}
+              >
+                Pure Veg
+              </span>
+            </div>
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link

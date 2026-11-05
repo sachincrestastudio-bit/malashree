@@ -113,9 +113,12 @@ export function Header() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 lg:gap-8">
           {/* Left: Brand Logo & Location */}
           <div className="flex items-center gap-4 sm:gap-6 min-w-0">
-            <Link href="/" className="shrink-0 flex items-center gap-2 group">
-              <span className="text-xl sm:text-2xl md:text-3xl font-black italic tracking-tighter text-[#064e3b] group-hover:text-[#0a5c46] transition">
-                malashree pure veg
+            <Link href="/" className="shrink-0 flex flex-col leading-none group">
+              <span className="text-2xl sm:text-3xl font-black italic tracking-tighter text-[#064e3b] group-hover:text-[#0a5c46] transition">
+                Malashree
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.25em] text-[#d4af37] -mt-0.5">
+                Pure Veg
               </span>
             </Link>
 
