@@ -114,8 +114,8 @@ export function Header() {
           {/* Left: Brand Logo & Location */}
           <div className="flex items-center gap-4 sm:gap-6 min-w-0">
             <Link href="/" className="shrink-0 flex items-center gap-2 group">
-              <span className="text-2xl sm:text-3xl font-black italic tracking-tighter text-[#064e3b] group-hover:text-[#0a5c46] transition">
-                malashree
+              <span className="text-xl sm:text-2xl md:text-3xl font-black italic tracking-tighter text-[#064e3b] group-hover:text-[#0a5c46] transition">
+                malashree pure veg
               </span>
             </Link>
 

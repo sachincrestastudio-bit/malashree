@@ -83,13 +83,13 @@ export default function RegisterPage() {
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#e6e2d8] shadow-2xs space-y-6">
           <div className="text-center space-y-1">
             <span className="text-2xl font-black italic tracking-tighter text-[#064e3b]">
-              malashree
+              malashree pure veg
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-[#0d261e] tracking-tight mt-1">
               Create your account
             </h1>
             <p className="text-xs text-[#52635c] font-medium">
-              Join Malashree for instant food ordering & member dining privileges
+              Join Malashree Pure Veg for instant food ordering & member dining privileges
             </p>
           </div>
 

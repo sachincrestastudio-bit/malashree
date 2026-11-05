@@ -38,7 +38,7 @@ export default function LegalPageLayout({
               className="font-bold text-lg tracking-tight"
               style={{ color: "var(--gold)" }}
             >
-              Malashree
+              Malashree Pure Veg
             </span>
           </Link>
           <nav className="flex items-center gap-4 text-sm">
