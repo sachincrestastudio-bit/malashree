@@ -5,7 +5,7 @@ import { AdminLayoutClient } from "@/components/admin/AdminLayoutClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Malashree Admin Portal",
+  title: "Malashree Pure Veg — Admin Portal",
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

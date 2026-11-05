@@ -144,7 +144,7 @@ export default function CartPage() {
             Your cart is empty
           </h2>
           <p className="text-xs sm:text-sm text-[#52635c] max-w-sm mx-auto">
-            You have no dishes in your cart yet. Explore Malashree's pure veg menu to start ordering!
+            You have no dishes in your cart yet. Explore Malashree Pure Veg menu to start ordering!
           </p>
           <Link
             href="/menu"

@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import LegalPageLayout from "@/components/LegalPageLayout";
 
 export const metadata: Metadata = {
-  title: "Contact Us | Malashree Cloud Kitchen",
+  title: "Contact Us | Malashree Pure Veg",
   description:
-    "Get in touch with Malashree Cloud Kitchen for support, partnership, or feedback. We're here to help.",
+    "Get in touch with Malashree Pure Veg for support, partnership, or feedback. We're here to help.",
 };
 
 export default function ContactPage() {
@@ -16,7 +16,7 @@ export default function ContactPage() {
     >
       <h2>Our Details</h2>
       <p>
-        <strong>Malashree Cloud Kitchen</strong><br />
+        <strong>Malashree Pure Veg</strong><br />
         Pune, Maharashtra, India
       </p>
 
@@ -47,7 +47,7 @@ export default function ContactPage() {
           <strong>Email:</strong>{" "}
           <a href="mailto:grievance@malashreekitchen.in">grievance@malashreekitchen.in</a>
         </li>
-        <li><strong>Address:</strong> Malashree Cloud Kitchen, Pune, Maharashtra, India</li>
+        <li><strong>Address:</strong> Malashree Pure Veg, Pune, Maharashtra, India</li>
         <li><strong>Response Time:</strong> Within 30 days of receipt of complaint</li>
       </ul>
 

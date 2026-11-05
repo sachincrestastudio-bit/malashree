@@ -7,7 +7,7 @@ import { KitchenLayoutClient } from "@/components/kitchen/KitchenLayoutClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Malashree Kitchen Ops",
+  title: "Malashree Pure Veg — Kitchen Ops",
 };
 
 export default async function KitchenLayout({ children }: { children: React.ReactNode }) {

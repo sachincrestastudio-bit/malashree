@@ -6,7 +6,7 @@ import { Bike, LayoutDashboard, ListOrdered, Wallet, UserCircle, MapPin } from "
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Malashree Delivery Partner",
+  title: "Malashree Pure Veg — Delivery Partner",
 };
 
 const bottomNav = [

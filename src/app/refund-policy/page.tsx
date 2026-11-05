@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import LegalPageLayout from "@/components/LegalPageLayout";
 
 export const metadata: Metadata = {
-  title: "Refund & Cancellation Policy | Malashree Cloud Kitchen",
+  title: "Refund & Cancellation Policy | Malashree Pure Veg",
   description:
-    "Understand Malashree's refund and cancellation policy for food orders. Learn when cancellations are accepted and how refunds are processed.",
+    "Understand Malashree Pure Veg's refund and cancellation policy for food orders. Learn when cancellations are accepted and how refunds are processed.",
 };
 
 export default function RefundPolicyPage() {

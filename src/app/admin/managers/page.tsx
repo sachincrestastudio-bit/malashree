@@ -6,7 +6,7 @@ import BranchManagersClient from "./BranchManagersClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Branch Heads & Kitchen Managers | Malashree Admin",
+  title: "Branch Heads & Kitchen Managers | Malashree Pure Veg Admin",
 };
 
 export default async function BranchManagersPage() {

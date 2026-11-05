@@ -13,7 +13,7 @@ export function Footer() {
             skip the <span className="italic">middleman.</span>
           </div>
           <p className="mt-6 text-cream/60 max-w-sm text-sm leading-relaxed">
-            Malashree's own ordering platform. Lower fees, faster kitchens, the same food you love —
+            Malashree Pure Veg's own ordering platform. Lower fees, faster kitchens, the same food you love —
             straight from us to you.
           </p>
         </div>
@@ -58,7 +58,7 @@ export function Footer() {
       </div>
       <div className="border-t border-cream/10">
         <div className="mx-auto max-w-7xl px-6 py-6 flex flex-wrap items-center justify-between text-xs text-cream/50">
-          <div>© {new Date().getFullYear()} Malashree. Hand-rolled in Pune.</div>
+          <div>© {new Date().getFullYear()} Malashree Pure Veg. Hand-rolled in Pune.</div>
           <div>Demo build · v1.0</div>
         </div>
       </div>

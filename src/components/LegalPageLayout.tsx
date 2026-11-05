@@ -130,7 +130,7 @@ export default function LegalPageLayout({
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-sm mb-4" style={{ color: "var(--olive)" }}>
-            © {new Date().getFullYear()} Malashree Cloud Kitchen. All rights reserved.
+            © {new Date().getFullYear()} Malashree Pure Veg. All rights reserved.
           </p>
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
             {[

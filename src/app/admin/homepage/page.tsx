@@ -4,7 +4,7 @@ import AdminHomepageClient from "./AdminHomepageClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Homepage Content Management | Malashree Admin",
+  title: "Homepage Content Management | Malashree Pure Veg Admin",
 };
 
 export default async function AdminHomepagePage() {

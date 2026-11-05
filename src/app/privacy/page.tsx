@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import LegalPageLayout from "@/components/LegalPageLayout";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Malashree Cloud Kitchen",
+  title: "Privacy Policy | Malashree Pure Veg",
   description:
-    "Learn how Malashree collects, uses, and protects your personal data. We are committed to your privacy and data security.",
+    "Learn how Malashree Pure Veg collects, uses, and protects your personal data. We are committed to your privacy and data security.",
 };
 
 export default function PrivacyPage() {
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
     >
       <div className="highlight-box">
         <p>
-          Malashree Cloud Kitchen is committed to protecting your personal information. This Privacy Policy applies to all information collected through our website, mobile application, and related services.
+          Malashree Pure Veg is committed to protecting your personal information. This Privacy Policy applies to all information collected through our website, mobile application, and related services.
         </p>
       </div>
 

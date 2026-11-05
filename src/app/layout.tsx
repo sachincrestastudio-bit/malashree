@@ -5,9 +5,9 @@ import { FloatingDock } from "@/components/FloatingDock";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Malashree — Pure Veg Indian Kitchen",
+  title: "Malashree Pure Veg — Pure Veg Indian Kitchen",
   description:
-    "Malashree's direct food ordering platform. Fresh, fast, premium pure veg Indian food from your nearest cloud kitchen branch in Pune.",
+    "Malashree Pure Veg's direct food ordering platform. Fresh, fast, premium pure veg Indian food from your nearest cloud kitchen branch in Pune.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

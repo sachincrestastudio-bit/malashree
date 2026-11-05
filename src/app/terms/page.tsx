@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import LegalPageLayout from "@/components/LegalPageLayout";
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions | Malashree Cloud Kitchen",
+  title: "Terms & Conditions | Malashree Pure Veg",
   description:
-    "Read the Terms and Conditions governing your use of Malashree's food ordering platform. Understand your rights, obligations, and our policies.",
+    "Read the Terms and Conditions governing your use of Malashree Pure Veg's food ordering platform. Understand your rights, obligations, and our policies.",
 };
 
 export default function TermsPage() {
@@ -22,10 +22,10 @@ export default function TermsPage() {
 
       <h2>1. About Malashree</h2>
       <p>
-        Malashree Cloud Kitchen (&ldquo;Malashree&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is a pure-vegetarian food brand operating cloud kitchen branches across Pune, India. We provide online food ordering and delivery services directly to consumers through our digital platform.
+        Malashree Pure Veg (&ldquo;Malashree Pure Veg&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is a pure-vegetarian food brand operating cloud kitchen branches across Pune, India. We provide online food ordering and delivery services directly to consumers through our digital platform.
       </p>
       <p>
-        <strong>Business Address:</strong> Malashree Cloud Kitchen, Pune, Maharashtra, India.<br />
+        <strong>Business Address:</strong> Malashree Pure Veg, Pune, Maharashtra, India.<br />
         <strong>Contact Email:</strong> support@malashreekitchen.in
       </p>
 
@@ -88,7 +88,7 @@ export default function TermsPage() {
 
       <h2>7. Intellectual Property</h2>
       <p>
-        All content on the Malashree platform — including logos, graphics, text, menu descriptions, photographs, and software — is the intellectual property of Malashree Cloud Kitchen and is protected under applicable Indian intellectual property laws. You may not reproduce, distribute, or use any content without our prior written consent.
+        All content on the Malashree platform — including logos, graphics, text, menu descriptions, photographs, and software — is the intellectual property of Malashree Pure Veg and is protected under applicable Indian intellectual property laws. You may not reproduce, distribute, or use any content without our prior written consent.
       </p>
 
       <h2>8. User-Generated Content</h2>

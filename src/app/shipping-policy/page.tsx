@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import LegalPageLayout from "@/components/LegalPageLayout";
 
 export const metadata: Metadata = {
-  title: "Shipping & Delivery Policy | Malashree Cloud Kitchen",
+  title: "Shipping & Delivery Policy | Malashree Pure Veg",
   description:
-    "Learn about Malashree's delivery areas, delivery timelines, charges, and how we handle delivery issues.",
+    "Learn about Malashree Pure Veg's delivery areas, delivery timelines, charges, and how we handle delivery issues.",
 };
 
 export default function ShippingPolicyPage() {

@@ -534,7 +534,7 @@ export default function HomeClient({
                 M
               </div>
               <span className="text-xs font-semibold" style={{ color: "#52635c" }}>
-                © {new Date().getFullYear()} Malashree Cloud Kitchen. All rights reserved.
+                © {new Date().getFullYear()} Malashree Pure Veg. All rights reserved.
               </span>
             </div>
             <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-xs">
