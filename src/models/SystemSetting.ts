@@ -14,8 +14,8 @@ const SystemSettingSchema = new Schema(
     autoAssignDrivers: { type: Boolean, default: true },
     pidgeIntegrationActive: { type: Boolean, default: true },
     pidgeApiKey: { type: String, default: "pidge_live_key_malashree_prod" },
-    cloudinaryCloudName: { type: String, default: "djoklzpse" },
-    cloudinaryUploadPreset: { type: String, default: "malashree_dishes" },
+    imagekitPublicKey: { type: String, default: "" },
+    imagekitUrlEndpoint: { type: String, default: "" },
     isStoreOnline: { type: Boolean, default: true },
     maintenanceMode: { type: Boolean, default: false },
     maintenanceMessage: {

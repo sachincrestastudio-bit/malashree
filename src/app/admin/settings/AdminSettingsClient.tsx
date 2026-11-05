@@ -405,24 +405,26 @@ export default function AdminSettingsClient({ initialSettings }: Props) {
           <div className="grid sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-bold text-[#0d261e] mb-2">
-                Cloudinary Cloud Name
+                ImageKit Public Key
               </label>
               <input
                 type="text"
-                value={form.cloudinaryCloudName || "djoklzpse"}
-                onChange={(e) => setForm({ ...form, cloudinaryCloudName: e.target.value })}
+                value={form.imagekitPublicKey || ""}
+                onChange={(e) => setForm({ ...form, imagekitPublicKey: e.target.value })}
+                placeholder="public_..."
                 className="w-full h-12 px-4 bg-[#fbf9f4] border border-[#e6e2d8] focus:border-[#064e3b] outline-none text-xs font-bold text-[#0d261e] rounded-xl"
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-[#0d261e] mb-2">
-                Cloudinary Upload Preset
+                ImageKit URL Endpoint
               </label>
               <input
                 type="text"
-                value={form.cloudinaryUploadPreset || "malashree_dishes"}
-                onChange={(e) => setForm({ ...form, cloudinaryUploadPreset: e.target.value })}
+                value={form.imagekitUrlEndpoint || ""}
+                onChange={(e) => setForm({ ...form, imagekitUrlEndpoint: e.target.value })}
+                placeholder="https://ik.imagekit.io/your_id"
                 className="w-full h-12 px-4 bg-[#fbf9f4] border border-[#e6e2d8] focus:border-[#064e3b] outline-none text-xs font-bold text-[#0d261e] rounded-xl"
               />
             </div>

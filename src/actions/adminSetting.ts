@@ -23,8 +23,8 @@ export const getSystemSettings = async () => {
         maxDeliveryRadiusKm: 10,
         autoAssignDrivers: true,
         pidgeIntegrationActive: true,
-        cloudinaryCloudName: "djoklzpse",
-        cloudinaryUploadPreset: "malashree_dishes",
+        imagekitPublicKey: "",
+        imagekitUrlEndpoint: "",
         isStoreOnline: true,
         maintenanceMode: false,
       });
@@ -50,8 +50,8 @@ export const updateSystemSettings = async (data: {
   autoAssignDrivers?: boolean;
   pidgeIntegrationActive?: boolean;
   pidgeApiKey?: string;
-  cloudinaryCloudName?: string;
-  cloudinaryUploadPreset?: string;
+  imagekitPublicKey?: string;
+  imagekitUrlEndpoint?: string;
   isStoreOnline?: boolean;
   maintenanceMode?: boolean;
   maintenanceMessage?: string;

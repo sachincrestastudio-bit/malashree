@@ -34,7 +34,7 @@ import {
   bulkResetBranchPricesToMaster,
   syncUniversalCatalog,
 } from "@/actions/adminMenu";
-import { uploadToCloudinary } from "@/utils/client/cloudinary";
+import { uploadToImageKit } from "@/utils/client/imagekit";
 
 interface BranchPriceOverride {
   kitchenId: string;
@@ -216,7 +216,7 @@ export default function AdminMenuClient({ items: initialItems, kitchens, categor
     if (imageFile) {
       setUploading(true);
       try {
-        imageUrl = await uploadToCloudinary(imageFile);
+        imageUrl = await uploadToImageKit(imageFile);
       } catch (err: any) {
         setError(err.message || "Image upload failed.");
         setLoading(false);
