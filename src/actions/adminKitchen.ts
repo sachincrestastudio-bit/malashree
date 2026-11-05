@@ -7,6 +7,7 @@ import { User } from "@/models/User";
 import { getCurrentUser } from "./user";
 import { hashPassword } from "@/utils/password";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "./authGuard";
 
 export const createKitchen = async (data: {
   name: string;
@@ -19,6 +20,7 @@ export const createKitchen = async (data: {
   preparationTime: string;
 }) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     if (!data.name || !data.code) return { error: "Name and branch code are required." };
@@ -91,6 +93,7 @@ export const updateKitchenStatus = async (
   status: "active" | "inactive" | "maintenance"
 ) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
     await Kitchen.findByIdAndUpdate(id, { status });
     revalidatePath("/admin/kitchens");
@@ -116,6 +119,7 @@ export const updateKitchen = async (
   }
 ) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     const lat = parseFloat(data.latitude);
@@ -143,6 +147,7 @@ export const updateKitchen = async (
 
 export const deleteKitchen = async (id: string) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
     await Kitchen.findByIdAndUpdate(id, { deletedAt: new Date(), status: "inactive" });
     revalidatePath("/admin/kitchens");

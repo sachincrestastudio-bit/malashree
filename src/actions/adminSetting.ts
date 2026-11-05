@@ -3,6 +3,7 @@
 import { connectToDatabase } from "@/database/mongoose";
 import { SystemSetting } from "@/models/SystemSetting";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "./authGuard";
 
 export const getSystemSettings = async () => {
   try {
@@ -56,6 +57,7 @@ export const updateSystemSettings = async (data: {
   maintenanceMessage?: string;
 }) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     const existing = await SystemSetting.findOne();

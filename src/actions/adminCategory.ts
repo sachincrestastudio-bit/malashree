@@ -5,6 +5,7 @@ import { Category } from "@/models/Category";
 import { Kitchen } from "@/models/Kitchen";
 import { MenuItem } from "@/models/MenuItem";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "./authGuard";
 
 export const createCategory = async (data: {
   name: string;
@@ -12,6 +13,7 @@ export const createCategory = async (data: {
   kitchenId: string;
 }) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     if (!data.name || !data.name.trim()) {
@@ -62,6 +64,7 @@ export const updateCategory = async (
   }
 ) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     if (!data.name || !data.name.trim()) {
@@ -100,6 +103,7 @@ export const updateCategory = async (
 
 export const deleteCategory = async (id: string) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     // Check if category is assigned to any menu items

@@ -6,6 +6,7 @@ import { Category } from "@/models/Category";
 import { Kitchen } from "@/models/Kitchen";
 import { revalidatePath } from "next/cache";
 import { seedDatabase } from "@/actions/seed";
+import { requireAdmin } from "@/actions/authGuard";
 
 /**
  * 1. Add a Universal Master Dish (Available across all branches by default)
@@ -20,6 +21,7 @@ export const addMasterDish = async (formData: {
   images: string;
 }) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     const category = await Category.findById(formData.categoryId).lean();
@@ -72,6 +74,7 @@ export const updateMasterDish = async (formData: {
   images: string;
 }) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     const dish = await MenuItem.findById(formData.id);
@@ -112,6 +115,7 @@ export const updateBranchDishOverride = async (payload: {
   isAvailable?: boolean;
 }) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     const dish = await MenuItem.findById(payload.dishId);
@@ -161,6 +165,7 @@ export const updateBranchDishOverride = async (payload: {
  */
 export const bulkEnableAllMasterDishesForBranch = async (kitchenId: string) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     const dishes = await MenuItem.find({ isGlobalMaster: true, deletedAt: null });
@@ -200,6 +205,7 @@ export const bulkEnableAllMasterDishesForBranch = async (kitchenId: string) => {
  */
 export const bulkDisableAllMasterDishesForBranch = async (kitchenId: string) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     const dishes = await MenuItem.find({ isGlobalMaster: true, deletedAt: null });
@@ -238,6 +244,7 @@ export const bulkDisableAllMasterDishesForBranch = async (kitchenId: string) => 
  */
 export const bulkResetBranchPricesToMaster = async (kitchenId: string) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
 
     const dishes = await MenuItem.find({ isGlobalMaster: true, deletedAt: null });
@@ -268,6 +275,7 @@ export const bulkResetBranchPricesToMaster = async (kitchenId: string) => {
  * 7. Sync / Copy all Chinchwad and Signature dishes into Universal Master Catalog
  */
 export const syncUniversalCatalog = async () => {
+  await requireAdmin();
   return seedDatabase();
 };
 
@@ -300,6 +308,7 @@ export const addMenuItem = async (formData: {
  */
 export const updateMenuItemAvailability = async (id: string, isAvailable: boolean) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
     await MenuItem.findByIdAndUpdate(id, { isAvailable });
     revalidatePath("/admin/menu");
@@ -316,6 +325,7 @@ export const updateMenuItemAvailability = async (id: string, isAvailable: boolea
  */
 export const deleteMenuItem = async (id: string) => {
   try {
+    await requireAdmin();
     await connectToDatabase();
     await MenuItem.findByIdAndDelete(id);
     revalidatePath("/admin/menu");
@@ -353,3 +363,7 @@ export const getMenuFormData = async () => {
     })),
   };
 };
+
+
+
+
