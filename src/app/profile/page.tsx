@@ -89,24 +89,24 @@ export default function ProfilePage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
         {/* Profile Masthead Card */}
-        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="size-16 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-xl grid place-items-center shadow-xs border border-[#d4af37]/30">
+        <section className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e6e2d8] shadow-2xs overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+              <div className="size-14 sm:size-16 shrink-0 rounded-2xl bg-[#064e3b] text-[#d4af37] font-black text-lg sm:text-xl grid place-items-center shadow-xs border border-[#d4af37]/30">
                 {userInitials}
               </div>
-              <div>
-                <h1 className="text-xl font-black text-[#0d261e] tracking-tight leading-tight">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl font-black text-[#0d261e] tracking-tight leading-tight truncate">
                   {profile?.name || "Guest Foodie"}
                 </h1>
-                <p className="text-xs text-[#52635c] mt-0.5 flex items-center gap-1">
-                  <Phone className="size-3 text-[#d4af37]" />
-                  {profile?.phone ? `+91 ${profile.phone}` : "+91 98765 43210"}
+                <p className="text-xs text-[#52635c] mt-0.5 flex items-center gap-1 truncate">
+                  <Phone className="size-3 text-[#d4af37] shrink-0" />
+                  <span className="truncate">{profile?.phone ? `+91 ${profile.phone}` : "+91 98765 43210"}</span>
                 </p>
                 {profile?.email && (
-                  <p className="text-xs text-[#52635c] flex items-center gap-1 mt-0.5">
-                    <Mail className="size-3 text-[#d4af37]" />
-                    {profile.email}
+                  <p className="text-xs text-[#52635c] flex items-center gap-1 mt-0.5 truncate">
+                    <Mail className="size-3 text-[#d4af37] shrink-0" />
+                    <span className="truncate">{profile.email}</span>
                   </p>
                 )}
               </div>
@@ -115,23 +115,23 @@ export default function ProfilePage() {
             {profile ? (
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 rounded-xl bg-[#fbf9f4] hover:bg-rose-50 hover:text-rose-600 transition text-xs font-bold text-[#52635c] flex items-center gap-1.5 cursor-pointer border border-[#e6e2d8]"
+                className="w-full sm:w-auto shrink-0 px-4 py-2.5 sm:py-2 rounded-xl bg-[#fbf9f4] hover:bg-rose-50 hover:text-rose-600 transition text-xs font-bold text-[#52635c] flex items-center justify-center gap-1.5 cursor-pointer border border-[#e6e2d8]"
                 title="Log Out"
               >
-                <LogOut className="size-3.5" />
+                <LogOut className="size-3.5 shrink-0" />
                 <span>Log Out</span>
               </button>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
                 <Link
                   href="/login"
-                  className="px-4 py-2 rounded-xl bg-white hover:bg-gray-50 text-[#0d261e] font-bold text-xs transition border border-[#e6e2d8]"
+                  className="flex-1 sm:flex-none text-center px-4 py-2 rounded-xl bg-white hover:bg-gray-50 text-[#0d261e] font-bold text-xs transition border border-[#e6e2d8]"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/register"
-                  className="px-4 py-2 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition shadow-xs border border-[#d4af37]/30"
+                  className="flex-1 sm:flex-none text-center px-4 py-2 rounded-xl bg-[#064e3b] text-[#d4af37] font-bold text-xs hover:bg-[#0a5c46] transition shadow-xs border border-[#d4af37]/30"
                 >
                   Sign Up
                 </Link>

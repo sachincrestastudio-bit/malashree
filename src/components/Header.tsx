@@ -110,8 +110,8 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-40 bg-[#fbf9f4]/95 backdrop-blur-md border-b border-[#e6e2d8] shadow-2xs">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 lg:gap-8">
-          {/* Left: Brand Logo & Location */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-4 lg:gap-8">
+          {/* Left: Brand Logo & Desktop Location */}
           <div className="flex items-center gap-4 sm:gap-6 min-w-0">
             <Link href="/" className="shrink-0 flex flex-col leading-none group">
               <span className="text-2xl sm:text-3xl font-black italic tracking-tighter text-[#064e3b] group-hover:text-[#0a5c46] transition">
@@ -122,18 +122,18 @@ export function Header() {
               </span>
             </Link>
 
-            {/* Auto Delivery Location Badge (Click to detect GPS or set delivery address) */}
+            {/* Desktop / Tablet Auto Delivery Location Badge */}
             <button
               onClick={() => setShowLocationModal(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-[#e6e2d8] hover:border-[#d4af37] transition text-xs font-semibold text-[#0d261e] truncate shadow-2xs group cursor-pointer text-left"
+              className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-[#e6e2d8] hover:border-[#d4af37] transition text-xs font-semibold text-[#0d261e] min-w-0 shadow-2xs group cursor-pointer text-left"
             >
               <MapPin className="size-4 text-[#d4af37] shrink-0 group-hover:scale-110 transition" />
-              <div className="flex flex-col text-left leading-tight truncate">
-                <span className="font-extrabold text-[11px] text-[#0d261e] flex items-center gap-1">
-                  {userLocation?.label || profile?.address || "Pune"}
-                  <ChevronDown className="size-3 text-[#52635c] group-hover:text-[#064e3b] transition" />
+              <div className="flex flex-col text-left leading-tight min-w-0">
+                <span className="font-extrabold text-[11px] text-[#0d261e] flex items-center gap-1 truncate">
+                  <span className="truncate">{userLocation?.label || profile?.address || "Pune"}</span>
+                  <ChevronDown className="size-3 shrink-0 text-[#52635c] group-hover:text-[#064e3b] transition" />
                 </span>
-                <span className="text-[10px] text-[#52635c] truncate max-w-[140px] sm:max-w-[200px]">
+                <span className="text-[10px] text-[#52635c] truncate max-w-[160px] md:max-w-[200px]">
                   {userLocation?.kitchenName
                     ? `${userLocation.kitchenName} (${userLocation.distanceKm || 1.2} km)`
                     : "Auto-routing nearest branch..."}
@@ -177,7 +177,7 @@ export function Header() {
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Pure Veg Badge */}
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-300 text-[11px] font-bold text-[#064e3b]">
               <div className="size-3 rounded-sm border border-[#064e3b] grid place-items-center">
@@ -211,7 +211,7 @@ export function Header() {
             {/* Cart Button */}
             <Link
               href="/cart"
-              className="flex items-center gap-2 px-4 h-10 rounded-xl bg-[#064e3b] text-[#d4af37] hover:bg-[#0a5c46] transition text-xs font-bold shadow-xs border border-[#d4af37]/30"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 rounded-xl bg-[#064e3b] text-[#d4af37] hover:bg-[#0a5c46] transition text-xs font-bold shadow-xs border border-[#d4af37]/30"
             >
               <ShoppingBag className="size-4" />
               <span className="text-white font-extrabold">₹{cartTotal.toFixed(2)}</span>
@@ -235,6 +235,29 @@ export function Header() {
               )}
             </Link>
           </div>
+        </div>
+
+        {/* Mobile Delivery Location Bar */}
+        <div className="sm:hidden px-4 pb-2.5">
+          <button
+            onClick={() => setShowLocationModal(true)}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white border border-[#e6e2d8] active:border-[#d4af37] transition shadow-2xs cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <MapPin className="size-4 text-[#d4af37] shrink-0" />
+              <div className="flex flex-col text-left leading-tight min-w-0">
+                <span className="font-extrabold text-[11px] text-[#0d261e] truncate">
+                  {userLocation?.label || profile?.address || "Pune"}
+                </span>
+                <span className="text-[10px] text-[#52635c] truncate">
+                  {userLocation?.kitchenName
+                    ? `${userLocation.kitchenName} (${userLocation.distanceKm || 1.2} km)`
+                    : "Tap to set delivery location"}
+                </span>
+              </div>
+            </div>
+            <ChevronDown className="size-4 text-[#52635c] shrink-0" />
+          </button>
         </div>
       </header>
 
