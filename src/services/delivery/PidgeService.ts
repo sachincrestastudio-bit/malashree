@@ -30,6 +30,8 @@ interface CreatePidgePayload {
 export class PidgeService {
   private static cachedToken: string | null = null;
   private static tokenExpiryTime: number = 0;
+  private static lastLoginRawResponse: any = null;
+  private static lastLoginHttpStatus: number | null = null;
 
   private static async getConfig() {
     let apiUrl = process.env.PIDGE_API_URL || "";
@@ -93,11 +95,25 @@ export class PidgeService {
 
       if (!res.ok) {
         const errText = await res.text();
+        this.lastLoginHttpStatus = res.status;
+        try {
+          this.lastLoginRawResponse = JSON.parse(errText);
+        } catch {
+          this.lastLoginRawResponse = errText;
+        }
         console.error(`Pidge login failed with HTTP ${res.status}:`, errText);
         return null;
       }
 
       const data = await res.json();
+      this.lastLoginHttpStatus = res.status;
+      this.lastLoginRawResponse = data;
+      console.log("\n================ [PIDGE API: VENDOR LOGIN] ================");
+      console.log("Endpoint:", `${config.baseUrl}/v1.0/store/channel/vendor/login`);
+      console.log("Status:", res.status, res.statusText);
+      console.log("Response Body:\n", JSON.stringify(data, null, 2));
+      console.log("===========================================================\n");
+
       const token = data?.data?.token; // e.g. "Bearer c3Rrbjo0..."
       if (token) {
         this.cachedToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
@@ -110,6 +126,22 @@ export class PidgeService {
     }
 
     return null;
+  }
+
+  /**
+   * Returns fresh auth token along with the verbatim raw HTTP response from Pidge.
+   */
+  static async getAuthTokenWithRaw(forceRefresh = true) {
+    const config = await this.getConfig();
+    const token = await this.getAuthToken(forceRefresh);
+    return {
+      token,
+      endpoint: `${config.baseUrl}/v1.0/store/channel/vendor/login`,
+      httpStatus: this.lastLoginHttpStatus,
+      rawResponse: this.lastLoginRawResponse,
+      username: config.username,
+      baseUrl: config.baseUrl,
+    };
   }
 
   /**
@@ -163,13 +195,26 @@ export class PidgeService {
   }
 
   /**
-   * Estimates delivery distance, duration, serviceability and fee via Pidge Hyperlocal API.
+   * Estimates delivery serviceability, distance, duration and pricing directly via Pidge Hyperlocal APIs:
+   * 1) POST /v1.0/store/channel/vendor/serviceability
+   * 2) POST /v1.0/store/channel/vendor/estimate
    */
   static async estimateDelivery(pickup: { lat: number; lng: number }, dropoff: { lat: number; lng: number }) {
-    const distKm = this.calculateDistanceKm(pickup, dropoff);
-    const distanceMeters = Math.round(distKm * 1000);
+    const haversineDistKm = this.calculateDistanceKm(pickup, dropoff);
+    const distanceMeters = Math.round(haversineDistKm * 1000);
     const config = await this.getConfig();
 
+    const serviceabilityEndpoint = `${config.baseUrl}/v1.0/store/channel/vendor/serviceability`;
+    const estimateEndpoint = `${config.baseUrl}/v1.0/store/channel/vendor/estimate`;
+
+    let serviceabilityHttpStatus: number | null = null;
+    let serviceabilityRaw: any = null;
+    let serviceable = false;
+
+    let estimateHttpStatus: number | null = null;
+    let estimateRaw: any = null;
+
+    // 1. Call Pidge /serviceability
     try {
       const res = await this.request("/v1.0/store/channel/vendor/serviceability", {
         method: "POST",
@@ -184,25 +229,174 @@ export class PidgeService {
         }),
       });
 
-      if (res && res.ok) {
-        const data = await res.json();
-        const serviceable = data?.data?.serviceable !== false;
-        return {
-          serviceable,
-          fee: Math.max(30, Math.round(distKm * 12)),
-          distanceKm: distKm,
-          estimatedTimeMin: Math.round(15 + distKm * 5),
-        };
+      if (res) {
+        serviceabilityHttpStatus = res.status;
+        const text = await res.text();
+        try {
+          serviceabilityRaw = JSON.parse(text);
+        } catch {
+          serviceabilityRaw = text;
+        }
+
+        console.log("\n============= [PIDGE API: SERVICEABILITY CHECK] =============");
+        console.log("Endpoint:", serviceabilityEndpoint);
+        console.log("Status:", res.status, res.statusText);
+        console.log("Response Body:\n", JSON.stringify(serviceabilityRaw, null, 2));
+        console.log("=============================================================\n");
+
+        if (res.ok) {
+          serviceable = serviceabilityRaw?.data?.serviceable !== false;
+        }
       }
     } catch (err) {
-      console.error("Pidge estimateDelivery API error:", err);
+      console.error("Pidge serviceability API error:", err);
+    }
+
+    // 2. Call Pidge /estimate (note: requires latitude/longitude keys, unlike /serviceability which uses lat/lng)
+    try {
+      const estRes = await this.request("/v1.0/store/channel/vendor/estimate", {
+        method: "POST",
+        body: JSON.stringify({
+          pickup: { latitude: pickup.lat, longitude: pickup.lng },
+          drop: { latitude: dropoff.lat, longitude: dropoff.lng },
+        }),
+      });
+
+      if (estRes) {
+        estimateHttpStatus = estRes.status;
+        const estText = await estRes.text();
+        try {
+          estimateRaw = JSON.parse(estText);
+        } catch {
+          estimateRaw = estText;
+        }
+
+        console.log("\n================ [PIDGE API: ESTIMATE CHECK] ================");
+        console.log("Endpoint:", estimateEndpoint);
+        console.log("Status:", estRes.status, estRes.statusText);
+        console.log("Response Body:\n", JSON.stringify(estimateRaw, null, 2));
+        console.log("=============================================================\n");
+      }
+    } catch (err) {
+      console.error("Pidge estimate API error:", err);
+    }
+
+    const estData = estimateRaw?.data;
+    const hasRealEstimate =
+      estimateHttpStatus !== null &&
+      estimateHttpStatus >= 200 &&
+      estimateHttpStatus < 300 &&
+      estData &&
+      typeof estData.minCost === "number";
+
+    const distanceKm =
+      typeof estData?.pickupToDropDistance === "number"
+        ? Math.round((estData.pickupToDropDistance / 1000) * 100) / 100
+        : haversineDistKm;
+
+    const totalEtaSeconds =
+      (Number(estData?.timeToAssign) || 0) +
+      (Number(estData?.timeToPickup) || 0) +
+      (Number(estData?.pickupToDropTime) || 0);
+
+    const estimatedTimeMin = hasRealEstimate && totalEtaSeconds > 0
+      ? Math.round(totalEtaSeconds / 60)
+      : Math.round(15 + distanceKm * 5);
+
+    return {
+      serviceable,
+      fee: hasRealEstimate ? estData.minCost : Math.max(30, Math.round(haversineDistKm * 12)),
+      minCost: typeof estData?.minCost === "number" ? estData.minCost : null,
+      maxCost: typeof estData?.maxCost === "number" ? estData.maxCost : null,
+      distanceKm,
+      pickupToDropDistanceMeters:
+        typeof estData?.pickupToDropDistance === "number" ? estData.pickupToDropDistance : null,
+      pickupToDropTimeSec:
+        typeof estData?.pickupToDropTime === "number" ? estData.pickupToDropTime : null,
+      timeToAssignSec:
+        typeof estData?.timeToAssign === "number" ? estData.timeToAssign : null,
+      timeToPickupSec:
+        typeof estData?.timeToPickup === "number" ? estData.timeToPickup : null,
+      estimatedTimeMin,
+      isEstimateFallback: !hasRealEstimate,
+      serviceabilityEndpoint,
+      serviceabilityHttpStatus,
+      serviceabilityRaw,
+      estimateEndpoint,
+      estimateHttpStatus,
+      estimateRaw,
+      rawResponse: {
+        serviceability: serviceabilityRaw,
+        estimate: estimateRaw,
+      },
+    };
+  }
+
+  /**
+   * Queries live 3rd-party and Pidge partner quotes via POST /v1.0/store/channel/vendor/quote
+   */
+  static async getQuote(
+    pickup: { lat: number; lng: number; pincode?: string },
+    dropoff: { lat: number; lng: number; pincode?: string },
+    codAmount = 0
+  ) {
+    const config = await this.getConfig();
+    const endpoint = `${config.baseUrl}/v1.0/store/channel/vendor/quote`;
+    const quotePayload = {
+      pickup: {
+        coordinates: {
+          latitude: pickup.lat,
+          longitude: pickup.lng,
+        },
+        pincode: pickup.pincode || "411027",
+      },
+      drop: [
+        {
+          ref: `QUOTE-${Date.now()}`,
+          location: {
+            coordinates: {
+              latitude: dropoff.lat,
+              longitude: dropoff.lng,
+            },
+            pincode: dropoff.pincode || "411027",
+          },
+          attributes: {
+            cod_amount: codAmount,
+            weight: 500,
+            volumetric_weight: 225,
+          },
+        },
+      ],
+    };
+
+    const res = await this.request("/v1.0/store/channel/vendor/quote", {
+      method: "POST",
+      body: JSON.stringify(quotePayload),
+    });
+
+    const httpStatus = res ? res.status : null;
+    let rawResponse: any = null;
+    if (res) {
+      const text = await res.text();
+      try {
+        rawResponse = JSON.parse(text);
+      } catch {
+        rawResponse = text;
+      }
+      console.log("\n================= [PIDGE API: GET QUOTE] =================");
+      console.log("Endpoint:", endpoint);
+      console.log("Status:", res.status, res.statusText);
+      console.log("Response Body:\n", JSON.stringify(rawResponse, null, 2));
+      console.log("==========================================================\n");
     }
 
     return {
-      serviceable: true,
-      fee: Math.max(30, Math.round(distKm * 12)),
-      distanceKm: distKm,
-      estimatedTimeMin: Math.round(15 + distKm * 5),
+      ok: Boolean(res && res.ok),
+      endpoint,
+      httpStatus,
+      requestPayload: quotePayload,
+      rawResponse,
+      quotes: rawResponse?.data || null,
     };
   }
 
@@ -283,6 +477,8 @@ export class PidgeService {
       ],
     };
 
+    const createEndpoint = `${config.baseUrl}/v1.0/store/channel/vendor/order`;
+
     try {
       const res = await this.request("/v1.0/store/channel/vendor/order", {
         method: "POST",
@@ -291,47 +487,75 @@ export class PidgeService {
 
       if (res && res.ok) {
         const data = await res.json();
+        console.log("\n================ [PIDGE API: CREATE ORDER] ================");
+        console.log("Endpoint:", createEndpoint);
+        console.log("Order Number:", payload.orderNumber);
+        console.log("Status:", res.status, res.statusText);
+        console.log("Response Body:\n", JSON.stringify(data, null, 2));
+        console.log("===========================================================\n");
+
         // Response format is { "data": { "{source_order_id}": "{pidge_id}" } }
-        const pidgeOrderId = data?.data?.[payload.orderNumber] || Object.values(data?.data || {})[0] as string;
+        const pidgeOrderId =
+          data?.data?.[payload.orderNumber] || (Object.values(data?.data || {})[0] as string);
 
         if (pidgeOrderId) {
-          // Fetch order details to retrieve track_code and live details
+          // Immediately fetch the newly created order from Pidge to capture actual live status & fulfillment object
           let trackCode: string | null = null;
-          let pidgeStatus = "CREATED";
-          let riderName: string | undefined;
-          let riderPhone: string | undefined;
+          let pidgeStatus: string | null = null;
+          let riderName: string | null = null;
+          let riderPhone: string | null = null;
+          let getOrderEndpoint: string | null = null;
+          let getOrderHttpStatus: number | null = null;
+          let rawOrderDetails: any = null;
 
           try {
-            const statusRes = await this.getOrderStatus(pidgeOrderId);
-            if (statusRes?.fulfillment) {
-              trackCode = statusRes.fulfillment.track_code || null;
-              pidgeStatus = statusRes.fulfillment.status || "CREATED";
-              riderName = statusRes.fulfillment.rider?.name;
-              riderPhone = statusRes.fulfillment.rider?.mobile;
+            const statusInfo = await this.getOrderStatusRaw(pidgeOrderId);
+            getOrderEndpoint = statusInfo.endpoint;
+            getOrderHttpStatus = statusInfo.httpStatus;
+            rawOrderDetails = statusInfo.rawResponse;
+
+            const orderData = statusInfo.data;
+            if (orderData) {
+              pidgeStatus =
+                orderData?.fulfillment?.status ||
+                (orderData?.status ? String(orderData.status).toUpperCase() : null);
+              trackCode = orderData?.fulfillment?.track_code || null;
+              riderName = orderData?.fulfillment?.rider?.name || null;
+              riderPhone = orderData?.fulfillment?.rider?.mobile || null;
             }
           } catch (e) {
             console.warn("Could not immediately fetch initial Pidge status:", e);
           }
 
+          // Pidge API only assigns `fulfillment.track_code` after carrier allocation — never fabricate a fallback URL if track_code is null.
           const isDev = config.baseUrl.includes(".dev.");
-          const trackingBase = isDev ? "https://trace.dev.pidge.in" : "https://trace.pidge.in";
-          const trackingUrl = trackCode
-            ? `${trackingBase}/?code=${trackCode}`
-            : `${trackingBase}/${pidgeOrderId}`;
+          const trackingPortalBase = isDev ? "https://tracking.dev.pidge.in" : "https://tracking.pidge.in";
+          const trackingUrl = trackCode ? `${trackingPortalBase}/?track_code=${trackCode}` : null;
 
           return {
             success: true,
+            endpoint: createEndpoint,
+            httpStatus: res.status,
+            requestPayload: pidgePayload,
             pidgeOrderId,
             trackingUrl,
             trackCode,
-            status: pidgeStatus,
+            status: pidgeStatus || "PENDING",
             riderName,
             riderPhone,
+            rawCreateResponse: data,
+            getOrderEndpoint,
+            getOrderHttpStatus,
+            rawOrderDetails,
           };
         }
       } else if (res) {
         const errorText = await res.text();
-        console.error(`Pidge create order failed with status ${res.status}:`, errorText);
+        console.error("\n================ [PIDGE API: CREATE ORDER FAILED] ================");
+        console.error("Endpoint:", createEndpoint);
+        console.error("Status:", res.status, res.statusText);
+        console.error("Error Response:\n", errorText);
+        console.error("==================================================================\n");
         throw new Error(`Pidge order creation failed (${res.status}): ${errorText}`);
       }
     } catch (err: any) {
@@ -343,18 +567,57 @@ export class PidgeService {
   }
 
   /**
-   * Retrieves order status and fulfillment information from Pidge
+   * Retrieves raw HTTP response and parsed order details from Pidge.
+   * Supports optional Pidge staging simulator query (?dummy_status=...) when explicitly passed.
    */
-  static async getOrderStatus(pidgeOrderId: string) {
-    const res = await this.request(`/v1.0/store/channel/vendor/order/${pidgeOrderId}`, {
+  static async getOrderStatusRaw(pidgeOrderId: string, dummyStatus?: string) {
+    const config = await this.getConfig();
+    const path = dummyStatus
+      ? `/v1.0/store/channel/vendor/order/${pidgeOrderId}?dummy_status=${encodeURIComponent(dummyStatus)}`
+      : `/v1.0/store/channel/vendor/order/${pidgeOrderId}`;
+    const fullEndpoint = `${config.baseUrl}${path}`;
+
+    const res = await this.request(path, {
       method: "GET",
     });
 
-    if (res && res.ok) {
-      const data = await res.json();
-      return data?.data;
+    const httpStatus = res ? res.status : null;
+    let rawResponse: any = null;
+
+    if (res) {
+      const text = await res.text();
+      try {
+        rawResponse = JSON.parse(text);
+      } catch {
+        rawResponse = text;
+      }
+
+      console.log(
+        dummyStatus
+          ? `\n======== [PIDGE STAGING SIMULATOR GET (?dummy_status=${dummyStatus})] ========`
+          : "\n============= [PIDGE API: GET ORDER STATUS] ============="
+      );
+      console.log("Endpoint:", fullEndpoint);
+      console.log("Status:", res.status, res.statusText);
+      console.log("Response Body:\n", JSON.stringify(rawResponse, null, 2));
+      console.log("=========================================================\n");
     }
-    return null;
+
+    return {
+      ok: Boolean(res && res.ok),
+      endpoint: fullEndpoint,
+      httpStatus,
+      rawResponse,
+      data: res && res.ok ? rawResponse?.data || null : null,
+    };
+  }
+
+  /**
+   * Retrieves order status and fulfillment information from Pidge
+   */
+  static async getOrderStatus(pidgeOrderId: string) {
+    const res = await this.getOrderStatusRaw(pidgeOrderId);
+    return res.data;
   }
 
   /**
@@ -416,9 +679,9 @@ export class PidgeService {
 
     await Order.findByIdAndUpdate(orderId, {
       pidgeOrderId: result.pidgeOrderId,
-      pidgeTrackingUrl: result.trackingUrl,
+      pidgeTrackingUrl: result.trackingUrl || null,
       pidgeStatus: result.status,
-      pidgeRiderName: result.riderName || "Pidge Delivery Partner",
+      pidgeRiderName: result.riderName || null,
       pidgeRiderPhone: result.riderPhone || null,
       orderStatus: "out_for_delivery",
       pickedUpTime: new Date(),
@@ -440,20 +703,41 @@ export class PidgeService {
    * Cancels a Pidge delivery task.
    */
   static async cancelDelivery(pidgeOrderId: string, reason = "Cancelled by store") {
+    const config = await this.getConfig();
+    const endpoint = `${config.baseUrl}/v1.0/store/channel/vendor/${pidgeOrderId}/cancel`;
+
     try {
       const res = await this.request(`/v1.0/store/channel/vendor/${pidgeOrderId}/cancel`, {
         method: "POST",
         body: JSON.stringify({ reason }),
       });
 
-      if (res && res.ok) {
-        return { success: true };
+      const httpStatus = res ? res.status : null;
+      let rawResponse: any = null;
+
+      if (res) {
+        const text = await res.text();
+        try {
+          rawResponse = JSON.parse(text);
+        } catch {
+          rawResponse = text;
+        }
       }
-      const errText = res ? await res.text() : "No response";
-      console.warn("Pidge cancel order responded with:", errText);
-    } catch (err) {
+
+      if (res && res.ok) {
+        console.log("\n============== [PIDGE API: CANCEL ORDER] ==============");
+        console.log("Endpoint:", endpoint);
+        console.log("Status:", res.status, res.statusText);
+        console.log("Response Body:\n", JSON.stringify(rawResponse, null, 2));
+        console.log("=======================================================\n");
+        return { success: true, endpoint, httpStatus, rawResponse, data: rawResponse };
+      }
+
+      console.warn("Pidge cancel order responded with:", httpStatus, rawResponse);
+      return { success: false, endpoint, httpStatus, rawResponse };
+    } catch (err: any) {
       console.error("Pidge cancel order error:", err);
+      return { success: false, endpoint, httpStatus: null, rawResponse: err?.message || "Network error" };
     }
-    return { success: false };
   }
 }

@@ -6,9 +6,11 @@ import { revalidatePath } from "next/cache";
 export async function dispatchOrderToPidgeAction(orderId: string) {
   try {
     const res = await PidgeService.dispatchOrderToPidge(orderId);
-    revalidatePath(`/admin/orders`);
-    revalidatePath(`/kitchen/order/${orderId}`);
-    revalidatePath(`/orders/${orderId}/track`);
+    try {
+      revalidatePath(`/admin/orders`);
+      revalidatePath(`/kitchen/order/${orderId}`);
+      revalidatePath(`/orders/${orderId}/track`);
+    } catch {}
     return { success: true, trackingUrl: res.trackingUrl, pidgeOrderId: res.pidgeOrderId };
   } catch (err: any) {
     console.error("dispatchOrderToPidgeAction error:", err);

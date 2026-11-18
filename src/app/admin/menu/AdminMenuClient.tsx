@@ -232,7 +232,7 @@ export default function AdminMenuClient({ items: initialItems, kitchens, categor
       description: form.description.trim(),
       price: parseFloat(form.price),
       categoryId: form.categoryId || categories[0]?.id || "",
-      isVeg: form.isVeg,
+      isVeg: true,
       tags: form.tags.trim(),
       images: imageUrl || "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=400&q=80",
     };
@@ -1085,32 +1085,17 @@ export default function AdminMenuClient({ items: initialItems, kitchens, categor
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#0d261e] mb-1">
-                    Tag / Highlight
-                  </label>
-                  <input
-                    type="text"
-                    value={form.tags}
-                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                    placeholder="e.g. Bestseller, Office Favorite"
-                    className="w-full h-10 px-3.5 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 pt-6">
-                  <input
-                    type="checkbox"
-                    id="isVegCheck"
-                    checked={form.isVeg}
-                    onChange={(e) => setForm({ ...form, isVeg: e.target.checked })}
-                    className="size-4 accent-[#064e3b]"
-                  />
-                  <label htmlFor="isVegCheck" className="text-xs font-bold text-[#0d261e]">
-                    Pure Veg Dish
-                  </label>
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-[#0d261e] mb-1">
+                  Tag / Highlight
+                </label>
+                <input
+                  type="text"
+                  value={form.tags}
+                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                  placeholder="e.g. Bestseller, Office Favorite"
+                  className="w-full h-10 px-3.5 rounded-xl bg-[#fbf9f4] border border-[#e6e2d8] text-xs text-[#0d261e] focus:outline-none focus:border-[#064e3b] focus:bg-white transition"
+                />
               </div>
 
               {/* Image Input */}

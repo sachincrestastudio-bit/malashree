@@ -53,7 +53,6 @@ export default function MenuClient({
   const [dbDishes, setDbDishes] = useState<MenuItemData[]>(initialDishes);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [search, setSearch] = useState("");
-  const [vegOnly, setVegOnly] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Re-fetch when branchId or search changes
@@ -124,10 +123,9 @@ export default function MenuClient({
         d.name.toLowerCase().includes(search.toLowerCase()) ||
         (d.desc && d.desc.toLowerCase().includes(search.toLowerCase())) ||
         d.category.toLowerCase().includes(search.toLowerCase());
-      const matchVeg = !vegOnly || d.veg;
-      return matchCat && matchSearch && matchVeg;
+      return matchCat && matchSearch;
     });
-  }, [dbDishes, selectedCategory, search, vegOnly]);
+  }, [dbDishes, selectedCategory, search]);
 
   // Group dishes by category if "All" is selected
   const groupedDishes = useMemo(() => {
@@ -204,25 +202,6 @@ export default function MenuClient({
                     60% OFF up to ₹120 (Code: ROYAL60)
                   </span>
                 </div>
-              </div>
-            </div>
-
-            {/* Veg Switch */}
-            <div className="flex items-center gap-3 self-start md:self-center">
-              <div className="flex items-center gap-2 bg-[#fbf9f4] px-4 py-2 rounded-2xl border border-[#e6e2d8]">
-                <span className="text-xs font-bold text-[#0d261e]">Pure Veg</span>
-                <button
-                  onClick={() => setVegOnly(!vegOnly)}
-                  className={`w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 ease-in-out cursor-pointer ${
-                    vegOnly ? "bg-[#064e3b]" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`size-4.5 rounded-full bg-white transition-transform duration-200 ease-in-out shadow-xs ${
-                      vegOnly ? "translate-x-4.5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
               </div>
             </div>
           </div>

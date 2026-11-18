@@ -119,8 +119,6 @@ export default function HomeClient({
 
     if (activeFilter === "rating") {
       list = list.filter((d) => (d.rating || 4.8) >= 4.5);
-    } else if (activeFilter === "veg") {
-      list = list.filter((d) => d.veg !== false);
     } else if (activeFilter === "fast") {
       list = list.filter((d) => (parseInt(d.time || "25") || 25) <= 25);
     } else if (activeFilter === "offers") {
@@ -377,16 +375,6 @@ export default function HomeClient({
             }`}
           >
             Rating 4.5+ ★
-          </button>
-          <button
-            onClick={() => toggleFilter("veg")}
-            className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-              activeFilter === "veg"
-                ? "bg-[#064e3b] text-[#d4af37] border-[#064e3b]"
-                : "bg-white text-[#52635c] border-[#e6e2d8] hover:border-[#d4af37]"
-            }`}
-          >
-            Pure Veg
           </button>
           <button
             onClick={() => toggleFilter("fast")}

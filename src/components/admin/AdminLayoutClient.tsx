@@ -24,6 +24,7 @@ import {
   X,
   ChevronRight,
   UserCheck,
+  Bike,
 } from "lucide-react";
 
 interface AdminLayoutClientProps {
@@ -35,6 +36,7 @@ const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Homepage", href: "/admin/homepage", icon: Sparkles },
   { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
+  { name: "Pidge Sandbox", href: "/admin/pidge-test", icon: Bike },
   { name: "Kitchens", href: "/admin/kitchens", icon: Store },
   { name: "Branch Heads", href: "/admin/managers", icon: UserCheck },
   { name: "Menu", href: "/admin/menu", icon: UtensilsCrossed },

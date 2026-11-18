@@ -95,6 +95,13 @@ export default function AdminOrdersClient({ orders }: { orders: OrderItem[] }) {
                         >
                           <Bike className="size-3" /> Pidge Track <ExternalLink className="size-2.5" />
                         </a>
+                      ) : order.pidgeOrderId ? (
+                        <span className="inline-flex flex-col gap-0.5 text-[10px] font-mono text-olive-dark">
+                          <span className="font-bold text-ink">
+                            Pidge: {order.pidgeStatus || "PENDING"}
+                          </span>
+                          <span className="text-[9px] text-olive/70">{order.pidgeOrderId}</span>
+                        </span>
                       ) : (
                         <span className="text-[10px] font-mono text-olive/50">Not Dispatched</span>
                       )}

@@ -5,6 +5,9 @@ import { Order } from "@/models/Order";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log("\n================ [PIDGE WEBHOOK RECEIVED] ================");
+    console.log(JSON.stringify(body, null, 2));
+    console.log("==========================================================\n");
 
     // Pidge sends: id (Pidge order ID), dd_channel.order_id (Malashree order number)
     const pidgeOrderId = body.id || body.order_id || body.pidge_order_id;
@@ -54,8 +57,8 @@ export async function POST(req: Request) {
 
     if (trackCode && (!order.pidgeTrackingUrl || !order.pidgeTrackingUrl.includes(trackCode))) {
       const isDev = (process.env.PIDGE_API_URL || "").includes(".dev.");
-      const baseTrack = isDev ? "https://trace.dev.pidge.in" : "https://trace.pidge.in";
-      order.pidgeTrackingUrl = `${baseTrack}/?code=${trackCode}`;
+      const baseTrack = isDev ? "https://tracking.dev.pidge.in" : "https://tracking.pidge.in";
+      order.pidgeTrackingUrl = `${baseTrack}/?track_code=${trackCode}`;
     }
 
     order.orderStatus = newOrderStatus;
